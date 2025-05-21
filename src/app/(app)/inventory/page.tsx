@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { PlusCircle, Eye, FilePenLine, Trash2, Barcode, QrCode } from 'lucide-react';
+import { PlusCircle, Eye, FilePenLine, Trash2 } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,12 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { getItems, deleteItem, toggleItemSoldStatus } from '@/lib/actions/itemActions';
+import { getItems, deleteItem } from '@/lib/actions/itemActions';
 import type { Item } from '@/types/item';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -26,8 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SubmitButton } from '@/components/shared/SubmitButton';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import ToggleSoldStatusForm from '@/components/inventory/ToggleSoldStatusForm'; // New import
 
 async function DeleteItemAction({ itemId }: { itemId: string }) {
   const deleteItemWithId = deleteItem.bind(null, itemId);
@@ -38,27 +35,7 @@ async function DeleteItemAction({ itemId }: { itemId: string }) {
   );
 }
 
-async function ToggleSoldStatusAction({ item }: { item: Item }) {
-  const toggleSoldStatusWithId = toggleItemSoldStatus.bind(null, item.id);
-  return (
-    <form action={toggleSoldStatusWithId} className="flex items-center space-x-2">
-      <Switch
-        id={`sold-switch-${item.id}`}
-        checked={item.sold}
-        onCheckedChange={(event) => {
-          // This will trigger form submission on change
-          const form = (event.target as HTMLElement).closest('form');
-          form?.requestSubmit();
-        }}
-        aria-label={item.sold ? "Mark as not sold" : "Mark as sold"}
-      />
-      <Label htmlFor={`sold-switch-${item.id}`} className="text-xs">
-        {item.sold ? "Sold" : "In Stock"}
-      </Label>
-    </form>
-  );
-}
-
+// Removed ToggleSoldStatusAction as it's now a separate client component
 
 export default async function InventoryPage() {
   const items = await getItems();
@@ -110,7 +87,7 @@ export default async function InventoryPage() {
                   {item.salesPrice ? `$${item.salesPrice.toFixed(2)}` : '-'}
                 </TableCell>
                 <TableCell className="text-center">
-                  <ToggleSoldStatusAction item={item} />
+                  <ToggleSoldStatusForm item={item} /> {/* Use the new client component */}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
