@@ -1,13 +1,13 @@
 
 import type {Metadata} from 'next';
-import { Inter } from 'next/font/google'; // Changed from Geist_Sans to Inter
+import { Inter } from 'next/font/google';
 import './globals.css';
 
-// Instantiate Inter and assign its CSS variable to '--font-geist-sans'
-// This keeps compatibility with globals.css and tailwind.config.ts
-const mainFont = Inter({
+// Instantiate Inter and assign its CSS variable
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-geist-sans', 
+  variable: '--font-inter',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -21,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // mainFont.variable will be a class name that defines the CSS variable '--font-geist-sans'
-    <html lang="en" className={`${mainFont.variable}`}>
+    // Apply the CSS variable to the html tag
+    <html lang="en" className={inter.variable}>
       <body className={`antialiased`}>
         {children}
       </body>

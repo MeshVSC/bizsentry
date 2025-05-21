@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+html {
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 @layer base {
