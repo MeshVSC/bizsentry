@@ -5,8 +5,8 @@ import type { Item, ItemInput } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 
-// In-memory store for demo purposes
-let items: Item[] = [
+// Initial seed data for the in-memory store
+const initialItems: Item[] = [
   {
     id: "1",
     name: "Wireless Mouse",
@@ -63,6 +63,16 @@ let items: Item[] = [
   },
 ];
 
+// Ensure items array persists across HMR updates in dev
+// Use globalThis for wider compatibility (Node.js global and browser window)
+// but since this is a server action, globalThis refers to Node.js global.
+if (!globalThis._itemsStore) {
+  // Deep copy initialItems to prevent modification of the original constant
+  globalThis._itemsStore = JSON.parse(JSON.stringify(initialItems));
+}
+let items: Item[] = globalThis._itemsStore;
+
+
 export async function getItems(): Promise<Item[]> {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 200));
@@ -81,16 +91,16 @@ export async function addItem(data: ItemInput): Promise<Item> {
     id,
     name: data.name,
     description: data.description,
-    quantity: data.quantity, // Assumes data.quantity is already a number from Zod coercion
+    quantity: data.quantity,
     category: data.category,
     storageLocation: data.storageLocation,
     binLocation: data.binLocation,
     vendor: data.vendor,
-    originalPrice: data.originalPrice, // Assumes data.originalPrice is number | undefined
-    salesPrice: data.salesPrice,     // Assumes data.salesPrice is number | undefined
+    originalPrice: data.originalPrice,
+    salesPrice: data.salesPrice,
     project: data.project,
     receiptImageUrl: data.receiptImageUrl,
-    sold: false,
+    sold: false, // New items are not sold by default
     barcodeData: `BARCODE-${id.substring(0,8).toUpperCase()}`,
     qrCodeData: `QR-${id.toUpperCase()}`,
     createdAt: new Date().toISOString(),
@@ -109,22 +119,26 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
     return undefined;
   }
 
-  // Spread existing item first, then the partial update data
-  // This ensures that only provided fields in `data` are updated
-  // and existing fields in `items[itemIndex]` are preserved if not in `data`.
-  const updatedItem: Item = {
+  const updatedItemDetails: Partial<Item> = { ...data };
+  // If quantity is updated to 0, should it also be marked as sold?
+  // Current logic keeps 'sold' status separate unless explicitly toggled.
+  // if (data.quantity !== undefined && data.quantity <= 0 && items[itemIndex].sold === false) {
+  //   updatedItemDetails.sold = true; // Example: auto-mark as sold if quantity hits 0
+  // }
+
+
+  items[itemIndex] = {
     ...items[itemIndex],
-    ...data, // data is Partial<ItemInput>, fields like quantity, prices are number | undefined
+    ...updatedItemDetails,
     updatedAt: new Date().toISOString(),
   };
-  items[itemIndex] = updatedItem;
-
+  
   revalidatePath("/inventory");
   revalidatePath(`/inventory/${id}`);
   revalidatePath(`/inventory/${id}/edit`);
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  return JSON.parse(JSON.stringify(updatedItem));
+  return JSON.parse(JSON.stringify(items[itemIndex]));
 }
 
 export async function deleteItem(id: string): Promise<boolean> {
@@ -143,7 +157,6 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
   try {
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
-    // Ensure items array exists, even if empty, to match schema
     if (!extractedData.items) {
       return { ...extractedData, items: [] };
     }
