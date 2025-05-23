@@ -28,22 +28,22 @@ import { SubmitButton } from "@/components/shared/SubmitButton";
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
-  description: z.string().max(500).optional(),
+  description: z.string().max(500).optional().default(""), // Ensure default for optional strings
   quantity: z.coerce.number().min(0, { message: "Quantity must be non-negative." }),
-  category: z.string().max(50).optional(),
-  storageLocation: z.string().max(100).optional(),
-  binLocation: z.string().max(50).optional(),
-  vendor: z.string().max(100).optional(),
-  originalPrice: z.coerce.number().min(0).optional(),
+  category: z.string().max(50).optional().default(""),
+  storageLocation: z.string().max(100).optional().default(""),
+  binLocation: z.string().max(50).optional().default(""),
+  vendor: z.string().max(100).optional().default(""),
+  originalPrice: z.coerce.number().min(0).optional(), // Zod handles empty string to 0 or undefined if truly optional
   salesPrice: z.coerce.number().min(0).optional(),
-  project: z.string().max(100).optional(),
-  receiptImageUrl: z.string().url().optional(),
+  project: z.string().max(100).optional().default(""),
+  receiptImageUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""), // Allow empty string or valid URL
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
-  item?: Item;
+  item?: Item; // Item is the full DB model
   onSubmitAction: (data: ItemInput) => Promise<Item | undefined | { error: string }>;
   isEditing?: boolean;
 }
@@ -64,8 +64,8 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice ?? "", // Ensure controlled input by defaulting to ""
-      salesPrice: item?.salesPrice ?? "",    // Ensure controlled input by defaulting to ""
+      originalPrice: item?.originalPrice ?? undefined, // Explicitly undefined for optional numbers if not present
+      salesPrice: item?.salesPrice ?? undefined,    
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
     },
@@ -82,14 +82,17 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
         if ('error' in result || !result.items || result.items.length === 0) {
           toast({ title: "Receipt Processing Failed", description: (result as any).error || "Could not extract data from receipt.", variant: "destructive" });
         } else {
-          // For simplicity, using the first item extracted. A real app might allow choosing or merging.
           const extracted = result.items[0] as ExtractedItemData;
           if (extracted.name) form.setValue("name", extracted.name, { shouldValidate: true });
           if (extracted.description) form.setValue("description", extracted.description, { shouldValidate: true });
           if (extracted.quantity) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
           if (extracted.price) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
-          // Simulate storing the image URL. In a real app, upload to storage and get URL.
-          form.setValue("receiptImageUrl", URL.createObjectURL(file)); 
+          
+          // For demo, using a placeholder for the uploaded image URL.
+          // In a real app, this would be an actual URL from a storage service.
+          // For now, storing the object URL to show a preview.
+          const objectURL = URL.createObjectURL(file);
+          form.setValue("receiptImageUrl", objectURL, { shouldValidate: true }); 
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
         }
       } catch (error) {
@@ -105,19 +108,49 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
   };
 
   async function onSubmit(data: ItemFormValues) {
+    // Clean up optional fields: Zod default("") might send empty strings; convert to undefined for backend if preferred
+    // However, ItemInput now expects string for these, so empty string is fine.
+    // For optional numbers, Zod already coerces empty inputs to 0 or handles undefined based on schema.
+    // originalPrice and salesPrice will be number | undefined from Zod.
+
+    // Ensure receiptImageUrl is undefined if it's an empty string and not a valid URL
+    // The schema `optional().or(z.literal("")).default("")` handles this. Zod will pass "" if empty.
+    // The ItemInput type expects string | undefined for receiptImageUrl.
+    const payload: ItemInput = {
+        ...data,
+        description: data.description || undefined, // Ensure undefined if empty
+        category: data.category || undefined,
+        storageLocation: data.storageLocation || undefined,
+        binLocation: data.binLocation || undefined,
+        vendor: data.vendor || undefined,
+        project: data.project || undefined,
+        receiptImageUrl: data.receiptImageUrl || undefined, // Ensure undefined if empty string
+    };
+
+
     startTransition(async () => {
-      const result = await onSubmitAction(data as ItemInput); // Cast needed due to Omit in ItemInput
-      if (result && !('error' in result)) {
+      try {
+        const result = await onSubmitAction(payload); 
+        if (result && !('error' in result) && result.id) { // Check for result.id for successful add/update
+          toast({
+            title: isEditing ? "Item Updated" : "Item Added",
+            description: `${data.name} has been successfully ${isEditing ? 'updated' : 'added'}.`,
+          });
+          router.push(`/inventory/${result.id}`);
+          router.refresh(); // Ensure page reloads with fresh data
+        } else {
+          const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input.`;
+          toast({
+            title: "Operation Failed",
+            description: errorMsg,
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Failed to submit item form:", error);
         toast({
-          title: isEditing ? "Item Updated" : "Item Added",
-          description: `${data.name} has been successfully ${isEditing ? 'updated' : 'added'}.`,
-        });
-        router.push(`/inventory/${result.id}`);
-      } else {
-         const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item.`;
-        toast({
-          title: "Error",
-          description: errorMsg,
+          title: "Submission Error",
+          description: `An unexpected error occurred: ${(error as Error).message}. Please try again.`,
           variant: "destructive",
         });
       }
@@ -193,10 +226,10 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                     <FormField
                     control={form.control}
                     name="originalPrice"
-                    render={({ field }) => (
+                    render={({ field }) => ( // field.value will be number | undefined due to zod schema
                         <FormItem>
                         <FormLabel>Original Price (Cost)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -204,10 +237,10 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                     <FormField
                     control={form.control}
                     name="salesPrice"
-                    render={({ field }) => (
+                    render={({ field }) => ( // field.value will be number | undefined
                         <FormItem>
                         <FormLabel>Sales Price</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -287,13 +320,19 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
                     <FormLabel>Receipt Preview</FormLabel>
-                    <img src={form.watch("receiptImageUrl")} alt="Receipt Preview" className="mt-2 rounded-md border max-h-60 w-full object-contain" />
+                    {/* Ensure valid URL for img src; object URLs are temporary */}
+                    <img 
+                        src={form.watch("receiptImageUrl")} 
+                        alt="Receipt Preview" 
+                        className="mt-2 rounded-md border max-h-60 w-full object-contain" 
+                        onError={(e) => (e.currentTarget.style.display = 'none')} // Hide if image fails to load
+                    />
                   </div>
                 )}
                  <FormField
                   control={form.control}
                   name="receiptImageUrl"
-                  render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} // Hidden field to store URL
+                  render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)}
                 />
               </CardContent>
             </Card>
@@ -312,4 +351,3 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
     </Form>
   );
 }
-

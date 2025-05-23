@@ -78,14 +78,21 @@ export async function getItemById(id: string): Promise<Item | undefined> {
 export async function addItem(data: ItemInput): Promise<Item> {
   const id = crypto.randomUUID();
   const newItem: Item = {
-    ...data,
     id,
-    quantity: Number(data.quantity) || 0,
-    originalPrice: data.originalPrice ? Number(data.originalPrice) : undefined,
-    salesPrice: data.salesPrice ? Number(data.salesPrice) : undefined,
-    sold: false, // New items are not sold by default
-    barcodeData: `BARCODE-${id.substring(0,8)}`,
-    qrCodeData: `QR-${id}`,
+    name: data.name,
+    description: data.description,
+    quantity: data.quantity, // Assumes data.quantity is already a number from Zod coercion
+    category: data.category,
+    storageLocation: data.storageLocation,
+    binLocation: data.binLocation,
+    vendor: data.vendor,
+    originalPrice: data.originalPrice, // Assumes data.originalPrice is number | undefined
+    salesPrice: data.salesPrice,     // Assumes data.salesPrice is number | undefined
+    project: data.project,
+    receiptImageUrl: data.receiptImageUrl,
+    sold: false,
+    barcodeData: `BARCODE-${id.substring(0,8).toUpperCase()}`,
+    qrCodeData: `QR-${id.toUpperCase()}`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -102,15 +109,16 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
     return undefined;
   }
 
-  const updatedItem = {
+  // Spread existing item first, then the partial update data
+  // This ensures that only provided fields in `data` are updated
+  // and existing fields in `items[itemIndex]` are preserved if not in `data`.
+  const updatedItem: Item = {
     ...items[itemIndex],
-    ...data,
-    quantity: data.quantity !== undefined ? Number(data.quantity) : items[itemIndex].quantity,
-    originalPrice: data.originalPrice !== undefined ? Number(data.originalPrice) : items[itemIndex].originalPrice,
-    salesPrice: data.salesPrice !== undefined ? Number(data.salesPrice) : items[itemIndex].salesPrice,
+    ...data, // data is Partial<ItemInput>, fields like quantity, prices are number | undefined
     updatedAt: new Date().toISOString(),
   };
   items[itemIndex] = updatedItem;
+
   revalidatePath("/inventory");
   revalidatePath(`/inventory/${id}`);
   revalidatePath(`/inventory/${id}/edit`);
@@ -135,6 +143,10 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
   try {
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
+    // Ensure items array exists, even if empty, to match schema
+    if (!extractedData.items) {
+      return { ...extractedData, items: [] };
+    }
     return extractedData;
   } catch (error) {
     console.error("Error processing receipt:", error);

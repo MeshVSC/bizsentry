@@ -19,10 +19,19 @@ export interface Item {
   updatedAt: string; // Store as ISO string
 }
 
-export type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt' | 'sold' | 'barcodeData' | 'qrCodeData'> & {
-  quantity: number | string; // Allow string for form input
-  originalPrice?: number | string;
-  salesPrice?: number | string;
+// ItemInput defines the expected shape of data from ItemForm after Zod validation & coercion.
+export type ItemInput = {
+  name: string;
+  description?: string;
+  quantity: number; // Zod ensures this is a number
+  category?: string;
+  storageLocation?: string;
+  binLocation?: string;
+  vendor?: string;
+  originalPrice?: number; // Zod ensures this is number | undefined
+  salesPrice?: number;    // Zod ensures this is number | undefined
+  project?: string;
+  receiptImageUrl?: string; // Zod ensures this is string | undefined (if url() passes or empty)
 };
 
 // For AI extraction mapping
