@@ -5,23 +5,19 @@ import { getItems } from '@/lib/actions/itemActions';
 import type { Item } from '@/types/item';
 import { Package, PackageCheck, Layers, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-// Removed direct recharts imports, they are now in the client component
 import type { ChartConfig } from '@/components/ui/chart';
-import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart'; // New Import
-
-// The CustomTooltip component was defined here but not used by the BarChart;
-// ChartTooltipContent from shadcn/ui/chart is used instead.
-// It has been removed.
+import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 
 export default async function AnalyticsPage() {
   const items = await getItems();
 
   // KPI Calculations
   const totalItemsInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + item.quantity, 0);
-  const totalItemsSoldCount = items.filter(item => item.sold).length;
+  const totalItemsSoldCount = items.filter(item => item.sold).length; // Number of distinct item types marked as sold
   
   const categoriesData: { [key: string]: number } = {};
-  items.forEach(item => {
+  // Calculate count of UNSOLD items per category for the chart
+  items.filter(item => !item.sold).forEach(item => {
     const category = item.category || "Uncategorized";
     categoriesData[category] = (categoriesData[category] || 0) + item.quantity;
   });
@@ -30,18 +26,17 @@ export default async function AnalyticsPage() {
 
   const chartConfig = {
     count: {
-      label: "Items",
+      label: "Items in Stock", // Updated label to be more specific
       color: "hsl(var(--chart-1))",
     },
   } satisfies ChartConfig;
   
   const totalValueSold = items.filter(item => item.sold).reduce((sum, item) => {
-    // Assuming sold items quantity was 1 or their last known quantity before being marked sold.
-    // This needs more robust logic if partial quantities are sold.
-    // For now, let's sum salesPrice * quantity if item is sold (assuming quantity reflects units sold before marking the SKU sold)
-    // Or just sum salesPrice if quantity means current stock.
-    // Let's assume 'sold' means the entire listing is sold.
-    return sum + (item.salesPrice || 0) * (item.quantity > 0 ? item.quantity : 1); // Approximation
+    // This is an approximation:
+    // If item.quantity > 0, it's assumed this was the quantity sold.
+    // If item.quantity === 0, it's assumed 1 unit was sold.
+    const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1;
+    return sum + (item.salesPrice || 0) * quantitySoldApproximation;
   }, 0);
 
 
@@ -50,10 +45,15 @@ export default async function AnalyticsPage() {
       <PageHeader title="Inventory Analytics" description="Detailed insights into your stock." />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard title="Total Items in Storage" value={totalItemsInStorage} icon={Package} />
-        <StatCard title="Distinct Items Sold" value={totalItemsSoldCount} icon={PackageCheck} />
-        <StatCard title="Number of Categories" value={Object.keys(categoriesData).length} icon={Layers} />
-        <StatCard title="Est. Value of Sold Items" value={`$${totalValueSold.toFixed(2)}`} icon={DollarSign} description="Based on sales price of sold items" />
+        <StatCard title="Total Items in Storage" value={totalItemsInStorage} icon={Package} description="Sum of quantities for all unsold items" />
+        <StatCard title="Distinct Item Types Sold" value={totalItemsSoldCount} icon={PackageCheck} description="Number of unique item SKUs marked as sold" />
+        <StatCard title="Categories with Stock" value={Object.keys(categoriesData).length} icon={Layers} description="Unique categories with unsold items" />
+        <StatCard 
+          title="Est. Value of Sold Items" 
+          value={`$${totalValueSold.toFixed(2)}`} 
+          icon={DollarSign} 
+          description="Approx. value based on sales price & assumed sold quantity" 
+        />
       </div>
 
       <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={chartConfig} />
