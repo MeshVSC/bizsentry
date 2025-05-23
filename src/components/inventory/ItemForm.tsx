@@ -64,8 +64,8 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice || undefined,
-      salesPrice: item?.salesPrice || undefined,
+      originalPrice: item?.originalPrice ?? "", // Ensure controlled input by defaulting to ""
+      salesPrice: item?.salesPrice ?? "",    // Ensure controlled input by defaulting to ""
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
     },
