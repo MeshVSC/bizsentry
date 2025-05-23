@@ -69,9 +69,9 @@ export default async function DashboardPage() {
             
           </CardContent>
            <CardFooter>
-             <Link href="/inventory/add" passHref>
-                <Button>Add New Item</Button>
-             </Link>
+             <Button asChild>
+               <Link href="/inventory/add">Add New Item</Link>
+             </Button>
           </CardFooter>
         </Card>
         
@@ -81,9 +81,9 @@ export default async function DashboardPage() {
             <CardDescription className="text-center mb-4">
                 StockPilot helps you manage your items efficiently. Explore features like receipt scanning and detailed analytics.
             </CardDescription>
-            <Link href="/analytics" passHref>
-                <Button variant="outline">View Full Analytics</Button>
-            </Link>
+            <Button asChild variant="outline">
+              <Link href="/analytics">View Full Analytics</Link>
+            </Button>
         </Card>
 
       </div>

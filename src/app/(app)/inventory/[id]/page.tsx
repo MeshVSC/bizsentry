@@ -79,11 +79,11 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
         description={item.description || "No description available."}
         actions={
           <div className="flex gap-2">
-            <Link href={`/inventory/${item.id}/edit`} passHref>
-              <Button variant="outline">
+            <Button asChild variant="outline">
+              <Link href={`/inventory/${item.id}/edit`}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive">

@@ -24,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { SubmitButton } from '@/components/shared/SubmitButton';
-import ToggleSoldStatusForm from '@/components/inventory/ToggleSoldStatusForm'; // New import
+import ToggleSoldStatusForm from '@/components/inventory/ToggleSoldStatusForm';
 
 async function DeleteItemAction({ itemId }: { itemId: string }) {
   const deleteItemWithId = deleteItem.bind(null, itemId);
@@ -35,8 +35,6 @@ async function DeleteItemAction({ itemId }: { itemId: string }) {
   );
 }
 
-// Removed ToggleSoldStatusAction as it's now a separate client component
-
 export default async function InventoryPage() {
   const items = await getItems();
 
@@ -46,11 +44,11 @@ export default async function InventoryPage() {
         title="Inventory"
         description="Manage your stock items."
         actions={
-          <Link href="/inventory/add" passHref>
-            <Button>
+          <Button asChild>
+            <Link href="/inventory/add">
               <PlusCircle className="mr-2 h-4 w-4" /> Add Item
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         }
       />
       <div className="overflow-x-auto rounded-lg border shadow-sm">
@@ -91,16 +89,16 @@ export default async function InventoryPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Link href={`/inventory/${item.id}`} passHref>
-                      <Button variant="ghost" size="icon" aria-label="View Item">
+                    <Button asChild variant="ghost" size="icon" aria-label="View Item">
+                      <Link href={`/inventory/${item.id}`}>
                         <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href={`/inventory/${item.id}/edit`} passHref>
-                      <Button variant="ghost" size="icon" aria-label="Edit Item">
+                      </Link>
+                    </Button>
+                    <Button asChild variant="ghost" size="icon" aria-label="Edit Item">
+                      <Link href={`/inventory/${item.id}/edit`}>
                         <FilePenLine className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" aria-label="Delete Item">
