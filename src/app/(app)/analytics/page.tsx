@@ -5,21 +5,13 @@ import { getItems } from '@/lib/actions/itemActions';
 import type { Item } from '@/types/item';
 import { Package, PackageCheck, Layers, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+// Removed direct recharts imports, they are now in the client component
+import type { ChartConfig } from '@/components/ui/chart';
+import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart'; // New Import
 
-// Custom Recharts Tooltip
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="p-2 bg-background border border-border shadow-lg rounded-md">
-        <p className="label text-sm text-foreground">{`${label} : ${payload[0].value}`}</p>
-      </div>
-    );
-  }
-  return null;
-};
-
+// The CustomTooltip component was defined here but not used by the BarChart;
+// ChartTooltipContent from shadcn/ui/chart is used instead.
+// It has been removed.
 
 export default async function AnalyticsPage() {
   const items = await getItems();
@@ -64,27 +56,7 @@ export default async function AnalyticsPage() {
         <StatCard title="Est. Value of Sold Items" value={`$${totalValueSold.toFixed(2)}`} icon={DollarSign} description="Based on sales price of sold items" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Items per Category</CardTitle>
-          <CardDescription>Distribution of items across different categories.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {itemsPerCategoryChartData.length > 0 ? (
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <BarChart accessibilityLayer data={itemsPerCategoryChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false}/>
-                <Tooltip content={<ChartTooltipContent />} cursor={{ fill: 'hsl(var(--muted))' }}/>
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={4} />
-              </BarChart>
-            </ChartContainer>
-          ) : (
-            <p className="text-center text-muted-foreground py-10">No category data available to display.</p>
-          )}
-        </CardContent>
-      </Card>
+      <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={chartConfig} />
 
       {/* Placeholder for more charts/analytics */}
       <div className="mt-8 grid gap-6 md:grid-cols-2">
@@ -104,4 +76,3 @@ export default async function AnalyticsPage() {
     </>
   );
 }
-
