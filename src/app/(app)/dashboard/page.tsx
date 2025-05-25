@@ -2,7 +2,7 @@
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
-import { Package, PackageCheck, DollarSign, Layers } from 'lucide-react';
+import { Package, PackageCheck, DollarSign, Layers, TrendingUp } from 'lucide-react';
 import type { Item } from '@/types/item';
 import {
   Card,
@@ -12,13 +12,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
 export default async function DashboardPage() {
-  // Correctly destructure items from the result of getItems
   const { items } = await getItems();
 
   const totalItemsInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + item.quantity, 0);
@@ -29,6 +27,14 @@ export default async function DashboardPage() {
 
   const totalValueInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + (item.salesPrice || 0) * item.quantity, 0);
   
+  const totalEstimatedProfitSold = items
+    .filter(item => item.sold && typeof item.salesPrice === 'number' && typeof item.originalPrice === 'number')
+    .reduce((sum, item) => {
+      const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1;
+      const profitPerUnit = item.salesPrice! - item.originalPrice!;
+      return sum + profitPerUnit * quantitySoldApproximation;
+    }, 0);
+
   const recentlyAddedItems = [...items]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
@@ -42,6 +48,17 @@ export default async function DashboardPage() {
         <StatCard title="Number of Categories" value={numberOfCategories} icon={Layers} description="Unique product categories" />
         <StatCard title="Est. Value in Storage" value={`$${totalValueInStorage.toFixed(2)}`} icon={DollarSign} description="Based on sales price" />
       </div>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4"> {/* Adjusted grid for the new card */}
+        <StatCard 
+            title="Total Est. Profit (Sold)" 
+            value={`$${totalEstimatedProfitSold.toFixed(2)}`} 
+            icon={TrendingUp} 
+            description="Approx. profit from items marked as sold" 
+        />
+        {/* Placeholder for other potential cards or adjust col-span of existing ones if this is the only new one in this row */}
+      </div>
+
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <Card>
