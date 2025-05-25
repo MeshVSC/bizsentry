@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon } from 'lucide-react';
+import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -41,9 +41,10 @@ interface DetailItemProps {
   value?: string | number | null;
   isCurrency?: boolean;
   isDate?: boolean;
+  className?: string;
 }
 
-function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = false }: DetailItemProps) {
+function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = false, className }: DetailItemProps) {
   if (value === null || typeof value === 'undefined' || value === '') return null;
   
   let displayValue = value;
@@ -55,7 +56,7 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 
   return (
     <div className="flex items-start space-x-3">
-      <Icon className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+      <Icon className={cn("h-5 w-5 text-muted-foreground mt-1 flex-shrink-0", className)} />
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-sm text-muted-foreground">{String(displayValue)}</p>
@@ -71,6 +72,22 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   if (!item) {
     notFound();
   }
+
+  let profitLoss: number | null = null;
+  let profitLossIcon = DollarSign;
+  let profitLossColor = "text-muted-foreground";
+
+  if (typeof item.salesPrice === 'number' && typeof item.originalPrice === 'number') {
+    profitLoss = item.salesPrice - item.originalPrice;
+    if (profitLoss > 0) {
+      profitLossIcon = TrendingUp;
+      profitLossColor = "text-green-600";
+    } else if (profitLoss < 0) {
+      profitLossIcon = TrendingDown;
+      profitLossColor = "text-red-600";
+    }
+  }
+
 
   return (
     <>
@@ -137,6 +154,15 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={Layers} label="Category" value={item.category} />
                 <DetailItem icon={DollarSign} label="Original Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
+                {profitLoss !== null && (
+                  <DetailItem 
+                    icon={profitLossIcon} 
+                    label="Est. Profit/Loss" 
+                    value={profitLoss} 
+                    isCurrency 
+                    className={profitLossColor}
+                  />
+                )}
                 <DetailItem icon={MapPin} label="Storage Location" value={item.storageLocation} />
                 <DetailItem icon={Tag} label="Bin Location" value={item.binLocation} />
                 <DetailItem icon={Briefcase} label="Vendor" value={item.vendor} />
@@ -188,3 +214,8 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     </>
   );
 }
+
+// Helper for cn function if not already globally available or imported
+// (Assuming cn is available from "@/lib/utils")
+import { cn } from "@/lib/utils";
+
