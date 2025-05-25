@@ -55,13 +55,14 @@ interface ItemFormProps {
   item?: Item;
   onSubmitAction: (data: ItemInput) => Promise<Item | { error: string } | undefined>;
   isEditing?: boolean;
+  availableCategories: string[];
 }
 
-const categoryOptions = ['Electronics', 'Accessories', 'Software', 'Office Supplies', 'Furniture', 'Miscellaneous', 'Tools', 'Books'];
+// Hardcoded options for now, can be made dynamic later
 const storageLocationOptions = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom'];
 const binLocationOptions = ['A-01', 'A-02', 'B-01', 'C-01', 'Shelf 1-A', 'Shelf 1-B', 'Drawer X', 'Pallet 5'];
 
-export default function ItemForm({ item, onSubmitAction, isEditing = false }: ItemFormProps) {
+export default function ItemForm({ item, onSubmitAction, isEditing = false, availableCategories }: ItemFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -77,8 +78,8 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice ?? "", 
-      salesPrice: item?.salesPrice ?? "",   
+      originalPrice: item?.originalPrice ?? "",
+      salesPrice: item?.salesPrice ?? "",
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
@@ -135,7 +136,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
 
     startTransition(async () => {
       try {
-        const result = await onSubmitAction(payload); 
+        const result = await onSubmitAction(payload);
         if (result && !('error' in result) && result.id) {
           toast({
             title: isEditing ? "Item Updated" : "Item Added",
@@ -224,7 +225,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {categoryOptions.map(option => (
+                              {availableCategories.map(option => (
                                 <SelectItem key={option} value={option}>{option}</SelectItem>
                               ))}
                             </SelectContent>

@@ -1,12 +1,13 @@
 
 import ItemForm from '@/components/inventory/ItemForm';
 import PageHeader from '@/components/shared/PageHeader';
-import { getItemById, updateItem } from '@/lib/actions/itemActions';
+import { getItemById, updateItem, getUniqueCategories } from '@/lib/actions/itemActions';
 import type { Item, ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
   const item = await getItemById(params.id);
+  const uniqueCategories = await getUniqueCategories();
 
   if (!item) {
     notFound();
@@ -25,7 +26,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
   return (
     <>
       <PageHeader title="Edit Item" description={`Update details for ${item.name}.`} />
-      <ItemForm item={item} onSubmitAction={updateItemWithId} isEditing={true} />
+      <ItemForm item={item} onSubmitAction={updateItemWithId} isEditing={true} availableCategories={uniqueCategories} />
     </>
   );
 }
