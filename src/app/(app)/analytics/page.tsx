@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { ChartConfig } from '@/components/ui/chart';
 import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 import StockValueOverTimeChart from '@/components/analytics/StockValueOverTimeChart';
-import { format } from 'date-fns';
+import SalesTrendsChart from '@/components/analytics/SalesTrendsChart';
+import { format, parseISO } from 'date-fns';
 
 export default async function AnalyticsPage() {
   const items = await getItems();
@@ -38,84 +39,53 @@ export default async function AnalyticsPage() {
   }, 0);
 
   // Data for Stock Value Over Time Chart
-  const sortedItemsByDate = [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  let cumulativeValue = 0;
-  const stockValueOverTimeData = sortedItemsByDate.map(item => {
-    cumulativeValue += (item.originalPrice || 0) * item.quantity;
-    return {
-      date: format(new Date(item.createdAt), 'MMM dd'), // Format date for display
-      value: cumulativeValue,
-      itemName: item.name, // For tooltip
-    };
-  });
-  
-  // To avoid too many data points if items are created very close together,
-  // we can consolidate to daily max cumulative value or a similar strategy if needed.
-  // For now, using each item's creation as a point.
-  const uniqueDateStockValues: { date: string; value: number; itemsAdded: string[] }[] = [];
-  const dateMap = new Map<string, { value: number; items: string[] }>();
-
-  sortedItemsByDate.forEach(item => {
-    const dateStr = format(new Date(item.createdAt), 'yyyy-MM-dd');
-    const itemValue = (item.originalPrice || 0) * item.quantity;
-
-    if (!dateMap.has(dateStr)) {
-      const previousDate = uniqueDateStockValues.length > 0 ? uniqueDateStockValues[uniqueDateStockValues.length - 1].date : null;
-      const previousValue = previousDate && dateMap.get(previousDate) ? dateMap.get(previousDate)!.value : 0;
-      dateMap.set(dateStr, { value: previousValue + itemValue, items: [item.name] });
-    } else {
-      const currentEntry = dateMap.get(dateStr)!;
-      currentEntry.value += itemValue;
-      currentEntry.items.push(item.name);
-    }
-  });
-  
-  let runningTotal = 0;
-  const finalStockValueData = Array.from(dateMap.entries())
-    .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
-    .map(([dateStr, data]) => {
-      runningTotal += data.value - (uniqueDateStockValues.length > 0 ? dateMap.get(uniqueDateStockValues[uniqueDateStockValues.length -1].date)?.value || 0 : 0) ;
-      
-      // Better approach: accumulate based on item additions
-      // This part is complex with the current structure of dateMap, let's simplify.
-      // For this iteration, we'll use the simpler stockValueOverTimeData and address detailed daily cumulative if needed.
-      // The simpler stockValueOverTimeData plots each item addition and its impact on cumulative value.
-
-      return {
-          date: format(new Date(dateStr), 'MMM dd'), // Re-format for chart
-          value: data.value, // This `data.value` already accumulates if multiple items on same day
-          // For a true running total, it needs to sum from previous days.
-      };
-  });
-
-  // Recalculate stockValueOverTimeData for a smoother line (cumulative)
   const refinedStockValueData: { date: string, value: number }[] = [];
   let currentTotalValue = 0;
-  const itemsGroupedByDay = new Map<string, number>();
+  const itemsGroupedByDayForStockValue = new Map<string, number>();
 
-  // Sum values for items created on the same day
   items.forEach(item => {
-    const day = format(new Date(item.createdAt), 'yyyy-MM-dd');
+    const day = format(parseISO(item.createdAt), 'yyyy-MM-dd');
     const value = (item.originalPrice || 0) * item.quantity;
-    itemsGroupedByDay.set(day, (itemsGroupedByDay.get(day) || 0) + value);
+    itemsGroupedByDayForStockValue.set(day, (itemsGroupedByDayForStockValue.get(day) || 0) + value);
   });
 
-  // Create cumulative data points
-  Array.from(itemsGroupedByDay.keys())
+  Array.from(itemsGroupedByDayForStockValue.keys())
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
     .forEach(day => {
-      currentTotalValue += itemsGroupedByDay.get(day)!;
+      currentTotalValue += itemsGroupedByDayForStockValue.get(day)!;
       refinedStockValueData.push({
-        date: format(new Date(day), 'MMM dd'),
+        date: format(parseISO(day), 'MMM dd'),
         value: currentTotalValue,
       });
     });
-
 
   const stockValueChartConfig = {
     value: {
       label: "Total Stock Value ($)",
       color: "hsl(var(--chart-2))",
+    },
+  } satisfies ChartConfig;
+
+  // Data for Sales Trends Chart
+  const salesByDay: { [key: string]: number } = {};
+  items.filter(item => item.sold && item.salesPrice).forEach(item => {
+    const saleDate = format(parseISO(item.updatedAt), 'yyyy-MM-dd'); // Use updatedAt as proxy for sale date
+    const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1; // Assume last known quantity or 1
+    const saleAmount = (item.salesPrice || 0) * quantitySoldApproximation;
+    salesByDay[saleDate] = (salesByDay[saleDate] || 0) + saleAmount;
+  });
+
+  const salesTrendsChartData = Object.entries(salesByDay)
+    .map(([date, totalSales]) => ({
+      date: format(parseISO(date), 'MMM dd'),
+      totalSales,
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Ensure chronological order
+
+  const salesTrendsChartConfig = {
+    totalSales: {
+      label: "Total Sales ($)",
+      color: "hsl(var(--chart-3))",
     },
   } satisfies ChartConfig;
 
@@ -136,20 +106,13 @@ export default async function AnalyticsPage() {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 mb-8">
         <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={itemsPerCategoryChartConfig} />
         <StockValueOverTimeChart data={refinedStockValueData} chartConfig={stockValueChartConfig} />
       </div>
-
-      {/* Placeholder for more charts/analytics */}
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        {/* StockValueOverTimeChart moved up */}
-        <Card>
-          <CardHeader><CardTitle>Sales Trends (Placeholder)</CardTitle></CardHeader>
-          <CardContent className="h-[200px] flex items-center justify-center text-muted-foreground">
-            Sales data visualization coming soon...
-          </CardContent>
-        </Card>
+      
+      <div className="grid gap-6 md:grid-cols-1"> {/* Sales Trend chart can take full width or be part of a new row */}
+        <SalesTrendsChart data={salesTrendsChartData} chartConfig={salesTrendsChartConfig} />
       </div>
     </>
   );

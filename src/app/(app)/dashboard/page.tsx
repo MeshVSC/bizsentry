@@ -18,12 +18,11 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
 export default async function DashboardPage() {
-  const items = await getItems();
+  // Correctly destructure items from the result of getItems
+  const { items } = await getItems();
 
   const totalItemsInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + item.quantity, 0);
-  const totalItemsSoldCount = items.filter(item => item.sold).length; // Counts distinct item types marked as sold.
-                                                                       // Or, if quantity sold is tracked per item, sum that.
-                                                                       // For now, using the 'sold' flag.
+  const totalItemsSoldCount = items.filter(item => item.sold).length; 
   
   const categories = new Set(items.map(item => item.category).filter(Boolean));
   const numberOfCategories = categories.size;
