@@ -25,6 +25,13 @@ import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UploadCloud } from "lucide-react";
 import { SubmitButton } from "@/components/shared/SubmitButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -44,9 +51,13 @@ type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface ItemFormProps {
   item?: Item;
-  onSubmitAction: (data: ItemInput) => Promise<Item | undefined | { error: string }>;
+  onSubmitAction: (data: ItemInput) => Promise<Item | { error: string } | undefined>;
   isEditing?: boolean;
 }
+
+const categoryOptions = ['Electronics', 'Accessories', 'Software', 'Office Supplies', 'Furniture', 'Miscellaneous', 'Tools', 'Books'];
+const storageLocationOptions = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom'];
+const binLocationOptions = ['A-01', 'A-02', 'B-01', 'C-01', 'Shelf 1-A', 'Shelf 1-B', 'Drawer X', 'Pallet 5'];
 
 export default function ItemForm({ item, onSubmitAction, isEditing = false }: ItemFormProps) {
   const router = useRouter();
@@ -64,8 +75,8 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice ?? undefined,
-      salesPrice: item?.salesPrice ?? undefined,
+      originalPrice: item?.originalPrice ?? "", // Ensure controlled input
+      salesPrice: item?.salesPrice ?? "",   // Ensure controlled input
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
     },
@@ -107,6 +118,8 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
   async function onSubmit(data: ItemFormValues) {
     const payload: ItemInput = {
         ...data,
+        originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
+        salesPrice: data.salesPrice === "" ? undefined : Number(data.salesPrice),
         description: data.description || undefined,
         category: data.category || undefined,
         storageLocation: data.storageLocation || undefined,
@@ -127,7 +140,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
           if (isEditing) {
             router.push(`/inventory/${result.id}`);
           } else {
-            router.push('/inventory'); // Changed redirect for new items
+            router.push('/inventory');
           }
           router.refresh();
         } else {
@@ -200,7 +213,18 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Category</FormLabel>
-                          <FormControl><Input placeholder="e.g., Electronics" {...field} /></FormControl>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categoryOptions.map(option => (
+                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -221,7 +245,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                     render={({ field }) => ( 
                         <FormItem>
                         <FormLabel>Original Price (Cost)</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} /></FormControl>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field}  /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -232,7 +256,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                     render={({ field }) => ( 
                         <FormItem>
                         <FormLabel>Sales Price</FormLabel>
-                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} value={field.value ?? ""} /></FormControl>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
@@ -259,26 +283,48 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
               <CardContent className="space-y-4">
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
-                    control={form.control}
-                    name="storageLocation"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="storageLocation"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Storage Location</FormLabel>
-                        <FormControl><Input placeholder="e.g., Warehouse A, Shelf 3" {...field} /></FormControl>
-                        <FormMessage />
+                          <FormLabel>Storage Location</FormLabel>
+                           <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a storage location" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {storageLocationOptions.map(option => (
+                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                     <FormField
-                    control={form.control}
-                    name="binLocation"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="binLocation"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Bin Location</FormLabel>
-                        <FormControl><Input placeholder="e.g., A-01-03" {...field} /></FormControl>
-                        <FormMessage />
+                          <FormLabel>Bin Location</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a bin location" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {binLocationOptions.map(option => (
+                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                 </div>
                 <FormField
@@ -342,3 +388,6 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
     </Form>
   );
 }
+
+
+    
