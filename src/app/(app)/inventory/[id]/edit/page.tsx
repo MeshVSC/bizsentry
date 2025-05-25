@@ -1,13 +1,15 @@
 
 import ItemForm from '@/components/inventory/ItemForm';
 import PageHeader from '@/components/shared/PageHeader';
-import { getItemById, updateItem, getUniqueCategories } from '@/lib/actions/itemActions';
+import { getItemById, updateItem, getUniqueCategories, getStorageLocationOptions, getBinLocationOptions } from '@/lib/actions/itemActions';
 import type { Item, ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
   const item = await getItemById(params.id);
   const uniqueCategories = await getUniqueCategories();
+  const storageLocations = await getStorageLocationOptions();
+  const binLocations = await getBinLocationOptions();
 
   if (!item) {
     notFound();
@@ -15,18 +17,21 @@ export default async function EditItemPage({ params }: { params: { id: string } 
 
   const updateItemWithId = async (data: ItemInput) => {
     "use server";
-    // The 'id' from params needs to be passed to updateItem
-    // The 'data' received by updateItemAction in ItemForm needs to be Partial<ItemInput>
-    // but here updateItem expects full ItemInput because it creates a new Item.
-    // The actual updateItem function in itemActions.ts should handle Partial<Item> correctly.
     return updateItem(params.id, data);
   };
-
 
   return (
     <>
       <PageHeader title="Edit Item" description={`Update details for ${item.name}.`} />
-      <ItemForm item={item} onSubmitAction={updateItemWithId} isEditing={true} availableCategories={uniqueCategories} />
+      <ItemForm 
+        item={item} 
+        onSubmitAction={updateItemWithId} 
+        isEditing={true} 
+        availableCategories={uniqueCategories}
+        availableStorageLocations={storageLocations}
+        availableBinLocations={binLocations}
+      />
     </>
   );
 }
+

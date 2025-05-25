@@ -197,8 +197,70 @@ const initialItems: Item[] = [
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Paper",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+  },
+  {
+    id: "11",
+    name: "Desk Organizer",
+    description: "Mesh desk organizer with multiple compartments.",
+    quantity: 20,
+    category: "Office Supplies",
+    storageLocation: "Office Shelf",
+    binLocation: "Shelf 1-C",
+    vendor: "Office Essentials",
+    originalPrice: 12.00,
+    salesPrice: 20.00,
+    project: "General Stock",
+    sold: false,
+    barcodeData: "BARCODE-DO011",
+    qrCodeData: "QR-DO011",
+    productImageUrl: "https://placehold.co/600x400.png?text=Desk+Organizer",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+  },
+  {
+    id: "12",
+    name: "Bluetooth Speaker",
+    description: "Portable Bluetooth speaker, waterproof.",
+    quantity: 18,
+    category: "Electronics",
+    storageLocation: "Warehouse A",
+    binLocation: "A-03",
+    vendor: "SoundWave Inc.",
+    originalPrice: 30.00,
+    salesPrice: 55.00,
+    project: "Promotional Giveaway",
+    sold: false,
+    barcodeData: "BARCODE-BS012",
+    qrCodeData: "QR-BS012",
+    productImageUrl: "https://placehold.co/600x400.png?text=Bluetooth+Speaker",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+  },
+  {
+    id: "13",
+    name: "Coffee Maker",
+    description: "12-cup programmable coffee maker.",
+    quantity: 7,
+    category: "Appliances",
+    storageLocation: "Kitchen Area",
+    binLocation: "Counter Top",
+    vendor: "BrewMaster",
+    originalPrice: 45.00,
+    salesPrice: 70.00,
+    project: "Office Amenities",
+    sold: false,
+    barcodeData: "BARCODE-CM013",
+    qrCodeData: "QR-CM013",
+    productImageUrl: "https://placehold.co/600x400.png?text=Coffee+Maker",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
   }
 ];
+
+// Default options for form dropdowns
+const defaultStorageLocationOptions = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom', 'Kitchen Area', 'Drawer C'];
+const defaultBinLocationOptions = ['A-01', 'A-02', 'A-03', 'B-01', 'C-01', 'Shelf 1-A', 'Shelf 1-B', 'Shelf 1-C', 'Shelf 2-A', 'Drawer X', 'Pallet 5', 'Section 1', 'Section 2', 'Bin 1', 'Bin 3', 'Display A', 'Counter Top'];
+
 
 // Initialize global store if it doesn't exist
 if (typeof globalThis._itemsStore === 'undefined') {
@@ -215,8 +277,8 @@ export interface ItemFilters {
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
   await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async delay
-  let store = globalThis._itemsStore || [];
-  let filteredItems = [...store]; // Make a copy to avoid mutating the global store directly during filtering
+  const store = globalThis._itemsStore || [];
+  let filteredItems = [...store]; 
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -229,14 +291,13 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     }
   }
 
-  // Sort by newest first before pagination or returning all
   filteredItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
   const totalFilteredItems = filteredItems.length;
 
-  if (filters?.page) {
+  if (filters?.page && filters?.limit) {
     const page = filters.page;
-    const limit = filters.limit || 5;
+    const limit = filters.limit;
     
     const startIndex = (page - 1) * limit;
     const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
@@ -244,6 +305,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     
     return { items: paginatedItems, totalPages, count: totalFilteredItems };
   } else {
+    // If no pagination, return all filtered items
     return { items: filteredItems, totalPages: 1, count: totalFilteredItems };
   }
 }
@@ -253,6 +315,25 @@ export async function getUniqueCategories(): Promise<string[]> {
   const store = globalThis._itemsStore || [];
   const categories = Array.from(new Set(store.map(item => item.category).filter(Boolean as (value: any) => value is string))).sort();
   return categories;
+}
+
+export async function getStorageLocationOptions(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  // For now, return hardcoded options. In the future, this could fetch from a DB or another source.
+  // We can also add options from existing items if desired:
+  // const store = globalThis._itemsStore || [];
+  // const dynamicOptions = Array.from(new Set(store.map(item => item.storageLocation).filter(Boolean as (value: any) => value is string)));
+  // return Array.from(new Set([...defaultStorageLocationOptions, ...dynamicOptions])).sort();
+  return [...defaultStorageLocationOptions].sort();
+}
+
+export async function getBinLocationOptions(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  // For now, return hardcoded options.
+  // const store = globalThis._itemsStore || [];
+  // const dynamicOptions = Array.from(new Set(store.map(item => item.binLocation).filter(Boolean as (value: any) => value is string)));
+  // return Array.from(new Set([...defaultBinLocationOptions, ...dynamicOptions])).sort();
+  return [...defaultBinLocationOptions].sort();
 }
 
 
@@ -265,7 +346,7 @@ export async function getItemById(id: string): Promise<Item | undefined> {
 
 export async function addItem(data: ItemInput): Promise<Item> {
   const store = globalThis._itemsStore || [];
-  globalThis._itemsStore = store; // Ensure it's assigned back if it was initially undefined
+  globalThis._itemsStore = store; 
 
   const id = crypto.randomUUID();
   const newItem: Item = {
@@ -288,7 +369,7 @@ export async function addItem(data: ItemInput): Promise<Item> {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  globalThis._itemsStore.unshift(newItem); // Add to the beginning for chronological display if not sorted
+  globalThis._itemsStore.unshift(newItem); 
 
   revalidatePath("/inventory", "layout");
   revalidatePath("/dashboard");
@@ -370,7 +451,7 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
   const store = globalThis._itemsStore || [];
-  globalThis._itemsStore = store; // Ensure the global reference is what we're working with
+  globalThis._itemsStore = store; 
 
   const initialLength = globalThis._itemsStore.length;
   globalThis._itemsStore = globalThis._itemsStore.filter((item) => !itemIds.includes(item.id));
@@ -391,7 +472,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 
 export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Promise<{ success: boolean; message?: string }> {
   const store = globalThis._itemsStore || [];
-  globalThis._itemsStore = store; // Ensure the global reference
+  globalThis._itemsStore = store; 
 
   let updatedCount = 0;
   globalThis._itemsStore = globalThis._itemsStore.map(item => {
@@ -419,3 +500,4 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
   }
   return { success: false, message: "No items were selected for status update." };
 }
+

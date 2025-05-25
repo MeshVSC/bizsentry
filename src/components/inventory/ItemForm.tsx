@@ -56,13 +56,18 @@ interface ItemFormProps {
   onSubmitAction: (data: ItemInput) => Promise<Item | { error: string } | undefined>;
   isEditing?: boolean;
   availableCategories: string[];
+  availableStorageLocations: string[];
+  availableBinLocations: string[];
 }
 
-// Hardcoded options for now, can be made dynamic later
-const storageLocationOptions = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom'];
-const binLocationOptions = ['A-01', 'A-02', 'B-01', 'C-01', 'Shelf 1-A', 'Shelf 1-B', 'Drawer X', 'Pallet 5'];
-
-export default function ItemForm({ item, onSubmitAction, isEditing = false, availableCategories }: ItemFormProps) {
+export default function ItemForm({ 
+  item, 
+  onSubmitAction, 
+  isEditing = false, 
+  availableCategories,
+  availableStorageLocations,
+  availableBinLocations
+}: ItemFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
@@ -78,8 +83,8 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false, avai
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice ?? "",
-      salesPrice: item?.salesPrice ?? "",
+      originalPrice: item?.originalPrice ?? "", 
+      salesPrice: item?.salesPrice ?? "", 
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
@@ -300,7 +305,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false, avai
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {storageLocationOptions.map(option => (
+                              {availableStorageLocations.map(option => (
                                 <SelectItem key={option} value={option}>{option}</SelectItem>
                               ))}
                             </SelectContent>
@@ -322,7 +327,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false, avai
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {binLocationOptions.map(option => (
+                              {availableBinLocations.map(option => (
                                 <SelectItem key={option} value={option}>{option}</SelectItem>
                               ))}
                             </SelectContent>
@@ -447,3 +452,4 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false, avai
     </Form>
   );
 }
+
