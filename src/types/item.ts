@@ -15,6 +15,7 @@ export interface Item {
   barcodeData?: string;   // Data to be encoded in barcode (e.g., item ID)
   qrCodeData?: string;    // Data to be encoded in QR code (e.g., item URL or ID)
   receiptImageUrl?: string; // URL of the uploaded receipt image
+  productImageUrl?: string; // URL for a dedicated product image
   createdAt: string; // Store as ISO string for easier serialization
   updatedAt: string; // Store as ISO string
 }
@@ -32,6 +33,7 @@ export type ItemInput = {
   salesPrice?: number;    // Zod ensures this is number | undefined
   project?: string;
   receiptImageUrl?: string; // Zod ensures this is string | undefined (if url() passes or empty)
+  productImageUrl?: string; // Zod ensures this is string | undefined
 };
 
 // For AI extraction mapping
@@ -41,3 +43,4 @@ export interface ExtractedItemData {
   quantity?: number;
   price?: number;
 }
+

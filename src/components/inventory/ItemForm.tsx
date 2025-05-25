@@ -23,7 +23,7 @@ import { useState, useTransition } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UploadCloud } from "lucide-react";
+import { Loader2, UploadCloud, Image as ImageIcon } from "lucide-react";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Image from "next/image";
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -44,7 +45,8 @@ const itemFormSchema = z.object({
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
   project: z.string().max(100).optional().default(""),
-  receiptImageUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""),
+  receiptImageUrl: z.string().url({ message: "Please enter a valid URL for the receipt." }).optional().or(z.literal("")).default(""),
+  productImageUrl: z.string().url({ message: "Please enter a valid URL for the product image." }).optional().or(z.literal("")).default(""),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -75,10 +77,11 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice ?? "", // Ensure controlled input
-      salesPrice: item?.salesPrice ?? "",   // Ensure controlled input
+      originalPrice: item?.originalPrice ?? "", 
+      salesPrice: item?.salesPrice ?? "",   
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
+      productImageUrl: item?.productImageUrl || "",
     },
   });
 
@@ -127,6 +130,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
         vendor: data.vendor || undefined,
         project: data.project || undefined,
         receiptImageUrl: data.receiptImageUrl || undefined,
+        productImageUrl: data.productImageUrl || undefined,
     };
 
     startTransition(async () => {
@@ -140,7 +144,7 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
           if (isEditing) {
             router.push(`/inventory/${result.id}`);
           } else {
-            router.push('/inventory');
+             router.push('/inventory');
           }
           router.refresh();
         } else {
@@ -344,6 +348,49 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
 
           <div className="lg:col-span-1 space-y-6">
             <Card>
+                <CardHeader>
+                    <CardTitle>Product Image</CardTitle>
+                    <CardDescription>Enter the URL for the product image.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <FormField
+                    control={form.control}
+                    name="productImageUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Product Image URL</FormLabel>
+                        <FormControl>
+                            <Input placeholder="https://example.com/image.png" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    {form.watch("productImageUrl") && (
+                    <div className="mt-4">
+                        <FormLabel>Product Image Preview</FormLabel>
+                        <Image
+                            src={form.watch("productImageUrl")!}
+                            alt="Product Preview"
+                            width={200}
+                            height={200}
+                            className="mt-2 rounded-md border max-h-60 w-full object-contain"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                toast({variant: "destructive", title: "Image Load Error", description: "Could not load product image preview."});
+                            }}
+                            onLoad={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'block';
+                            }}
+                            data-ai-hint="product item"
+                        />
+                    </div>
+                    )}
+                </CardContent>
+            </Card>
+            <Card>
               <CardHeader>
                 <CardTitle>Receipt Upload</CardTitle>
                 <CardDescription>Upload a receipt image to auto-fill details.</CardDescription>
@@ -358,11 +405,22 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
                     <FormLabel>Receipt Preview</FormLabel>
-                    <img 
-                        src={form.watch("receiptImageUrl")} 
-                        alt="Receipt Preview" 
+                    <Image 
+                        src={form.watch("receiptImageUrl")!} 
+                        alt="Receipt Preview"
+                        width={200}
+                        height={200}
                         className="mt-2 rounded-md border max-h-60 w-full object-contain" 
-                        onError={(e) => (e.currentTarget.style.display = 'none')} 
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            toast({variant: "destructive", title: "Image Load Error", description: "Could not load receipt image preview."});
+                        }}
+                        onLoad={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'block';
+                        }}
+                        data-ai-hint="receipt paper"
                     />
                   </div>
                 )}
@@ -388,6 +446,3 @@ export default function ItemForm({ item, onSubmitAction, isEditing = false }: It
     </Form>
   );
 }
-
-
-    

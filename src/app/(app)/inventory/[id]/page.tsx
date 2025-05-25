@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText } from 'lucide-react';
+import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -58,7 +58,7 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
       <Icon className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-sm text-muted-foreground">{displayValue}</p>
+        <p className="text-sm text-muted-foreground">{String(displayValue)}</p>
       </div>
     </div>
   );
@@ -109,6 +109,24 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
+          {item.productImageUrl && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Image</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative aspect-video w-full max-w-md mx-auto">
+                  <Image 
+                    src={item.productImageUrl} 
+                    alt={`Product image for ${item.name}`} 
+                    fill
+                    className="rounded-md border object-contain"
+                    data-ai-hint="product commercial"
+                   />
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Item Information</CardTitle>
@@ -144,15 +162,13 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
               <div>
                 <h3 className="text-sm font-medium flex items-center"><Barcode className="mr-2 h-4 w-4 text-muted-foreground" /> Barcode Data</h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.barcodeData || 'N/A'}</p>
-                {/* In a real app, you'd use a library to render an actual barcode image here */}
-                <Image src={`https://placehold.co/300x100.png?text=${item.barcodeData || 'BARCODE'}`} alt="Barcode placeholder" width={300} height={100} className="mt-2 rounded border" data-ai-hint="barcode" />
+                <Image src={`https://placehold.co/300x100.png?text=${item.barcodeData || 'BARCODE'}`} alt="Barcode placeholder" width={300} height={100} className="mt-2 rounded border" data-ai-hint="barcode serial" />
               </div>
               <Separator />
               <div>
                 <h3 className="text-sm font-medium flex items-center"><QrCode className="mr-2 h-4 w-4 text-muted-foreground" /> QR Code Data</h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.qrCodeData || 'N/A'}</p>
-                {/* In a real app, you'd use a library to render an actual QR code image here */}
-                <Image src={`https://placehold.co/150x150.png?text=${item.qrCodeData || 'QRCODE'}`} alt="QR Code placeholder" width={150} height={150} className="mt-2 rounded border" data-ai-hint="qrcode" />
+                <Image src={`https://placehold.co/150x150.png?text=${item.qrCodeData || 'QRCODE'}`} alt="QR Code placeholder" width={150} height={150} className="mt-2 rounded border" data-ai-hint="qrcode link" />
               </div>
             </CardContent>
           </Card>

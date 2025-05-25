@@ -22,6 +22,8 @@ const initialItems: Item[] = [
     sold: false,
     barcodeData: "BARCODE-WM001",
     qrCodeData: "QR-WM001",
+    receiptImageUrl: "https://placehold.co/300x400.png?text=Receipt+Mouse",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Mouse",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },
@@ -58,6 +60,7 @@ const initialItems: Item[] = [
     sold: false,
     barcodeData: "BARCODE-UCH003",
     qrCodeData: "QR-UCH003",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Hub",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
   },
@@ -86,7 +89,7 @@ export async function getItemById(id: string): Promise<Item | undefined> {
 
 export async function addItem(data: ItemInput): Promise<Item> {
   if (typeof globalThis._itemsStore === 'undefined') {
-    globalThis._itemsStore = []; // Should be initialized already, but defensive
+    globalThis._itemsStore = []; 
   }
   const store = globalThis._itemsStore;
 
@@ -104,6 +107,7 @@ export async function addItem(data: ItemInput): Promise<Item> {
     salesPrice: data.salesPrice,
     project: data.project,
     receiptImageUrl: data.receiptImageUrl,
+    productImageUrl: data.productImageUrl,
     sold: false,
     barcodeData: `BARCODE-${id.substring(0,8).toUpperCase()}`,
     qrCodeData: `QR-${id.toUpperCase()}`,
@@ -111,25 +115,21 @@ export async function addItem(data: ItemInput): Promise<Item> {
     updatedAt: new Date().toISOString(),
   };
   store.push(newItem); 
-  // console.log('Item added to store:', newItem.name, 'New store size:', store.length);
 
   revalidatePath("/inventory");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  // console.log('Revalidation paths called for /inventory, /dashboard, /analytics after adding', newItem.name);
   return JSON.parse(JSON.stringify(newItem));
 }
 
 export async function updateItem(id: string, data: Partial<ItemInput>): Promise<Item | undefined> {
   if (typeof globalThis._itemsStore === 'undefined' || !globalThis._itemsStore) {
-    // console.error('Attempted to update item, but _itemsStore is not initialized.');
     return undefined;
   }
   const store = globalThis._itemsStore;
   const itemIndex = store.findIndex((item) => item.id === id);
 
   if (itemIndex === -1) {
-    // console.log('Update failed: Item not found with id:', id);
     return undefined;
   }
 
@@ -140,32 +140,28 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
     ...updatedItemDetails,
     updatedAt: new Date().toISOString(),
   };
-  // console.log('Item updated in store:', store[itemIndex].name);
   
   revalidatePath("/inventory");
   revalidatePath(`/inventory/${id}`);
   revalidatePath(`/inventory/${id}/edit`);
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  // console.log('Revalidation paths called for /inventory, /dashboard, /analytics after updating', store[itemIndex].name);
   return JSON.parse(JSON.stringify(store[itemIndex]));
 }
 
 export async function deleteItem(id: string): Promise<boolean> {
   if (typeof globalThis._itemsStore === 'undefined') {
-     globalThis._itemsStore = []; // Ensure it's an array if somehow undefined
+     globalThis._itemsStore = []; 
   }
   const store = globalThis._itemsStore;
   const initialLength = store.length;
   
-  globalThis._itemsStore = store.filter((item) => item.id !== id); // Reassign the global store
-  // console.log('Item deleted from store. ID:', id, 'New store size:', globalThis._itemsStore.length);
+  globalThis._itemsStore = store.filter((item) => item.id !== id); 
 
   if (globalThis._itemsStore.length < initialLength) {
     revalidatePath("/inventory");
     revalidatePath("/dashboard");
     revalidatePath("/analytics");
-    // console.log('Revalidation paths called for /inventory, /dashboard, /analytics after deleting ID:', id);
     return true;
   }
   return false;
@@ -176,7 +172,7 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
     if (!extractedData.items) {
-      return { ...extractedData, items: [] }; // Ensure items array exists
+      return { ...extractedData, items: [] }; 
     }
     return extractedData;
   } catch (error) {
@@ -197,13 +193,11 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
   }
   store[itemIndex].sold = !store[itemIndex].sold;
   store[itemIndex].updatedAt = new Date().toISOString();
-  // console.log('Item status toggled:', store[itemIndex].name, 'New status sold:', store[itemIndex].sold);
   
   revalidatePath("/inventory");
   revalidatePath(`/inventory/${id}`);
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  // console.log('Revalidation paths called after toggling status for', store[itemIndex].name);
   return JSON.parse(JSON.stringify(store[itemIndex]));
 }
 
@@ -235,7 +229,7 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
   let updatedCount = 0;
   globalThis._itemsStore = globalThis._itemsStore.map(item => {
     if (itemIds.includes(item.id)) {
-      if (item.sold !== sold) { // Only update if status is different
+      if (item.sold !== sold) { 
         item.sold = sold;
         item.updatedAt = new Date().toISOString();
         updatedCount++;
@@ -259,4 +253,3 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
   return { success: false, message: "No items were selected for status update." };
 }
 
-    
