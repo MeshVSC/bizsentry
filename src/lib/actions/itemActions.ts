@@ -42,6 +42,7 @@ const initialItems: Item[] = [
     sold: true,
     barcodeData: "BARCODE-MK002",
     qrCodeData: "QR-MK002",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Keyboard",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
@@ -64,26 +65,68 @@ const initialItems: Item[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
   },
+   {
+    id: "4",
+    name: "Laptop Stand",
+    description: "Adjustable aluminum laptop stand.",
+    quantity: 15,
+    category: "Accessories",
+    storageLocation: "Office Shelf",
+    binLocation: "Shelf 1-A",
+    vendor: "StandUp Inc.",
+    originalPrice: 18.00,
+    salesPrice: 32.50,
+    project: "Ergonomics Improvement",
+    sold: false,
+    barcodeData: "BARCODE-LS004",
+    qrCodeData: "QR-LS004",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Stand",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+  },
 ];
 
 // Initialize global store if it doesn't exist
 if (typeof globalThis._itemsStore === 'undefined') {
-  // console.log("Initializing _itemsStore for the first time in itemActions.ts");
   globalThis._itemsStore = JSON.parse(JSON.stringify(initialItems));
 }
 
-export async function getItems(): Promise<Item[]> {
-  await new Promise(resolve => setTimeout(resolve, 50)); // Shorter delay
-  const store = globalThis._itemsStore || [];
-  // console.log('getItems called. Store size:', store.length);
-  return JSON.parse(JSON.stringify(store));
+// Interface for filters
+export interface ItemFilters {
+  name?: string;
+  category?: string;
 }
 
+export async function getItems(filters?: ItemFilters): Promise<Item[]> {
+  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async delay
+  let store = globalThis._itemsStore || [];
+  let filteredItems = [...store];
+
+  if (filters) {
+    if (filters.name && filters.name.trim() !== '') {
+      filteredItems = filteredItems.filter(item =>
+        item.name.toLowerCase().includes(filters.name!.toLowerCase())
+      );
+    }
+    if (filters.category && filters.category.trim() !== '') {
+      filteredItems = filteredItems.filter(item => item.category === filters.category);
+    }
+  }
+  return JSON.parse(JSON.stringify(filteredItems));
+}
+
+export async function getUniqueCategories(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const store = globalThis._itemsStore || [];
+  const categories = Array.from(new Set(store.map(item => item.category).filter(Boolean as (value: any) => value is string))).sort();
+  return categories;
+}
+
+
 export async function getItemById(id: string): Promise<Item | undefined> {
-  await new Promise(resolve => setTimeout(resolve, 50)); // Shorter delay
+  await new Promise(resolve => setTimeout(resolve, 50)); 
   const store = globalThis._itemsStore || [];
   const item = store.find((item) => item.id === id);
-  // console.log('getItemById called for:', id, 'Found:', !!item);
   return item ? JSON.parse(JSON.stringify(item)) : undefined;
 }
 
@@ -119,6 +162,8 @@ export async function addItem(data: ItemInput): Promise<Item> {
   revalidatePath("/inventory");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
+  // No longer redirecting to item detail page to avoid 404 on Vercel with in-memory store
+  // The form itself handles redirection now.
   return JSON.parse(JSON.stringify(newItem));
 }
 
@@ -150,10 +195,11 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
 }
 
 export async function deleteItem(id: string): Promise<boolean> {
-  if (typeof globalThis._itemsStore === 'undefined') {
-     globalThis._itemsStore = []; 
+  let store = globalThis._itemsStore;
+  if (typeof store === 'undefined') {
+     store = []; 
+     globalThis._itemsStore = store;
   }
-  const store = globalThis._itemsStore;
   const initialLength = store.length;
   
   globalThis._itemsStore = store.filter((item) => item.id !== id); 
@@ -182,10 +228,10 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 }
 
 export async function toggleItemSoldStatus(id: string): Promise<Item | undefined> {
-  if (typeof globalThis._itemsStore === 'undefined' || !globalThis._itemsStore) {
+  let store = globalThis._itemsStore;
+  if (typeof store === 'undefined' || !store) {
     return undefined;
   }
-  const store = globalThis._itemsStore;
   const itemIndex = store.findIndex((item) => item.id === id);
 
   if (itemIndex === -1) {
@@ -202,11 +248,13 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
-  if (typeof globalThis._itemsStore === 'undefined') {
-     globalThis._itemsStore = [];
+  let store = globalThis._itemsStore;
+  if (typeof store === 'undefined') {
+     store = [];
+     globalThis._itemsStore = store;
   }
-  const initialLength = globalThis._itemsStore.length;
-  globalThis._itemsStore = globalThis._itemsStore.filter((item) => !itemIds.includes(item.id));
+  const initialLength = store.length;
+  globalThis._itemsStore = store.filter((item) => !itemIds.includes(item.id));
   
   const numDeleted = initialLength - globalThis._itemsStore.length;
 
@@ -223,11 +271,12 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 }
 
 export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Promise<{ success: boolean; message?: string }> {
-  if (typeof globalThis._itemsStore === 'undefined' || !globalThis._itemsStore) {
+  let store = globalThis._itemsStore;
+  if (typeof store === 'undefined' || !store) {
     return { success: false, message: "Inventory store not available." };
   }
   let updatedCount = 0;
-  globalThis._itemsStore = globalThis._itemsStore.map(item => {
+  globalThis._itemsStore = store.map(item => {
     if (itemIds.includes(item.id)) {
       if (item.sold !== sold) { 
         item.sold = sold;
@@ -252,4 +301,3 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
   }
   return { success: false, message: "No items were selected for status update." };
 }
-
