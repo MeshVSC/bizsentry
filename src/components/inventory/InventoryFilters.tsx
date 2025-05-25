@@ -21,6 +21,8 @@ interface InventoryFiltersProps {
   allCategories: string[];
 }
 
+const ALL_CATEGORIES_SELECT_VALUE = "_ALL_";
+
 export default function InventoryFilters({
   currentNameFilter,
   currentCategoryFilter,
@@ -42,7 +44,7 @@ export default function InventoryFilters({
     if (name) {
       params.set('name', name);
     }
-    if (category) {
+    if (category) { // Only set category param if it's not empty (i.e., not "All Categories")
       params.set('category', category);
     }
     router.push(`${pathname}?${params.toString()}`);
@@ -71,12 +73,21 @@ export default function InventoryFilters({
 
           <div className="space-y-1">
             <label htmlFor="category-filter" className="text-sm font-medium">Filter by Category</label>
-            <Select value={category} onValueChange={setCategory}>
+            <Select
+              value={category} // This can be ""
+              onValueChange={(selectedValue) => {
+                if (selectedValue === ALL_CATEGORIES_SELECT_VALUE) {
+                  setCategory(""); // Clear filter state
+                } else {
+                  setCategory(selectedValue);
+                }
+              }}
+            >
               <SelectTrigger id="category-filter" className="w-full">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value={ALL_CATEGORIES_SELECT_VALUE}>All Categories</SelectItem>
                 {allCategories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
