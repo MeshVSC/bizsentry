@@ -110,7 +110,7 @@ export async function addItem(data: ItemInput): Promise<Item> {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  store.push(newItem); // This mutates the array referenced by globalThis._itemsStore
+  store.push(newItem); 
   // console.log('Item added to store:', newItem.name, 'New store size:', store.length);
 
   revalidatePath("/inventory");
@@ -205,6 +205,58 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
   revalidatePath("/analytics");
   // console.log('Revalidation paths called after toggling status for', store[itemIndex].name);
   return JSON.parse(JSON.stringify(store[itemIndex]));
+}
+
+export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
+  if (typeof globalThis._itemsStore === 'undefined') {
+     globalThis._itemsStore = [];
+  }
+  const initialLength = globalThis._itemsStore.length;
+  globalThis._itemsStore = globalThis._itemsStore.filter((item) => !itemIds.includes(item.id));
+  
+  const numDeleted = initialLength - globalThis._itemsStore.length;
+
+  if (numDeleted > 0) {
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
+    revalidatePath("/analytics");
+    return { success: true, message: `${numDeleted} item(s) deleted successfully.` };
+  }
+  if (itemIds.length > 0 && numDeleted === 0) {
+    return { success: false, message: "No matching items found to delete." };
+  }
+  return { success: false, message: "No items were selected for deletion." };
+}
+
+export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Promise<{ success: boolean; message?: string }> {
+  if (typeof globalThis._itemsStore === 'undefined' || !globalThis._itemsStore) {
+    return { success: false, message: "Inventory store not available." };
+  }
+  let updatedCount = 0;
+  globalThis._itemsStore = globalThis._itemsStore.map(item => {
+    if (itemIds.includes(item.id)) {
+      if (item.sold !== sold) { // Only update if status is different
+        item.sold = sold;
+        item.updatedAt = new Date().toISOString();
+        updatedCount++;
+      }
+    }
+    return item;
+  });
+
+  if (updatedCount > 0) {
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
+    revalidatePath("/analytics");
+    itemIds.forEach(id => {
+        revalidatePath(`/inventory/${id}`);
+    });
+    return { success: true, message: `${updatedCount} item(s) status updated.` };
+  }
+  if (itemIds.length > 0 && updatedCount === 0) {
+    return { success: false, message: "Items already have the target status or not found." };
+  }
+  return { success: false, message: "No items were selected for status update." };
 }
 
     
