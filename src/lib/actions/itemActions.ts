@@ -84,6 +84,120 @@ const initialItems: Item[] = [
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },
+  {
+    id: "5",
+    name: "Desk Lamp",
+    description: "LED desk lamp with adjustable brightness.",
+    quantity: 8,
+    category: "Office Supplies",
+    storageLocation: "Warehouse A",
+    binLocation: "A-01",
+    vendor: "Lights R Us",
+    originalPrice: 25.00,
+    salesPrice: 45.00,
+    project: "New Office Setup",
+    sold: false,
+    barcodeData: "BARCODE-DL005",
+    qrCodeData: "QR-DL005",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Lamp",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+  },
+  {
+    id: "6",
+    name: "Monitor Arm",
+    description: "Single monitor arm, gas spring.",
+    quantity: 12,
+    category: "Accessories",
+    storageLocation: "Warehouse B",
+    binLocation: "B-01",
+    vendor: "Mounts Inc.",
+    originalPrice: 40.00,
+    salesPrice: 75.00,
+    project: "Ergonomics Upgrade",
+    sold: false,
+    barcodeData: "BARCODE-MA006",
+    qrCodeData: "QR-MA006",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Arm",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+  },
+  {
+    id: "7",
+    name: "Whiteboard Markers",
+    description: "Pack of 12 assorted color whiteboard markers.",
+    quantity: 100,
+    category: "Office Supplies",
+    storageLocation: "Storage Closet",
+    binLocation: "Shelf 1-B",
+    vendor: "Stationery World",
+    originalPrice: 8.00,
+    salesPrice: 15.00,
+    project: "General Stock",
+    sold: false,
+    barcodeData: "BARCODE-WM007",
+    qrCodeData: "QR-WM007",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Markers",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+  },
+  {
+    id: "8",
+    name: "Sticky Notes",
+    description: "Pack of 12 pads, 3x3 inches, assorted colors.",
+    quantity: 200,
+    category: "Office Supplies",
+    storageLocation: "Drawer C",
+    binLocation: "Section 1",
+    vendor: "Office Essentials",
+    originalPrice: 5.00,
+    salesPrice: 9.99,
+    project: "General Stock",
+    sold: false,
+    barcodeData: "BARCODE-SN008",
+    qrCodeData: "QR-SN008",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Notes",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+  },
+  {
+    id: "9",
+    name: "Ergonomic Chair",
+    description: "High-back mesh office chair with lumbar support.",
+    quantity: 5,
+    category: "Furniture",
+    storageLocation: "Showroom",
+    binLocation: "Display A",
+    vendor: "Comfort Seating",
+    originalPrice: 150.00,
+    salesPrice: 299.00,
+    project: "New Office Setup",
+    sold: false,
+    barcodeData: "BARCODE-EC009",
+    qrCodeData: "QR-EC009",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Chair",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+  },
+  {
+    id: "10",
+    name: "Printer Paper",
+    description: "Ream of 500 sheets, 8.5x11, 20lb.",
+    quantity: 30,
+    category: "Office Supplies",
+    storageLocation: "Storage Closet",
+    binLocation: "Shelf 2-A",
+    vendor: "Paper R Us",
+    originalPrice: 4.50,
+    salesPrice: 8.00,
+    project: "General Stock",
+    sold: false,
+    barcodeData: "BARCODE-PP010",
+    qrCodeData: "QR-PP010",
+    productImageUrl: "https://placehold.co/600x400.png?text=Product+Paper",
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+  }
 ];
 
 // Initialize global store if it doesn't exist
@@ -95,12 +209,14 @@ if (typeof globalThis._itemsStore === 'undefined') {
 export interface ItemFilters {
   name?: string;
   category?: string;
+  page?: number;
+  limit?: number;
 }
 
-export async function getItems(filters?: ItemFilters): Promise<Item[]> {
+export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
   await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async delay
   let store = globalThis._itemsStore || [];
-  let filteredItems = [...store];
+  let filteredItems = [...store]; // Make a copy to avoid mutating the global store directly during filtering
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -112,7 +228,24 @@ export async function getItems(filters?: ItemFilters): Promise<Item[]> {
       filteredItems = filteredItems.filter(item => item.category === filters.category);
     }
   }
-  return JSON.parse(JSON.stringify(filteredItems));
+
+  // Sort by newest first before pagination or returning all
+  filteredItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  
+  const totalFilteredItems = filteredItems.length;
+
+  if (filters?.page) {
+    const page = filters.page;
+    const limit = filters.limit || 5;
+    
+    const startIndex = (page - 1) * limit;
+    const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
+    const totalPages = Math.ceil(totalFilteredItems / limit);
+    
+    return { items: paginatedItems, totalPages, count: totalFilteredItems };
+  } else {
+    return { items: filteredItems, totalPages: 1, count: totalFilteredItems };
+  }
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
@@ -131,10 +264,8 @@ export async function getItemById(id: string): Promise<Item | undefined> {
 }
 
 export async function addItem(data: ItemInput): Promise<Item> {
-  if (typeof globalThis._itemsStore === 'undefined') {
-    globalThis._itemsStore = []; 
-  }
-  const store = globalThis._itemsStore;
+  const store = globalThis._itemsStore || [];
+  globalThis._itemsStore = store; // Ensure it's assigned back if it was initially undefined
 
   const id = crypto.randomUUID();
   const newItem: Item = {
@@ -157,21 +288,17 @@ export async function addItem(data: ItemInput): Promise<Item> {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  store.push(newItem); 
+  globalThis._itemsStore.unshift(newItem); // Add to the beginning for chronological display if not sorted
 
-  revalidatePath("/inventory");
+  revalidatePath("/inventory", "layout");
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  // No longer redirecting to item detail page to avoid 404 on Vercel with in-memory store
-  // The form itself handles redirection now.
   return JSON.parse(JSON.stringify(newItem));
 }
 
 export async function updateItem(id: string, data: Partial<ItemInput>): Promise<Item | undefined> {
-  if (typeof globalThis._itemsStore === 'undefined' || !globalThis._itemsStore) {
-    return undefined;
-  }
-  const store = globalThis._itemsStore;
+  const store = globalThis._itemsStore || [];
+  globalThis._itemsStore = store;
   const itemIndex = store.findIndex((item) => item.id === id);
 
   if (itemIndex === -1) {
@@ -180,32 +307,28 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
 
   const updatedItemDetails: Partial<Item> = { ...data };
 
-  store[itemIndex] = {
-    ...store[itemIndex],
+  globalThis._itemsStore[itemIndex] = {
+    ...globalThis._itemsStore[itemIndex],
     ...updatedItemDetails,
     updatedAt: new Date().toISOString(),
   };
   
-  revalidatePath("/inventory");
+  revalidatePath("/inventory", "layout");
   revalidatePath(`/inventory/${id}`);
   revalidatePath(`/inventory/${id}/edit`);
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  return JSON.parse(JSON.stringify(store[itemIndex]));
+  return JSON.parse(JSON.stringify(globalThis._itemsStore[itemIndex]));
 }
 
 export async function deleteItem(id: string): Promise<boolean> {
-  let store = globalThis._itemsStore;
-  if (typeof store === 'undefined') {
-     store = []; 
-     globalThis._itemsStore = store;
-  }
+  const store = globalThis._itemsStore || [];
   const initialLength = store.length;
   
   globalThis._itemsStore = store.filter((item) => item.id !== id); 
 
   if (globalThis._itemsStore.length < initialLength) {
-    revalidatePath("/inventory");
+    revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/analytics");
     return true;
@@ -228,38 +351,34 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 }
 
 export async function toggleItemSoldStatus(id: string): Promise<Item | undefined> {
-  let store = globalThis._itemsStore;
-  if (typeof store === 'undefined' || !store) {
-    return undefined;
-  }
+  const store = globalThis._itemsStore || [];
+  globalThis._itemsStore = store;
   const itemIndex = store.findIndex((item) => item.id === id);
 
   if (itemIndex === -1) {
     return undefined;
   }
-  store[itemIndex].sold = !store[itemIndex].sold;
-  store[itemIndex].updatedAt = new Date().toISOString();
+  globalThis._itemsStore[itemIndex].sold = !globalThis._itemsStore[itemIndex].sold;
+  globalThis._itemsStore[itemIndex].updatedAt = new Date().toISOString();
   
-  revalidatePath("/inventory");
+  revalidatePath("/inventory", "layout");
   revalidatePath(`/inventory/${id}`);
   revalidatePath("/dashboard");
   revalidatePath("/analytics");
-  return JSON.parse(JSON.stringify(store[itemIndex]));
+  return JSON.parse(JSON.stringify(globalThis._itemsStore[itemIndex]));
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
-  let store = globalThis._itemsStore;
-  if (typeof store === 'undefined') {
-     store = [];
-     globalThis._itemsStore = store;
-  }
-  const initialLength = store.length;
-  globalThis._itemsStore = store.filter((item) => !itemIds.includes(item.id));
+  const store = globalThis._itemsStore || [];
+  globalThis._itemsStore = store; // Ensure the global reference is what we're working with
+
+  const initialLength = globalThis._itemsStore.length;
+  globalThis._itemsStore = globalThis._itemsStore.filter((item) => !itemIds.includes(item.id));
   
   const numDeleted = initialLength - globalThis._itemsStore.length;
 
   if (numDeleted > 0) {
-    revalidatePath("/inventory");
+    revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/analytics");
     return { success: true, message: `${numDeleted} item(s) deleted successfully.` };
@@ -271,12 +390,11 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 }
 
 export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Promise<{ success: boolean; message?: string }> {
-  let store = globalThis._itemsStore;
-  if (typeof store === 'undefined' || !store) {
-    return { success: false, message: "Inventory store not available." };
-  }
+  const store = globalThis._itemsStore || [];
+  globalThis._itemsStore = store; // Ensure the global reference
+
   let updatedCount = 0;
-  globalThis._itemsStore = store.map(item => {
+  globalThis._itemsStore = globalThis._itemsStore.map(item => {
     if (itemIds.includes(item.id)) {
       if (item.sold !== sold) { 
         item.sold = sold;
@@ -288,7 +406,7 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
   });
 
   if (updatedCount > 0) {
-    revalidatePath("/inventory");
+    revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard");
     revalidatePath("/analytics");
     itemIds.forEach(id => {
