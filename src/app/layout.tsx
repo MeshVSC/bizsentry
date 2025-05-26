@@ -11,8 +11,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'StockPilot - Inventory Management',
-  description: 'Streamline your inventory with StockPilot',
+  title: 'StockSentry - Inventory Management',
+  description: 'Streamline your inventory with StockSentry',
 };
 
 export default function RootLayout({

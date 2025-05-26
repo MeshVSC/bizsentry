@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Home, Package, BarChart3, Settings, Search, UserCircle, LifeBuoy, LogOut, Warehouse } from 'lucide-react';
+import { Bell, ShieldAlert, Settings, Search, UserCircle, LifeBuoy, LogOut } from 'lucide-react'; // Changed Warehouse to ShieldAlert
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,8 +27,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <Sidebar variant="sidebar" collapsible="icon" className="border-r">
           <SidebarHeader className="p-4 flex items-center gap-2">
              <Link href="/dashboard" className="flex items-center gap-2">
-                <Warehouse className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-semibold group-data-[collapsible=icon]:hidden">StockPilot</h1>
+                <ShieldAlert className="h-8 w-8 text-primary" /> {/* Changed from Warehouse */}
+                <h1 className="text-2xl font-semibold group-data-[collapsible=icon]:hidden">StockSentry</h1> {/* Changed from StockPilot */}
              </Link>
           </SidebarHeader>
           <SidebarContent className="p-2">
@@ -74,7 +74,7 @@ function UserMenu() {
         <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
           <Avatar className="h-8 w-8">
             <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
-            <AvatarFallback>SP</AvatarFallback>
+            <AvatarFallback>SS</AvatarFallback> {/* Changed from SP */}
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

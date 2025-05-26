@@ -92,10 +92,10 @@ export default async function DashboardPage() {
         </Card>
         
         <Card className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/10 to-accent/10">
-            <Image src="https://placehold.co/300x200.png?text=StockPilot+Feature" alt="Feature graphic" width={300} height={200} className="rounded-lg mb-4 shadow-lg" data-ai-hint="inventory abstract" />
+            <Image src="https://placehold.co/300x200.png?text=StockSentry+Feature" alt="Feature graphic" width={300} height={200} className="rounded-lg mb-4 shadow-lg" data-ai-hint="inventory abstract" />
             <CardTitle className="text-xl mb-2 text-center">Streamline Your Inventory</CardTitle>
             <CardDescription className="text-center mb-4">
-                StockPilot helps you manage your items efficiently. Explore features like receipt scanning and detailed analytics.
+                StockSentry helps you manage your items efficiently. Explore features like receipt scanning and detailed analytics.
             </CardDescription>
             <Button asChild variant="outline">
               <Link href="/analytics">View Full Analytics</Link>
