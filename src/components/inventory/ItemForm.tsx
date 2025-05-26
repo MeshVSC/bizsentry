@@ -45,8 +45,8 @@ const itemFormSchema = z.object({
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
   project: z.string().max(100).optional().default(""),
-  receiptImageUrl: z.string().url({ message: "Please enter a valid URL for the receipt." }).optional().or(z.literal("")).default(""),
-  productImageUrl: z.string().optional().default(""), // Changed from .url() to allow Data URIs
+  receiptImageUrl: z.string().optional().or(z.literal("")).default(""), // Accepts URL or Data URI
+  productImageUrl: z.string().optional().default(""), // Accepts URL or Data URI
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -59,6 +59,8 @@ interface ItemFormProps {
   availableStorageLocations: string[];
   availableBinLocations: string[];
 }
+
+const MAX_IMAGE_SIZE_MB = 2; // Define max image size for uploads
 
 export default function ItemForm({ 
   item, 
@@ -373,7 +375,7 @@ export default function ItemForm({
             <Card>
                 <CardHeader>
                     <CardTitle>Product Image</CardTitle>
-                    <CardDescription>Upload an image for the product.</CardDescription>
+                    <CardDescription>Upload an image for the product (max {MAX_IMAGE_SIZE_MB}MB).</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <FileUploadInput
@@ -382,6 +384,7 @@ export default function ItemForm({
                         buttonText={isProductImageProcessing ? "Processing..." : "Upload Product Image"}
                         buttonIcon={isProductImageProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
                         acceptedFileTypes="image/jpeg, image/png, image/gif, image/webp"
+                        maxFileSizeMB={MAX_IMAGE_SIZE_MB}
                     />
                     {form.watch("productImageUrl") && (
                     <div className="mt-4">
@@ -395,9 +398,6 @@ export default function ItemForm({
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.style.display = 'none'; // Hide if error (e.g. invalid Data URI or broken link)
-                                // Optionally, show a placeholder or clear the field
-                                // form.setValue("productImageUrl", ""); // uncomment to clear on error
-                                // toast({variant: "destructive", title: "Image Load Error", description: "Could not load product image preview."});
                             }}
                             onLoad={(e) => {
                                 const target = e.target as HTMLImageElement;
@@ -407,7 +407,6 @@ export default function ItemForm({
                         />
                     </div>
                     )}
-                    {/* Hidden input to store the productImageUrl in the form state */}
                     <FormField
                       control={form.control}
                       name="productImageUrl"
@@ -418,7 +417,7 @@ export default function ItemForm({
             <Card>
               <CardHeader>
                 <CardTitle>Receipt Upload</CardTitle>
-                <CardDescription>Upload a receipt image to auto-fill details.</CardDescription>
+                <CardDescription>Upload a receipt image to auto-fill details (max {MAX_IMAGE_SIZE_MB}MB).</CardDescription>
               </CardHeader>
               <CardContent>
                 <FileUploadInput
@@ -427,6 +426,7 @@ export default function ItemForm({
                   buttonText={isReceiptProcessing ? "Processing..." : "Upload Receipt"}
                   buttonIcon={isReceiptProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                   acceptedFileTypes="image/jpeg, image/png, image/gif, image/webp"
+                  maxFileSizeMB={MAX_IMAGE_SIZE_MB}
                 />
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
@@ -440,7 +440,6 @@ export default function ItemForm({
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
-                            // toast({variant: "destructive", title: "Image Load Error", description: "Could not load receipt image preview."});
                         }}
                         onLoad={(e) => {
                             const target = e.target as HTMLImageElement;
