@@ -12,33 +12,34 @@ interface StockValueOverTimeChartProps {
 
 export default function StockValueOverTimeChart({ data, chartConfig }: StockValueOverTimeChartProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Stock Value Over Time</CardTitle>
-        <CardDescription>Cumulative value of inventory added (based on original price).</CardDescription>
+    <Card className="shadow-lg"> {/* bg-card, rounded-lg, shadow-lg */}
+      <CardHeader className="p-4"> {/* padding 16px */}
+        <CardTitle className="h2-style text-foreground">Stock Value Over Time</CardTitle>
+        <CardDescription className="text-muted-foreground">Cumulative value of inventory added (based on original price).</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0"> {/* padding 16px */}
         {data.length > 0 ? (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ChartContainer config={chartConfig} className="h-[280px] w-full"> {/* Height 280px */}
             <LineChart
               accessibilityLayer
               data={data}
               margin={{ top: 5, right: 20, left: -20, bottom: 5 }}
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis
                 dataKey="date"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                // You might want to format the tick or add more ticks if there's a lot of data
+                stroke="hsl(var(--muted-foreground))"
               />
               <YAxis
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
                 tickFormatter={(value) => `$${value.toLocaleString()}`}
-                domain={['dataMin', 'dataMax']} // Or set a fixed domain like [0, 'auto']
+                domain={['dataMin', 'dataMax']}
+                stroke="hsl(var(--muted-foreground))"
               />
               <Tooltip
                 content={<ChartTooltipContent 
@@ -51,22 +52,23 @@ export default function StockValueOverTimeChart({ data, chartConfig }: StockValu
                             labelFormatter={(label) => `Date: ${label}`}
                          />} 
                 cursor={{ fill: 'hsl(var(--muted))' }}
+                wrapperStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)' }}
               />
               <Line
                 dataKey="value"
                 type="monotone"
-                stroke="hsl(var(--primary))" // Use primary color from theme
+                stroke="hsl(var(--chart-2))" 
                 strokeWidth={2}
                 dot={{
                   r: 4,
-                  fill: "hsl(var(--background))", // Background color for dot fill
-                  stroke: "hsl(var(--primary))", // Primary color for dot stroke
+                  fill: "hsl(var(--background))", 
+                  stroke: "hsl(var(--chart-2))", 
                   strokeWidth: 2,
                 }}
                 activeDot={{
                     r: 6,
                     fill: "hsl(var(--background))",
-                    stroke: "hsl(var(--primary))",
+                    stroke: "hsl(var(--chart-2))",
                 }}
               />
             </LineChart>

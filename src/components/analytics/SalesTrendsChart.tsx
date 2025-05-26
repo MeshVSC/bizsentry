@@ -12,25 +12,26 @@ interface SalesTrendsChartProps {
 
 export default function SalesTrendsChart({ data, chartConfig }: SalesTrendsChartProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sales Trends Over Time</CardTitle>
-        <CardDescription>Approximate daily sales value based on items marked sold.</CardDescription>
+    <Card className="shadow-lg"> {/* bg-card, rounded-lg, shadow-lg */}
+      <CardHeader className="p-4"> {/* padding 16px */}
+        <CardTitle className="h2-style text-foreground">Sales Trends Over Time</CardTitle>
+        <CardDescription className="text-muted-foreground">Approximate daily sales value based on items marked sold.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0"> {/* padding 16px */}
         {data.length > 0 ? (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ChartContainer config={chartConfig} className="h-[280px] w-full"> {/* Height 280px */}
             <LineChart
               accessibilityLayer
               data={data}
               margin={{ top: 5, right: 20, left: -5, bottom: 5 }}
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border))"/>
               <XAxis
                 dataKey="date"
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
+                stroke="hsl(var(--muted-foreground))"
               />
               <YAxis
                 tickLine={false}
@@ -38,6 +39,7 @@ export default function SalesTrendsChart({ data, chartConfig }: SalesTrendsChart
                 tickMargin={8}
                 tickFormatter={(value) => `$${value.toLocaleString()}`}
                 domain={['dataMin', 'dataMax']}
+                stroke="hsl(var(--muted-foreground))"
               />
               <Tooltip
                 content={<ChartTooltipContent 
@@ -50,6 +52,7 @@ export default function SalesTrendsChart({ data, chartConfig }: SalesTrendsChart
                             labelFormatter={(label) => `Date: ${label}`}
                          />} 
                 cursor={{ fill: 'hsl(var(--muted))' }}
+                wrapperStyle={{ backgroundColor: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)' }}
               />
               <Line
                 dataKey="totalSales"

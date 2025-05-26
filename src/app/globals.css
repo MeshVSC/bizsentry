@@ -8,58 +8,53 @@ html {
 
 @layer base {
   :root {
-    --background: 220 10% 8%; /* Very dark, slightly cool black/grey */
-    --foreground: 220 10% 90%; /* Light grey */
+    /* New Theme: Dark Gray/Black with Turquoise Accents */
+    --background: 222 39% 11%; /* #111827 - Background Darker (main app background) */
+    --foreground: 210 17% 98%; /* #F9FAFB - Text Light (primary text) */
 
-    --card: 220 10% 12%; /* Slightly lighter dark grey for cards */
-    --card-foreground: 220 10% 90%;
+    --card: 215 28% 17%; /* #1F2937 - Background Dark (for card backgrounds) */
+    --card-foreground: 210 17% 98%; /* Text Light */
 
-    --popover: 220 10% 10%; /* Dark popover */
-    --popover-foreground: 220 10% 90%;
+    --popover: 215 28% 15%; /* Slightly darker than card for popovers */
+    --popover-foreground: 210 17% 98%;
 
-    --primary: 205 90% 55%; /* Bright neon blue */
-    --primary-foreground: 220 10% 95%; /* White/very light grey for text on primary */
+    --primary: 174 58% 56%; /* #4FD1C5 - Turquoise */
+    --primary-foreground: 222 39% 11%; /* Dark text for good contrast on turquoise */
 
-    --secondary: 220 10% 20%; /* Medium dark grey */
-    --secondary-foreground: 220 10% 80%; /* Slightly muted light grey */
+    --secondary: 215 28% 22%; /* A bit lighter than card for secondary elements */
+    --secondary-foreground: 210 17% 98%;
 
-    --muted: 220 10% 15%; /* Darker muted grey */
-    --muted-foreground: 220 10% 50%; /* Medium grey for muted text */
+    --muted: 215 28% 15%; 
+    --muted-foreground: 210 29% 80%; /* #CBD5E0 - Text Mid */
 
-    --accent: 205 90% 55%; /* Same neon blue as primary for accents */
-    --accent-foreground: 220 10% 95%; /* White/very light grey for text on accent */
+    --accent: 174 58% 56%; /* Turquoise for accents */
+    --accent-foreground: 222 39% 11%; 
 
-    --destructive: 0 70% 50%; /* A clear red for destructive actions */
+    --destructive: 0 70% 50%; 
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 10% 25%; /* Subtle border color */
-    --input: 220 10% 18%; /* Slightly distinct input background */
-    --ring: 205 90% 55%; /* Neon blue for focus rings */
+    --border: 215 28% 25%; 
+    --input: 215 28% 20%; 
+    --ring: 174 58% 56%; /* Turquoise for focus rings */
 
-    --chart-1: 205 90% 60%; /* Neon Blue */
-    --chart-2: 270 80% 65%; /* Neon Purple */
-    --chart-3: 330 90% 60%; /* Neon Pink */
-    --chart-4: 175 80% 50%; /* Neon Cyan/Turquoise */
-    --chart-5: 45 100% 55%; /* Neon Yellow/Orange */
+    /* Chart colors based on primary and previous neon theme */
+    --chart-1: 174 58% 56%; /* Primary Turquoise */
+    --chart-2: 205 90% 55%; 
+    --chart-3: 270 80% 65%; 
+    --chart-4: 330 90% 60%; 
+    --chart-5: 175 80% 50%; 
     
-    --radius: 0.5rem;
+    --radius: 0.5rem; /* 8px */
 
     /* Sidebar Specific Variables */
-    --sidebar-background: 220 10% 5%; /* Even darker, almost black sidebar */
-    --sidebar-foreground: 220 10% 85%;
-    --sidebar-primary: 205 90% 55%;
-    --sidebar-primary-foreground: 220 10% 95%;
-    --sidebar-accent: 205 90% 55%;
-    --sidebar-accent-foreground: 220 10% 95%;
-    --sidebar-border: 220 10% 15%;
-    --sidebar-ring: 205 90% 55%;
+    --sidebar-background: 222 39% 11%; /* Background Darker #111827 */
+    --sidebar-foreground: 210 17% 98%; /* Text Light #F9FAFB */
+    --sidebar-hover-background: 215 28% 17%; /* Background Dark #1F2937 for hover */
+    /* --sidebar-active-background: 174 58% 56%;  Primary Turquoise with opacity handled by class */
+    --sidebar-active-foreground: 174 58% 56%; /* Primary Turquoise for active text */
+    --sidebar-border: 215 28% 20%;
+    --sidebar-ring: 174 58% 56%;
   }
-
-  /* 
-    The .dark class block is removed as its styles are now the default in :root.
-    If you ever need to re-introduce a separate light/dark theme toggle, 
-    you would re-create a .dark (or .light) block with different HSL variables.
-  */
 }
 
 @layer base {
@@ -68,5 +63,13 @@ html {
   }
   body {
     @apply bg-background text-foreground;
+    font-size: theme(fontSize.base); /* Ensuring body text is base */
   }
+  h1, .h1-style { /* Added .h1-style for components that can't directly use h1 like CardTitle */
+    @apply text-3xl font-bold text-foreground; /* Default H1 to 3xl, bold, Text Light */
+  }
+   h2, .h2-style {
+    @apply text-2xl font-semibold text-foreground;
+  }
+  /* Add other heading defaults if needed */
 }

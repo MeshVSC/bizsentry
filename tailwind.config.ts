@@ -2,7 +2,7 @@
 import type { Config } from "tailwindcss";
 
 const config = {
-    darkMode: ["class"],
+    darkMode: ["class"], 
     content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -62,18 +62,17 @@ const config = {
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',
-          primary: 'hsl(var(--sidebar-primary))',
-          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-          accent: 'hsl(var(--sidebar-accent))',
-          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          hover: 'hsl(var(--sidebar-hover-background))',
+          // active background is primary with opacity, text is primary
+          'active-foreground': 'hsl(var(--sidebar-active-foreground))',
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
         }
   		},
   		borderRadius: {
-  			lg: "var(--radius)",
-  			md: "calc(var(--radius) - 2px)",
-  			sm: "calc(var(--radius) - 4px)",
+  			lg: "var(--radius)", // 8px
+  			md: "calc(var(--radius) - 2px)", // 6px
+  			sm: "calc(var(--radius) - 4px)", // 4px
   		},
   		keyframes: {
   			"accordion-down": {
@@ -90,7 +89,7 @@ const config = {
   			"accordion-up": "accordion-up 0.2s ease-out",
   		},
       fontFamily: {
-        sans: ["var(--font-inter)"], // Updated CSS variable name
+        sans: ["var(--font-inter)"],
       },
   	},
   },

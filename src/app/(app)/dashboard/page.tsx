@@ -16,6 +16,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
+// Chart component imports for dashboard - using existing analytics charts for placeholder
+import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
+import type { ChartConfig } from '@/components/ui/chart';
+import { format, parseISO } from 'date-fns';
+
+
 export default async function DashboardPage() {
   const { items } = await getItems();
 
@@ -39,38 +45,53 @@ export default async function DashboardPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
 
+  // Placeholder data for a chart on the dashboard
+  const categoriesData: { [key: string]: number } = {};
+  items.filter(item => !item.sold).forEach(item => {
+    const category = item.category || "Uncategorized";
+    categoriesData[category] = (categoriesData[category] || 0) + item.quantity;
+  });
+  const itemsPerCategoryChartData = Object.entries(categoriesData).map(([name, count]) => ({ name, count })).slice(0, 5); // Show top 5
+  const itemsPerCategoryChartConfig = {
+    count: {
+      label: "Items in Stock",
+      color: "hsl(var(--chart-1))",
+    },
+  } satisfies ChartConfig;
+
+
   return (
     <>
       <PageHeader title="Dashboard" description="Overview of your inventory." />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {/* Metrics row: grid 4-column gap 24px */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6"> 
         <StatCard title="Total Items in Storage" value={totalItemsInStorage} icon={Package} description="Sum of quantities for all active items" />
         <StatCard title="Distinct Items Sold" value={totalItemsSoldCount} icon={PackageCheck} description="Number of unique item types marked as sold" />
         <StatCard title="Number of Categories" value={numberOfCategories} icon={Layers} description="Unique product categories" />
-        <StatCard title="Est. Value in Storage" value={`$${totalValueInStorage.toFixed(2)}`} icon={DollarSign} description="Based on sales price" />
-      </div>
-
-      <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4"> {/* Adjusted grid for the new card */}
         <StatCard 
             title="Total Est. Profit (Sold)" 
             value={`$${totalEstimatedProfitSold.toFixed(2)}`} 
             icon={TrendingUp} 
             description="Approx. profit from items marked as sold" 
         />
-        {/* Placeholder for other potential cards or adjust col-span of existing ones if this is the only new one in this row */}
       </div>
 
-
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Overview of recent inventory changes.</CardDescription>
+      {/* Chart row: full-width ChartCard + Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+           <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={itemsPerCategoryChartConfig} />
+        </div>
+        
+        <Card className="shadow-lg"> {/* Recent Activity Card styled like MetricCard */}
+          <CardHeader className="p-4">
+            <CardTitle className="h2-style text-foreground">Recent Activity</CardTitle>
+            <CardDescription className="text-muted-foreground">Overview of recent inventory changes.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             {recentlyAddedItems.length > 0 ? (
-              <ul className="space-y-3">
+              <ul className="space-y-2">
                 {recentlyAddedItems.map(item => (
-                  <li key={item.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-md shadow-sm">
+                  <li key={item.id} className="flex items-center justify-between p-3 bg-background rounded-md shadow-sm">
                     <div>
                       <Link href={`/inventory/${item.id}`} className="font-medium text-primary hover:underline">{item.name}</Link>
                       <p className="text-xs text-muted-foreground">Added on {new Date(item.createdAt).toLocaleDateString()}</p>
@@ -82,26 +103,13 @@ export default async function DashboardPage() {
             ) : (
               <p className="text-muted-foreground">No recent item additions.</p>
             )}
-            
           </CardContent>
-           <CardFooter>
+           <CardFooter className="p-4">
              <Button asChild>
                <Link href="/inventory/add">Add New Item</Link>
              </Button>
           </CardFooter>
         </Card>
-        
-        <Card className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/10 to-accent/10">
-            <Image src="https://placehold.co/300x200.png?text=StockSentry+Feature" alt="Feature graphic" width={300} height={200} className="rounded-lg mb-4 shadow-lg" data-ai-hint="inventory abstract" />
-            <CardTitle className="text-xl mb-2 text-center">Streamline Your Inventory</CardTitle>
-            <CardDescription className="text-center mb-4">
-                StockSentry helps you manage your items efficiently. Explore features like receipt scanning and detailed analytics.
-            </CardDescription>
-            <Button asChild variant="outline">
-              <Link href="/analytics">View Full Analytics</Link>
-            </Button>
-        </Card>
-
       </div>
     </>
   );
