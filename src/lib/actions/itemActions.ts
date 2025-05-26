@@ -5,7 +5,7 @@ import type { Item, ItemInput } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 
-// Initial seed data
+// Initial seed data for items
 const initialItems: Item[] = [
   {
     id: "1",
@@ -257,14 +257,23 @@ const initialItems: Item[] = [
   }
 ];
 
-// Default options for form dropdowns
-const defaultStorageLocationOptions = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom', 'Kitchen Area', 'Drawer C'];
-const defaultBinLocationOptions = ['A-01', 'A-02', 'A-03', 'B-01', 'C-01', 'Shelf 1-A', 'Shelf 1-B', 'Shelf 1-C', 'Shelf 2-A', 'Drawer X', 'Pallet 5', 'Section 1', 'Section 2', 'Bin 1', 'Bin 3', 'Display A', 'Counter Top'];
+// Default options for managed dropdowns
+const defaultManagedCategories = ['Electronics', 'Accessories', 'Office Supplies', 'Furniture', 'Appliances', 'Software', 'Miscellaneous'];
+const defaultManagedStorageLocations = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom', 'Kitchen Area', 'Drawer C', 'Pantry'];
+const defaultManagedBinLocations = ['A-01', 'A-02', 'A-03', 'B-01', 'C-01', 'Shelf A1', 'Shelf A2', 'Shelf 1-A', 'Shelf 1-B', 'Shelf 1-C', 'Shelf 2-A', 'Drawer X', 'Pallet 5', 'Section 1', 'Section 2', 'Bin 1', 'Bin 3', 'Display A', 'Counter Top'];
 
-
-// Initialize global store if it doesn't exist
+// Initialize global stores if they don't exist
 if (typeof globalThis._itemsStore === 'undefined') {
   globalThis._itemsStore = JSON.parse(JSON.stringify(initialItems));
+}
+if (typeof globalThis._managedCategoriesStore === 'undefined') {
+  globalThis._managedCategoriesStore = [...defaultManagedCategories];
+}
+if (typeof globalThis._managedStorageLocationsStore === 'undefined') {
+  globalThis._managedStorageLocationsStore = [...defaultManagedStorageLocations];
+}
+if (typeof globalThis._managedBinLocationsStore === 'undefined') {
+  globalThis._managedBinLocationsStore = [...defaultManagedBinLocations];
 }
 
 // Interface for filters
@@ -275,8 +284,9 @@ export interface ItemFilters {
   limit?: number;
 }
 
+// Item CRUD Actions
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async delay
+  await new Promise(resolve => setTimeout(resolve, 50)); 
   const store = globalThis._itemsStore || [];
   let filteredItems = [...store]; 
 
@@ -305,37 +315,9 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     
     return { items: paginatedItems, totalPages, count: totalFilteredItems };
   } else {
-    // If no pagination, return all filtered items
     return { items: filteredItems, totalPages: 1, count: totalFilteredItems };
   }
 }
-
-export async function getUniqueCategories(): Promise<string[]> {
-  await new Promise(resolve => setTimeout(resolve, 50));
-  const store = globalThis._itemsStore || [];
-  const categories = Array.from(new Set(store.map(item => item.category).filter(Boolean as (value: any) => value is string))).sort();
-  return categories;
-}
-
-export async function getStorageLocationOptions(): Promise<string[]> {
-  await new Promise(resolve => setTimeout(resolve, 50));
-  // For now, return hardcoded options. In the future, this could fetch from a DB or another source.
-  // We can also add options from existing items if desired:
-  // const store = globalThis._itemsStore || [];
-  // const dynamicOptions = Array.from(new Set(store.map(item => item.storageLocation).filter(Boolean as (value: any) => value is string)));
-  // return Array.from(new Set([...defaultStorageLocationOptions, ...dynamicOptions])).sort();
-  return [...defaultStorageLocationOptions].sort();
-}
-
-export async function getBinLocationOptions(): Promise<string[]> {
-  await new Promise(resolve => setTimeout(resolve, 50));
-  // For now, return hardcoded options.
-  // const store = globalThis._itemsStore || [];
-  // const dynamicOptions = Array.from(new Set(store.map(item => item.binLocation).filter(Boolean as (value: any) => value is string)));
-  // return Array.from(new Set([...defaultBinLocationOptions, ...dynamicOptions])).sort();
-  return [...defaultBinLocationOptions].sort();
-}
-
 
 export async function getItemById(id: string): Promise<Item | undefined> {
   await new Promise(resolve => setTimeout(resolve, 50)); 
@@ -417,6 +399,7 @@ export async function deleteItem(id: string): Promise<boolean> {
   return false;
 }
 
+// Actions for receipt processing
 export async function processReceiptImage(receiptImage: string): Promise<ReceiptDataExtractionOutput | { error: string }> {
   try {
     const input: ReceiptDataExtractionInput = { receiptImage };
@@ -431,6 +414,7 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
   }
 }
 
+// Actions for toggling sold status and bulk operations
 export async function toggleItemSoldStatus(id: string): Promise<Item | undefined> {
   const store = globalThis._itemsStore || [];
   globalThis._itemsStore = store;
@@ -501,3 +485,112 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
   return { success: false, message: "No items were selected for status update." };
 }
 
+// Actions for managed dropdown options
+
+// Categories (used for Inventory Filters on inventory list page - derived from actual items)
+export async function getUniqueCategories(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const store = globalThis._itemsStore || [];
+  const categories = Array.from(new Set(store.map(item => item.category).filter(Boolean as (value: any) => value is string))).sort();
+  return categories;
+}
+
+// Managed Category Options (for ItemForm dropdown)
+export async function getManagedCategoryOptions(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  return [...(globalThis._managedCategoriesStore || [])].sort();
+}
+
+export async function addManagedCategoryOption(name: string): Promise<{ success: boolean; message?: string; options?: string[] }> {
+  if (!name || name.trim() === "") {
+    return { success: false, message: "Category name cannot be empty." };
+  }
+  const store = globalThis._managedCategoriesStore || [];
+  if (store.map(s => s.toLowerCase()).includes(name.toLowerCase())) {
+    return { success: false, message: `Category "${name}" already exists.` };
+  }
+  store.push(name);
+  globalThis._managedCategoriesStore = store;
+  revalidatePath("/settings/options");
+  revalidatePath("/inventory/add"); 
+  // Consider revalidating edit pages if they are open, or rely on page refresh
+  return { success: true, message: `Category "${name}" added.`, options: [...store].sort() };
+}
+
+export async function deleteManagedCategoryOption(name: string): Promise<{ success: boolean; message?: string; options?: string[] }> {
+  const store = globalThis._managedCategoriesStore || [];
+  const initialLength = store.length;
+  globalThis._managedCategoriesStore = store.filter(cat => cat !== name);
+  if (globalThis._managedCategoriesStore.length < initialLength) {
+    revalidatePath("/settings/options");
+    revalidatePath("/inventory/add");
+    return { success: true, message: `Category "${name}" deleted.`, options: [...globalThis._managedCategoriesStore].sort() };
+  }
+  return { success: false, message: `Category "${name}" not found.` };
+}
+
+// Managed Storage Location Options (for ItemForm dropdown)
+export async function getManagedStorageLocationOptions(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  return [...(globalThis._managedStorageLocationsStore || [])].sort();
+}
+
+export async function addManagedStorageLocationOption(name: string): Promise<{ success: boolean; message?: string; options?: string[] }> {
+  if (!name || name.trim() === "") {
+    return { success: false, message: "Storage location name cannot be empty." };
+  }
+  const store = globalThis._managedStorageLocationsStore || [];
+  if (store.map(s => s.toLowerCase()).includes(name.toLowerCase())) {
+    return { success: false, message: `Storage location "${name}" already exists.` };
+  }
+  store.push(name);
+  globalThis._managedStorageLocationsStore = store;
+  revalidatePath("/settings/options");
+  revalidatePath("/inventory/add");
+  return { success: true, message: `Storage location "${name}" added.`, options: [...store].sort() };
+}
+
+export async function deleteManagedStorageLocationOption(name: string): Promise<{ success: boolean; message?: string; options?: string[] }> {
+  const store = globalThis._managedStorageLocationsStore || [];
+  const initialLength = store.length;
+  globalThis._managedStorageLocationsStore = store.filter(loc => loc !== name);
+  if (globalThis._managedStorageLocationsStore.length < initialLength) {
+    revalidatePath("/settings/options");
+    revalidatePath("/inventory/add");
+    return { success: true, message: `Storage location "${name}" deleted.`, options: [...globalThis._managedStorageLocationsStore].sort() };
+  }
+  return { success: false, message: `Storage location "${name}" not found.` };
+}
+
+// Managed Bin Location Options (for ItemForm dropdown)
+export async function getManagedBinLocationOptions(): Promise<string[]> {
+  await new Promise(resolve => setTimeout(resolve, 50));
+  return [...(globalThis._managedBinLocationsStore || [])].sort();
+}
+
+export async function addManagedBinLocationOption(name: string): Promise<{ success: boolean; message?: string; options?: string[] }> {
+  if (!name || name.trim() === "") {
+    return { success: false, message: "Bin location name cannot be empty." };
+  }
+  const store = globalThis._managedBinLocationsStore || [];
+  if (store.map(s => s.toLowerCase()).includes(name.toLowerCase())) {
+    return { success: false, message: `Bin location "${name}" already exists.` };
+  }
+  store.push(name);
+  globalThis._managedBinLocationsStore = store;
+  revalidatePath("/settings/options");
+  revalidatePath("/inventory/add");
+  return { success: true, message: `Bin location "${name}" added.`, options: [...store].sort() };
+}
+
+export async function deleteManagedBinLocationOption(name: string): Promise<{ success: boolean; message?: string; options?: string[] }> {
+  const store = globalThis._managedBinLocationsStore || [];
+  const initialLength = store.length;
+  globalThis._managedBinLocationsStore = store.filter(loc => loc !== name);
+  if (globalThis._managedBinLocationsStore.length < initialLength) {
+    revalidatePath("/settings/options");
+    revalidatePath("/inventory/add");
+    return { success: true, message: `Bin location "${name}" deleted.`, options: [...globalThis._managedBinLocationsStore].sort() };
+  }
+  return { success: false, message: `Bin location "${name}" not found.` };
+}

@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, BarChart3, Settings, Layers } from 'lucide-react';
+import { Home, Package, BarChart3, Settings, Layers, Edit3 } from 'lucide-react'; // Added Edit3 for Options/Settings
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  // { href: '/settings', label: 'Settings', icon: Settings }, // Example for future use
+  { href: '/settings/options', label: 'Manage Options', icon: Edit3 }, // Changed from Settings to Edit3
 ];
 
 export default function SidebarNav() {

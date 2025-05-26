@@ -1,12 +1,17 @@
 
 import ItemForm from '@/components/inventory/ItemForm';
 import PageHeader from '@/components/shared/PageHeader';
-import { addItem, getUniqueCategories, getStorageLocationOptions, getBinLocationOptions } from '@/lib/actions/itemActions';
+import { 
+  addItem, 
+  getManagedCategoryOptions, 
+  getManagedStorageLocationOptions, 
+  getManagedBinLocationOptions 
+} from '@/lib/actions/itemActions';
 
 export default async function AddItemPage() {
-  const uniqueCategories = await getUniqueCategories();
-  const storageLocations = await getStorageLocationOptions();
-  const binLocations = await getBinLocationOptions();
+  const managedCategories = await getManagedCategoryOptions();
+  const managedStorageLocations = await getManagedStorageLocationOptions();
+  const managedBinLocations = await getManagedBinLocationOptions();
 
   return (
     <>
@@ -14,11 +19,10 @@ export default async function AddItemPage() {
       <ItemForm 
         onSubmitAction={addItem} 
         isEditing={false} 
-        availableCategories={uniqueCategories}
-        availableStorageLocations={storageLocations}
-        availableBinLocations={binLocations}
+        availableCategories={managedCategories}
+        availableStorageLocations={managedStorageLocations}
+        availableBinLocations={managedBinLocations}
       />
     </>
   );
 }
-
