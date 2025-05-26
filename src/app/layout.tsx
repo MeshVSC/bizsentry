@@ -1,12 +1,12 @@
 
 import type {Metadata} from 'next';
-import { Montserrat } from 'next/font/google'; // Changed from Inter to Montserrat
+import { Montserrat } from 'next/font/google';
 import './globals.css';
 
 // Instantiate Montserrat and assign its CSS variable
-const montserrat = Montserrat({ // Changed from inter to montserrat
+const montserrat = Montserrat({
   subsets: ['latin'],
-  variable: '--font-montserrat', // Changed variable name
+  variable: '--font-montserrat',
   display: 'swap',
 });
 
@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     // Apply the CSS variable to the html tag
-    <html lang="en" className={montserrat.variable}> {/* Changed from inter.variable */}
+    <html lang="en" className={montserrat.variable}>
       <body className={`antialiased`}>
         {children}
       </body>
