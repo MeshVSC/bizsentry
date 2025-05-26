@@ -1,12 +1,12 @@
 
 import type {Metadata} from 'next';
-import { Montserrat } from 'next/font/google'; // Using Montserrat
+import { Montserrat } from 'next/font/google';
 import './globals.css';
 
 // Instantiate Montserrat and assign its CSS variable
 const montserrat = Montserrat({
   subsets: ['latin'],
-  variable: '--font-montserrat', // CSS variable for Montserrat
+  variable: '--font-montserrat',
   display: 'swap',
 });
 
@@ -21,10 +21,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={montserrat.variable}>
-      <body className="antialiased">
-        {children}
-      </body>
-    </html>
+    <html lang="en" className={montserrat.variable}><body className="antialiased">{children}</body></html>
   );
 }
