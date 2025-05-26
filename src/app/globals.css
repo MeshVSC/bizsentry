@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 html {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  font-family: var(--font-montserrat), Arial, Helvetica, sans-serif; /* Updated to Montserrat */
 }
 
 @layer base {
   :root {
-    /* New Theme: Dark Gray/Black with Turquoise Accents */
+    /* Theme: Dark Neon with Blue Accents (Applied as Default) */
     --background: 222 39% 11%; /* #111827 - Background Darker (main app background) */
     --foreground: 210 17% 98%; /* #F9FAFB - Text Light (primary text) */
 
@@ -18,8 +18,8 @@ html {
     --popover: 215 28% 15%; /* Slightly darker than card for popovers */
     --popover-foreground: 210 17% 98%;
 
-    --primary: 174 58% 56%; /* #4FD1C5 - Turquoise */
-    --primary-foreground: 222 39% 11%; /* Dark text for good contrast on turquoise */
+    --primary: 195 80% 55%; /* #4FD1C5 - Updated to a Neon Blue: hsl(195, 80%, 55%)  (Original was Turquoise #4FD1C5) */
+    --primary-foreground: 222 39% 11%; /* Dark text for good contrast on neon blue */
 
     --secondary: 215 28% 22%; /* A bit lighter than card for secondary elements */
     --secondary-foreground: 210 17% 98%;
@@ -27,7 +27,7 @@ html {
     --muted: 215 28% 15%; 
     --muted-foreground: 210 29% 80%; /* #CBD5E0 - Text Mid */
 
-    --accent: 174 58% 56%; /* Turquoise for accents */
+    --accent: 195 80% 55%; /* Neon Blue for accents */
     --accent-foreground: 222 39% 11%; 
 
     --destructive: 0 70% 50%; 
@@ -35,14 +35,14 @@ html {
 
     --border: 215 28% 25%; 
     --input: 215 28% 20%; 
-    --ring: 174 58% 56%; /* Turquoise for focus rings */
+    --ring: 195 80% 55%; /* Neon Blue for focus rings */
 
-    /* Chart colors based on primary and previous neon theme */
-    --chart-1: 174 58% 56%; /* Primary Turquoise */
-    --chart-2: 205 90% 55%; 
-    --chart-3: 270 80% 65%; 
-    --chart-4: 330 90% 60%; 
-    --chart-5: 175 80% 50%; 
+    /* Chart colors - Neon Palette */
+    --chart-1: 195 80% 55%; /* Neon Blue (Primary) */
+    --chart-2: 250 75% 60%; /* Neon Purple */
+    --chart-3: 320 85% 60%; /* Neon Pink */
+    --chart-4: 180 70% 50%; /* Neon Cyan/Teal */
+    --chart-5: 100 70% 55%; /* Neon Green (complementary) */
     
     --radius: 0.5rem; /* 8px */
 
@@ -50,10 +50,9 @@ html {
     --sidebar-background: 222 39% 11%; /* Background Darker #111827 */
     --sidebar-foreground: 210 17% 98%; /* Text Light #F9FAFB */
     --sidebar-hover-background: 215 28% 17%; /* Background Dark #1F2937 for hover */
-    /* --sidebar-active-background: 174 58% 56%;  Primary Turquoise with opacity handled by class */
-    --sidebar-active-foreground: 174 58% 56%; /* Primary Turquoise for active text */
+    --sidebar-active-foreground: 195 80% 55%; /* Neon Blue for active text/icon */
     --sidebar-border: 215 28% 20%;
-    --sidebar-ring: 174 58% 56%;
+    --sidebar-ring: 195 80% 55%;
   }
 }
 
@@ -63,13 +62,12 @@ html {
   }
   body {
     @apply bg-background text-foreground;
-    font-size: theme(fontSize.base); /* Ensuring body text is base */
+    font-size: theme(fontSize.base); /* Body: base */
   }
-  h1, .h1-style { /* Added .h1-style for components that can't directly use h1 like CardTitle */
-    @apply text-3xl font-bold text-foreground; /* Default H1 to 3xl, bold, Text Light */
+  h1, .h1-style { 
+    @apply text-3xl font-bold text-foreground; /* H1: 3xl, Text Light */
   }
    h2, .h2-style {
     @apply text-2xl font-semibold text-foreground;
   }
-  /* Add other heading defaults if needed */
 }

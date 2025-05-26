@@ -2,8 +2,7 @@
 import type { Config } from "tailwindcss";
 
 const config = {
-    darkMode: ["class"], 
-    content: [
+    content: [ // Ensure dark mode is not explicitly set if not needed, or set to "class" if you plan to toggle
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -53,17 +52,16 @@ const config = {
           foreground: "hsl(var(--card-foreground))",
         },
         chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))'
+          '1': 'hsl(var(--chart-1))', // Neon Blue
+          '2': 'hsl(var(--chart-2))', // Neon Purple
+          '3': 'hsl(var(--chart-3))', // Neon Pink
+          '4': 'hsl(var(--chart-4))', // Neon Cyan
+          '5': 'hsl(var(--chart-5))'  // Neon Green (complementary)
         },
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',
           hover: 'hsl(var(--sidebar-hover-background))',
-          // active background is primary with opacity, text is primary
           'active-foreground': 'hsl(var(--sidebar-active-foreground))',
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))'
@@ -89,7 +87,7 @@ const config = {
   			"accordion-up": "accordion-up 0.2s ease-out",
   		},
       fontFamily: {
-        sans: ["var(--font-inter)"],
+        sans: ["var(--font-montserrat)"], // Changed from --font-inter
       },
   	},
   },
