@@ -4,7 +4,6 @@ import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
 import type { Item } from '@/types/item';
 import { Package, PackageCheck, Layers, DollarSign } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
 import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 import StockValueOverTimeChart from '@/components/analytics/StockValueOverTimeChart';
@@ -12,7 +11,7 @@ import SalesTrendsChart from '@/components/analytics/SalesTrendsChart';
 import { format, parseISO } from 'date-fns';
 
 export default async function AnalyticsPage() {
-  const items = await getItems();
+  const { items } = await getItems(); // Correctly destructure items
 
   // KPI Calculations
   const totalItemsInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + item.quantity, 0);
