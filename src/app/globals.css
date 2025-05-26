@@ -8,54 +8,6 @@ html {
 
 @layer base {
   :root {
-    --background: 0 0% 94.1%; /* #F0F0F0 Light Gray */
-    --foreground: 0 0% 20%; /* #333333 Dark Gray */
-
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 0 0% 20%; /* Dark Gray */
-
-    --popover: 0 0% 100%; /* White */
-    --popover-foreground: 0 0% 20%; /* Dark Gray */
-
-    --primary: 180 25% 58%; /* #78B3B3 Muted Teal */
-    --primary-foreground: 0 0% 98%; /* Almost White */
-
-    --secondary: 0 0% 90%; /* Slightly darker gray */
-    --secondary-foreground: 0 0% 15%; /* Darker gray for secondary text */
-
-    --muted: 0 0% 85%; /* Muted gray */
-    --muted-foreground: 0 0% 40%; /* Muted text */
-
-    --accent: 245 47% 79%; /* #B1AEE3 Soft Lavender */
-    --accent-foreground: 245 30% 25%; /* Darker purple for accent text */
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 80%; /* Border color */
-    --input: 0 0% 80%; /* Input border */
-    --ring: 245 47% 79%; /* Soft Lavender for rings */
-
-    --chart-1: 180 30% 50%; /* Teal variant */
-    --chart-2: 245 50% 70%; /* Lavender variant */
-    --chart-3: 30 80% 60%; /* Orange variant for charts */
-    --chart-4: 120 40% 55%; /* Green variant */
-    --chart-5: 200 60% 60%; /* Blue variant */
-    
-    --radius: 0.5rem;
-
-    /* Sidebar Specific Variables */
-    --sidebar-background: 0 0% 90%; /* Slightly darker gray for sidebar */
-    --sidebar-foreground: 0 0% 15%; /* Dark text for sidebar */
-    --sidebar-primary: 180 25% 58%; /* Muted Teal */
-    --sidebar-primary-foreground: 0 0% 98%; /* Almost White */
-    --sidebar-accent: 245 47% 79%; /* Soft Lavender */
-    --sidebar-accent-foreground: 245 30% 25%; /* Darker purple */
-    --sidebar-border: 0 0% 75%; /* Sidebar border */
-    --sidebar-ring: 245 47% 79%; /* Soft Lavender */
-  }
-
-  .dark {
     --background: 220 10% 8%; /* Very dark, slightly cool black/grey */
     --foreground: 220 10% 90%; /* Light grey */
 
@@ -89,8 +41,10 @@ html {
     --chart-3: 330 90% 60%; /* Neon Pink */
     --chart-4: 175 80% 50%; /* Neon Cyan/Turquoise */
     --chart-5: 45 100% 55%; /* Neon Yellow/Orange */
+    
+    --radius: 0.5rem;
 
-    /* Sidebar Dark Specific Variables */
+    /* Sidebar Specific Variables */
     --sidebar-background: 220 10% 5%; /* Even darker, almost black sidebar */
     --sidebar-foreground: 220 10% 85%;
     --sidebar-primary: 205 90% 55%;
@@ -100,6 +54,12 @@ html {
     --sidebar-border: 220 10% 15%;
     --sidebar-ring: 205 90% 55%;
   }
+
+  /* 
+    The .dark class block is removed as its styles are now the default in :root.
+    If you ever need to re-introduce a separate light/dark theme toggle, 
+    you would re-create a .dark (or .light) block with different HSL variables.
+  */
 }
 
 @layer base {
