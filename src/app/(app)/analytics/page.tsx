@@ -3,15 +3,16 @@ import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
 import type { Item } from '@/types/item';
-import { Package, PackageCheck, Layers, DollarSign } from 'lucide-react';
+import { Package, PackageCheck, Layers, DollarSign, TrendingUp } from 'lucide-react';
 import type { ChartConfig } from '@/components/ui/chart';
 import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 import StockValueOverTimeChart from '@/components/analytics/StockValueOverTimeChart';
 import SalesTrendsChart from '@/components/analytics/SalesTrendsChart';
+import ProfitByCategoryChart from '@/components/analytics/ProfitByCategoryChart';
 import { format, parseISO } from 'date-fns';
 
 export default async function AnalyticsPage() {
-  const { items } = await getItems(); // Correctly destructure items
+  const { items } = await getItems(); 
 
   // KPI Calculations
   const totalItemsInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + item.quantity, 0);
@@ -68,8 +69,8 @@ export default async function AnalyticsPage() {
   // Data for Sales Trends Chart
   const salesByDay: { [key: string]: number } = {};
   items.filter(item => item.sold && item.salesPrice).forEach(item => {
-    const saleDate = format(parseISO(item.updatedAt), 'yyyy-MM-dd'); // Use updatedAt as proxy for sale date
-    const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1; // Assume last known quantity or 1
+    const saleDate = format(parseISO(item.updatedAt), 'yyyy-MM-dd');
+    const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1; 
     const saleAmount = (item.salesPrice || 0) * quantitySoldApproximation;
     salesByDay[saleDate] = (salesByDay[saleDate] || 0) + saleAmount;
   });
@@ -79,7 +80,7 @@ export default async function AnalyticsPage() {
       date: format(parseISO(date), 'MMM dd'),
       totalSales,
     }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Ensure chronological order
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); 
 
   const salesTrendsChartConfig = {
     totalSales: {
@@ -87,6 +88,30 @@ export default async function AnalyticsPage() {
       color: "hsl(var(--chart-3))",
     },
   } satisfies ChartConfig;
+
+  // Data for Profit by Category Chart
+  const profitByCategory: { [key: string]: number } = {};
+  items.filter(item => item.sold && typeof item.salesPrice === 'number' && typeof item.originalPrice === 'number')
+    .forEach(item => {
+      const profitPerUnit = item.salesPrice! - item.originalPrice!;
+      const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1;
+      const totalItemProfit = profitPerUnit * quantitySoldApproximation;
+      const category = item.category || "Uncategorized";
+      profitByCategory[category] = (profitByCategory[category] || 0) + totalItemProfit;
+    });
+
+  const profitByCategoryChartData = Object.entries(profitByCategory)
+    .map(([name, profit]) => ({ name, profit }))
+    .sort((a, b) => b.profit - a.profit); // Sort by profit descending
+
+  const profitByCategoryChartConfig = {
+    profit: {
+      label: "Est. Profit ($)",
+      color: "hsl(var(--chart-4))", // Using chart-4 for a new color
+    },
+  } satisfies ChartConfig;
+
+  const totalEstimatedProfit = Object.values(profitByCategory).reduce((sum, profit) => sum + profit, 0);
 
 
   return (
@@ -98,19 +123,20 @@ export default async function AnalyticsPage() {
         <StatCard title="Distinct Item Types Sold" value={totalItemsSoldCount} icon={PackageCheck} description="Number of unique item SKUs marked as sold" />
         <StatCard title="Categories with Stock" value={Object.keys(categoriesData).length} icon={Layers} description="Unique categories with unsold items" />
         <StatCard 
-          title="Est. Value of Sold Items" 
-          value={`$${totalValueSold.toFixed(2)}`} 
-          icon={DollarSign} 
-          description="Approx. value based on sales price & assumed sold quantity" 
+          title="Total Est. Profit (Sold)" 
+          value={`$${totalEstimatedProfit.toFixed(2)}`} 
+          icon={TrendingUp} 
+          description="Approx. profit from items marked as sold" 
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 mb-8">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
         <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={itemsPerCategoryChartConfig} />
         <StockValueOverTimeChart data={refinedStockValueData} chartConfig={stockValueChartConfig} />
+        <ProfitByCategoryChart data={profitByCategoryChartData} chartConfig={profitByCategoryChartConfig} />
       </div>
       
-      <div className="grid gap-6 md:grid-cols-1"> {/* Sales Trend chart can take full width or be part of a new row */}
+      <div className="grid gap-6 md:grid-cols-1">
         <SalesTrendsChart data={salesTrendsChartData} chartConfig={salesTrendsChartConfig} />
       </div>
     </>
