@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Image from "next/image";
+import NextImage from "next/image"; // Renamed to avoid conflict with Lucide's Image
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -46,7 +46,7 @@ const itemFormSchema = z.object({
   salesPrice: z.coerce.number().min(0).optional(),
   project: z.string().max(100).optional().default(""),
   receiptImageUrl: z.string().url({ message: "Please enter a valid URL for the receipt." }).optional().or(z.literal("")).default(""),
-  productImageUrl: z.string().url({ message: "Please enter a valid URL for the product image." }).optional().or(z.literal("")).default(""),
+  productImageUrl: z.string().optional().default(""), // Changed from .url() to allow Data URIs
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -72,6 +72,7 @@ export default function ItemForm({
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isReceiptProcessing, setIsReceiptProcessing] = useState(false);
+  const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -108,8 +109,7 @@ export default function ItemForm({
           if (extracted.quantity) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
           if (extracted.price) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
           
-          const objectURL = URL.createObjectURL(file);
-          form.setValue("receiptImageUrl", objectURL, { shouldValidate: true }); 
+          form.setValue("receiptImageUrl", base64data, { shouldValidate: true }); 
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
         }
       } catch (error) {
@@ -123,6 +123,23 @@ export default function ItemForm({
         setIsReceiptProcessing(false);
     }
   };
+
+  const handleProductImageUpload = async (file: File) => {
+    setIsProductImageProcessing(true);
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onloadend = () => {
+      const base64data = reader.result as string;
+      form.setValue("productImageUrl", base64data, { shouldValidate: true });
+      toast({ title: "Product Image Selected", description: "Preview updated below." });
+      setIsProductImageProcessing(false);
+    };
+    reader.onerror = () => {
+      toast({ title: "Error", description: "Failed to read product image file.", variant: "destructive" });
+      setIsProductImageProcessing(false);
+    };
+  };
+
 
   async function onSubmit(data: ItemFormValues) {
     const payload: ItemInput = {
@@ -356,26 +373,20 @@ export default function ItemForm({
             <Card>
                 <CardHeader>
                     <CardTitle>Product Image</CardTitle>
-                    <CardDescription>Enter the URL for the product image.</CardDescription>
+                    <CardDescription>Upload an image for the product.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <FormField
-                    control={form.control}
-                    name="productImageUrl"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Product Image URL</FormLabel>
-                        <FormControl>
-                            <Input placeholder="https://example.com/image.png" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                    <FileUploadInput
+                        onFileSelect={handleProductImageUpload}
+                        disabled={isProductImageProcessing}
+                        buttonText={isProductImageProcessing ? "Processing..." : "Upload Product Image"}
+                        buttonIcon={isProductImageProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
+                        acceptedFileTypes="image/jpeg, image/png, image/gif, image/webp"
                     />
                     {form.watch("productImageUrl") && (
                     <div className="mt-4">
                         <FormLabel>Product Image Preview</FormLabel>
-                        <Image
+                        <NextImage
                             src={form.watch("productImageUrl")!}
                             alt="Product Preview"
                             width={200}
@@ -383,8 +394,10 @@ export default function ItemForm({
                             className="mt-2 rounded-md border max-h-60 w-full object-contain"
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                toast({variant: "destructive", title: "Image Load Error", description: "Could not load product image preview."});
+                                target.style.display = 'none'; // Hide if error (e.g. invalid Data URI or broken link)
+                                // Optionally, show a placeholder or clear the field
+                                // form.setValue("productImageUrl", ""); // uncomment to clear on error
+                                // toast({variant: "destructive", title: "Image Load Error", description: "Could not load product image preview."});
                             }}
                             onLoad={(e) => {
                                 const target = e.target as HTMLImageElement;
@@ -394,6 +407,12 @@ export default function ItemForm({
                         />
                     </div>
                     )}
+                    {/* Hidden input to store the productImageUrl in the form state */}
+                    <FormField
+                      control={form.control}
+                      name="productImageUrl"
+                      render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)}
+                    />
                 </CardContent>
             </Card>
             <Card>
@@ -407,11 +426,12 @@ export default function ItemForm({
                   disabled={isReceiptProcessing}
                   buttonText={isReceiptProcessing ? "Processing..." : "Upload Receipt"}
                   buttonIcon={isReceiptProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
+                  acceptedFileTypes="image/jpeg, image/png, image/gif, image/webp"
                 />
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
                     <FormLabel>Receipt Preview</FormLabel>
-                    <Image 
+                    <NextImage 
                         src={form.watch("receiptImageUrl")!} 
                         alt="Receipt Preview"
                         width={200}
@@ -420,7 +440,7 @@ export default function ItemForm({
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
-                            toast({variant: "destructive", title: "Image Load Error", description: "Could not load receipt image preview."});
+                            // toast({variant: "destructive", title: "Image Load Error", description: "Could not load receipt image preview."});
                         }}
                         onLoad={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -441,10 +461,10 @@ export default function ItemForm({
         </div>
         
         <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending || isReceiptProcessing}>
+            <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending || isReceiptProcessing || isProductImageProcessing}>
             Cancel
             </Button>
-            <SubmitButton isPending={isPending || isReceiptProcessing}>
+            <SubmitButton isPending={isPending || isReceiptProcessing || isProductImageProcessing}>
             {isEditing ? "Save Changes" : "Add Item"}
             </SubmitButton>
         </div>
