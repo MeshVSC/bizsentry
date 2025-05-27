@@ -137,7 +137,7 @@ const SidebarProvider = React.forwardRef<
               "group/sidebar-wrapper", 
               className
             )}
-            data-sidebar-state={state} // Ensure this attribute is set
+            data-sidebar-state={state} 
             ref={ref}
             {...props}
           >
@@ -210,15 +210,16 @@ const Sidebar = React.forwardRef<
     return (
       <aside
         ref={ref}
-        data-state={state} // This sets 'expanded' or 'collapsed'
+        data-state={state} 
         data-collapsible={collapsible === "icon" && state === "collapsed" ? "icon" : collapsible}
         data-variant={variant}
         data-side={side}
         className={cn(
+          "group", // Added "group" class here
           "fixed h-full flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-          "w-[var(--sidebar-width)]", // Default width
-          "group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:w-[var(--sidebar-width-icon)]", // Collapsed width based on provider's state
-          "transition-all duration-300 ease-in-out", // Transition for width
+          "w-[var(--sidebar-width)]", 
+          "group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:w-[var(--sidebar-width-icon)]", 
+          "transition-all duration-300 ease-in-out", 
           className,
         )}
         {...props}
@@ -442,3 +443,4 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
