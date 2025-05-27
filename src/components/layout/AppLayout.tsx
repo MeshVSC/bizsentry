@@ -51,7 +51,10 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-6 flex items-center justify-center h-16">
              <Link href="/dashboard" className="flex items-center gap-2">
-                <h1 className="text-2xl font-semibold text-primary uppercase group-data-[collapsible=icon]:hidden">StockSentry</h1>
+                <h1 className="text-2xl font-bold text-primary uppercase group-data-[collapsible=icon]:hidden leading-tight text-center">
+                  <span className="block">STOCK</span>
+                  <span className="block">SENTRY</span>
+                </h1>
              </Link>
           </SidebarHeader>
           <SidebarContent className="p-2 flex-grow"> 
