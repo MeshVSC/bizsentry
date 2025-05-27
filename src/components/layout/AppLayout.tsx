@@ -17,8 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
-import { SubmitButton } from '@/components/shared/SubmitButton';
-
+import { Separator } from '@/components/ui/separator'; // Added Separator import
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -49,31 +48,33 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           collapsible="icon"
           className="fixed h-full flex flex-col w-[var(--sidebar-width)] border-r border-sidebar-border text-sidebar-foreground"
         >
-          <SidebarHeader className="p-4 flex flex-col items-start justify-center h-auto border-b border-sidebar-border space-y-3">
-            <Link href="/dashboard" className="flex items-center gap-2 w-full">
-              <h1 className="text-2xl font-bold text-primary uppercase group-data-[collapsible=icon]:hidden leading-tight text-left">
-                <span className="block">STOCK</span>
-                <span className="block">SENTRY</span>
-              </h1>
-              {/* Icon-only version for collapsed sidebar */}
-              <h1 className="text-xl font-bold text-primary uppercase hidden group-data-[collapsible=icon]:flex flex-col items-center justify-center w-full leading-tight">
-                <span className="block">S</span>
-                <span className="block">S</span>
-              </h1>
-            </Link>
-            {/* Version Stamp below the logo */}
-            <p className="text-xs text-muted-foreground text-left w-full group-data-[collapsible=icon]:hidden">
-              Version {appVersion}
-            </p>
-            <p className="text-xs text-muted-foreground text-center w-full hidden group-data-[collapsible=icon]:block">
-              v{appVersion}
-            </p>
+          <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
+            {/* Header can be minimal or hold a trigger for mobile if not placed outside */}
+            {/* Collapsed state icon for header if needed (e.g. a very small version of logo) - currently empty */}
+             <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center">
+                <span className="text-xl font-bold text-primary uppercase">SS</span>
+            </div>
           </SidebarHeader>
           <SidebarContent className="p-2 flex-grow">
             <SidebarNav />
           </SidebarContent>
-          <SidebarFooter className="p-4 border-t border-sidebar-border h-auto">
-            {/* Footer can be used for other elements or kept minimal */}
+          <SidebarFooter className="p-4 border-t border-sidebar-border h-auto flex flex-col items-start">
+            <div className="w-full group-data-[collapsible=icon]:hidden"> {/* This div hides all footer content when collapsed */}
+              <Link href="/dashboard" className="block mb-2">
+                <h1 className="text-2xl font-bold text-primary uppercase leading-tight text-left">
+                  <span className="block">STOCK</span>
+                  <span className="block">SENTRY</span>
+                </h1>
+              </Link>
+              <Separator className="my-2 bg-sidebar-border" />
+              <p className="text-xs text-muted-foreground text-left w-full">
+                Version {appVersion}
+              </p>
+            </div>
+             {/* Placeholder for collapsed footer state if needed, e.g. a small icon */}
+            <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center py-2">
+                 {/* Could be an icon or very short text if needed for collapsed footer */}
+            </div>
           </SidebarFooter>
         </Sidebar>
 
@@ -107,6 +108,7 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8">
           <Avatar className="h-full w-full bg-card">
+            {/* Using a placeholder for avatar image, replace if actual images are available */}
             <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
             <AvatarFallback className="bg-card text-foreground">{fallback}</AvatarFallback>
           </Avatar>
@@ -131,4 +133,3 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
     </DropdownMenu>
   );
 }
-
