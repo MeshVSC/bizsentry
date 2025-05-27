@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, BarChart3, Edit3 } from 'lucide-react';
+import { Home, Package, BarChart3, Settings } from 'lucide-react'; // Changed Edit3 to Settings
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/settings/options', label: 'Manage Options', icon: Edit3 },
+  { href: '/settings/options', label: 'Settings', icon: Settings }, // Changed label and icon
 ];
 
 export default function SidebarNav() {
@@ -20,7 +20,11 @@ export default function SidebarNav() {
   return (
     <SidebarMenu>
       {navItems.map((item) => {
-        const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/');
+        // More specific active check for settings to ensure only /settings/options is active for "Settings"
+        const isActive = item.href === '/settings/options' 
+          ? pathname === item.href 
+          : (pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/'));
+        
         return (
           <SidebarMenuItem key={item.href}>
             <Link href={item.href} passHref legacyBehavior>

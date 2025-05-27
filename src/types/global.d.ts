@@ -12,3 +12,9 @@ declare var _managedCategoriesStore: string[];
 declare var _managedStorageLocationsStore: string[];
 // eslint-disable-next-line no-var
 declare var _managedBinLocationsStore: string[];
+
+// For application settings
+// eslint-disable-next-line no-var
+declare var _appSettingsStore: {
+  defaultItemsPerPage: number;
+};

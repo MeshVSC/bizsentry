@@ -4,6 +4,7 @@ import { PlusCircle } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { getItems, getUniqueCategories } from '@/lib/actions/itemActions';
+import { getAppSettings } from '@/lib/actions/settingsActions';
 import InventoryListTable from '@/components/inventory/InventoryListTable';
 import InventoryFilters from '@/components/inventory/InventoryFilters';
 import PaginationControls from '@/components/inventory/PaginationControls';
@@ -16,18 +17,19 @@ interface InventoryPageProps {
   };
 }
 
-const ITEMS_PER_PAGE = 5;
-
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
   const nameFilter = searchParams?.name || '';
   const categoryFilter = searchParams?.category || '';
   const currentPage = parseInt(searchParams?.page || '1', 10);
 
+  const appSettings = await getAppSettings();
+  const itemsPerPage = appSettings.defaultItemsPerPage || 5; // Fallback if not set
+
   const { items, totalPages, count } = await getItems({ 
     name: nameFilter, 
     category: categoryFilter,
     page: currentPage,
-    limit: ITEMS_PER_PAGE,
+    limit: itemsPerPage,
   });
   const uniqueCategories = await getUniqueCategories();
 
@@ -55,7 +57,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             currentPage={currentPage}
             totalPages={totalPages}
             totalCount={count}
-            itemsPerPage={ITEMS_PER_PAGE}
+            itemsPerPage={itemsPerPage}
           />
       )}
     </>

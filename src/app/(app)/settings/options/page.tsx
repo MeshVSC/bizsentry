@@ -11,27 +11,38 @@ import {
   addManagedBinLocationOption,
   deleteManagedBinLocationOption
 } from '@/lib/actions/itemActions';
+import { getAppSettings } from '@/lib/actions/settingsActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
+import ApplicationSettingsForm from '@/components/settings/ApplicationSettingsForm';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default async function SettingsOptionsPage() {
+export default async function SettingsPage() {
   const initialCategories = await getManagedCategoryOptions();
   const initialStorageLocations = await getManagedStorageLocationOptions();
   const initialBinLocations = await getManagedBinLocationOptions();
+  const initialAppSettings = await getAppSettings();
 
   return (
     <>
       <PageHeader 
-        title="Manage Dropdown Options" 
-        description="Add or remove options for Categories, Storage Locations, and Bin Locations used in item forms." 
+        title="Application Settings" 
+        description="Manage various settings and predefined options for the application." 
       />
-      <Tabs defaultValue="categories" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+      <Tabs defaultValue="application" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsTrigger value="application">Application</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="storageLocations">Storage Locations</TabsTrigger>
           <TabsTrigger value="binLocations">Bin Locations</TabsTrigger>
         </TabsList>
+        <TabsContent value="application">
+          <Card>
+            <CardContent className="pt-6">
+              <ApplicationSettingsForm currentSettings={initialAppSettings} />
+            </CardContent>
+          </Card>
+        </TabsContent>
         <TabsContent value="categories">
           <Card>
             <CardContent className="pt-6">
