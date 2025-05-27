@@ -71,7 +71,7 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>User Management</CardTitle>
-              <CardDescription>Manage application users and their roles. <strong className="text-destructive">Note: Passwords are handled in plaintext for this prototype.</strong></CardDescription>
+              <CardDescription>Manage application users and their roles.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               <AddUserForm />

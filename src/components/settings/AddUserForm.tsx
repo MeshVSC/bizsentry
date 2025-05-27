@@ -20,7 +20,11 @@ const userRoles: UserRole[] = ["admin", "viewer"];
 
 const addUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters.").max(50),
-  password: z.string().min(6, "Password must be at least 6 characters.").max(100),
+  password: z.string()
+    .min(5, "Password must be at least 5 characters.")
+    .max(100)
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
+    .regex(/[0-9]/, "Password must contain at least one number."),
   role: z.enum(userRoles, { required_error: "Role is required." }),
 });
 
@@ -54,9 +58,6 @@ export default function AddUserForm() {
   return (
     <div>
       <h3 className="text-lg font-medium mb-2">Add New User</h3>
-      <p className="text-sm text-destructive mb-4">
-        Warning: For prototype purposes, passwords are stored in plaintext. Do not use real passwords.
-      </p>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
           <FormField
@@ -77,6 +78,9 @@ export default function AddUserForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl><Input type="password" placeholder="Enter password" {...field} /></FormControl>
+                <FormDescription className="text-xs">
+                  Min 5 characters, 1 uppercase, 1 number. E.g., Pass123
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
