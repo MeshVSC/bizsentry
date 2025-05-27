@@ -11,7 +11,7 @@ import { loginUser } from "@/lib/actions/userActions";
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
-import { ShieldAlert } from "lucide-react";
+import { Package } from "lucide-react"; // Changed from ShieldAlert
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,7 +42,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <ShieldAlert className="h-16 w-16 text-primary" />
+            <Package className="h-16 w-16 text-primary" /> {/* Changed from ShieldAlert */}
           </div>
           <CardTitle className="text-3xl font-bold text-foreground">StockSentry Login</CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -85,7 +85,7 @@ export default function LoginPage() {
         </form>
          <div className="p-4 text-center text-xs text-muted-foreground border-t mt-2">
             <p className="font-bold text-destructive">PROTOTYPE ONLY - NOT SECURE</p>
-            <p>Sample users: (admin/adminpassword), (viewer/viewerpassword)</p>
+            <p>Sample users: (admin/adminpassword), (user/userpassword)</p>
         </div>
       </Card>
     </div>
