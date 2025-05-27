@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LifeBuoy, LogOut, Package } from 'lucide-react'; // Changed ShieldAlert to Package
+import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react'; 
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -22,7 +22,7 @@ import { SubmitButton } from '@/components/shared/SubmitButton';
 
 interface AppLayoutProps {
   children: ReactNode;
-  currentUser: CurrentUser | null; // Add currentUser prop
+  currentUser: CurrentUser | null; 
 }
 
 // Logout Form Component for Server Action
@@ -51,7 +51,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-6 flex items-center justify-center h-16">
              <Link href="/dashboard" className="flex items-center gap-2">
-                <Package className="h-8 w-8 text-primary" /> 
+                {/* Icon removed as per request */}
                 <h1 className="text-2xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">StockSentry</h1>
              </Link>
           </SidebarHeader>
