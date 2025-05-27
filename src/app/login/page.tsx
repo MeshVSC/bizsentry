@@ -11,7 +11,6 @@ import { loginUser } from "@/lib/actions/userActions";
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
-// Package icon removed as per request
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,8 +27,8 @@ export default function LoginPage() {
       const result = await loginUser(formData);
       if (result.success && result.user) {
         toast({ title: "Login Successful", description: `Welcome back, ${result.user.username}!` });
-        router.push("/dashboard"); // Redirect to dashboard
-        router.refresh(); // Force refresh to update layout with user state
+        router.push("/dashboard"); 
+        router.refresh(); 
       } else {
         setError(result.message || "Login failed. Please try again.");
         toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
@@ -41,11 +40,12 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
-          {/* Icon removed */}
-          <div className="mb-4 mt-4"> {/* Adjusted margins for spacing */}
-            <h1 className="text-4xl font-bold text-primary uppercase leading-none">
-              <span className="block">STOCK</span>
-              <span className="block">SENTRY</span>
+          <div className="mb-4 mt-4">
+            <h1 className="text-4xl font-bold text-primary uppercase leading-none text-center">
+              <div className="inline-block text-left">
+                <span className="block">STOCK</span>
+                <span className="block">SENTRY</span>
+              </div>
             </h1>
           </div>
           <CardDescription className="text-muted-foreground pt-2">
@@ -86,7 +86,6 @@ export default function LoginPage() {
             </SubmitButton>
           </CardFooter>
         </form>
-         {/* Removed the prototype warning and sample user section */}
       </Card>
     </div>
   );
