@@ -5,19 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
-import { Separator } from '@/components/ui/separator';
+// Separator is not explicitly used in this version, top border of footer acts as separator
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -35,7 +26,6 @@ function LogoutButton() {
   );
 }
 
-
 export default function AppLayout({ children, currentUser }: AppLayoutProps) {
   const appVersion = "0.1.0";
 
@@ -50,9 +40,9 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
             {/* Content for collapsed header (e.g., a very small icon if desired, or leave empty) */}
             <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center">
-              {/* Intentionally empty or for a tiny brand mark */}
+              {/* Intentionally empty as per user not liking "SS" and to keep top clean */}
             </div>
-            {/* Content for expanded header (currently empty as logo is at bottom) */}
+            {/* Content for expanded header (empty as logo is handled below) */}
             <div className="w-full group-data-[collapsible=icon]:hidden">
             </div>
           </SidebarHeader>
@@ -74,27 +64,28 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             {/* Collapsed Logo: Vertical "STOCK SENTRY" */}
             <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center text-center leading-tight py-2">
               {'STOCK'.split('').map((char, index) => (
-                <span key={`logo-s-${index}`} className="block text-xs tracking-wider"> {/* Adjusted for fit */}
+                <span key={`logo-s-${index}`} className="block text-xs tracking-wider">
                   {char}
                 </span>
               ))}
               <div className="h-1 w-full my-0.5"></div> {/* Small spacer */}
               {'SENTRY'.split('').map((char, index) => (
-                <span key={`logo-e-${index}`} className="block text-xs tracking-wider"> {/* Adjusted for fit */}
+                <span key={`logo-e-${index}`} className="block text-xs tracking-wider">
                   {char}
                 </span>
               ))}
             </div>
           </div>
 
+          {/* Footer with version number, hidden when collapsed */}
           <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
           </SidebarFooter>
-          {/* The SidebarFooter above with group-data...:hidden handles hiding the version when collapsed. No need for a second one. */}
         </Sidebar>
 
+        {/* Main Content Area */}
         <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
             <div>
