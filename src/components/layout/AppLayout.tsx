@@ -49,20 +49,25 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           collapsible="icon" 
           className="fixed h-full flex flex-col w-[var(--sidebar-width)] border-r border-sidebar-border text-sidebar-foreground" 
         >
-          <SidebarHeader className="p-6 flex items-center justify-start h-16"> {/* Changed justify-center to justify-start */}
-             <Link href="/dashboard" className="flex items-center gap-2">
-                {/* Icon removed */}
-                <h1 className="text-2xl font-bold text-primary uppercase group-data-[collapsible=icon]:hidden leading-tight"> {/* Removed text-center */}
-                  <span className="block">STOCK</span>
-                  <span className="block">SENTRY</span>
-                </h1>
-             </Link>
+          <SidebarHeader className="p-4 flex items-center justify-start h-16 border-b border-sidebar-border">
+            <p className="text-xs text-muted-foreground text-center w-full group-data-[collapsible=icon]:hidden">Version {appVersion}</p>
+            <p className="text-xs text-muted-foreground text-center w-full hidden group-data-[collapsible=icon]:block">v{appVersion}</p>
           </SidebarHeader>
           <SidebarContent className="p-2 flex-grow"> 
             <SidebarNav />
           </SidebarContent>
-          <SidebarFooter className="p-4 border-t border-sidebar-border">
-            <p className="text-xs text-muted-foreground text-center">Version {appVersion}</p> 
+          <SidebarFooter className="p-6 border-t border-sidebar-border h-20 flex items-center justify-start"> {/* Adjusted padding and height */}
+             <Link href="/dashboard" className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-primary uppercase group-data-[collapsible=icon]:hidden leading-tight text-left">
+                  <span className="block">STOCK</span>
+                  <span className="block">SENTRY</span>
+                </h1>
+                {/* Placeholder for icon-only version if needed when collapsed */}
+                <h1 className="text-xl font-bold text-primary uppercase hidden group-data-[collapsible=icon]:flex flex-col items-center leading-tight">
+                  <span className="block">S</span>
+                  <span className="block">S</span>
+                </h1>
+             </Link>
           </SidebarFooter>
         </Sidebar>
 
@@ -120,3 +125,4 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
     </DropdownMenu>
   );
 }
+
