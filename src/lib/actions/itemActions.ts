@@ -354,8 +354,8 @@ export async function addItem(data: ItemInput): Promise<Item> {
   globalThis._itemsStore.unshift(newItem); 
 
   revalidatePath("/inventory", "layout");
-  revalidatePath("/dashboard");
-  revalidatePath("/analytics");
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/analytics", "layout");
   return JSON.parse(JSON.stringify(newItem));
 }
 
@@ -379,8 +379,8 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
   revalidatePath("/inventory", "layout");
   revalidatePath(`/inventory/${id}`);
   revalidatePath(`/inventory/${id}/edit`);
-  revalidatePath("/dashboard");
-  revalidatePath("/analytics");
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/analytics", "layout");
   return JSON.parse(JSON.stringify(globalThis._itemsStore[itemIndex]));
 }
 
@@ -392,8 +392,8 @@ export async function deleteItem(id: string): Promise<boolean> {
 
   if (globalThis._itemsStore.length < initialLength) {
     revalidatePath("/inventory", "layout");
-    revalidatePath("/dashboard");
-    revalidatePath("/analytics");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/analytics", "layout");
     return true;
   }
   return false;
@@ -428,8 +428,8 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
   
   revalidatePath("/inventory", "layout");
   revalidatePath(`/inventory/${id}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/analytics");
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/analytics", "layout");
   return JSON.parse(JSON.stringify(globalThis._itemsStore[itemIndex]));
 }
 
@@ -444,8 +444,8 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 
   if (numDeleted > 0) {
     revalidatePath("/inventory", "layout");
-    revalidatePath("/dashboard");
-    revalidatePath("/analytics");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/analytics", "layout");
     return { success: true, message: `${numDeleted} item(s) deleted successfully.` };
   }
   if (itemIds.length > 0 && numDeleted === 0) {
@@ -472,8 +472,8 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
 
   if (updatedCount > 0) {
     revalidatePath("/inventory", "layout");
-    revalidatePath("/dashboard");
-    revalidatePath("/analytics");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/analytics", "layout");
     itemIds.forEach(id => {
         revalidatePath(`/inventory/${id}`);
     });
@@ -512,8 +512,8 @@ export async function addManagedCategoryOption(name: string): Promise<{ success:
   store.push(name);
   globalThis._managedCategoriesStore = store;
   revalidatePath("/settings/options");
-  revalidatePath("/inventory/add"); 
-  // Consider revalidating edit pages if they are open, or rely on page refresh
+  revalidatePath("/inventory/add", "layout"); 
+  revalidatePath("/inventory/[id]/edit", "layout"); 
   return { success: true, message: `Category "${name}" added.`, options: [...store].sort() };
 }
 
@@ -523,7 +523,8 @@ export async function deleteManagedCategoryOption(name: string): Promise<{ succe
   globalThis._managedCategoriesStore = store.filter(cat => cat !== name);
   if (globalThis._managedCategoriesStore.length < initialLength) {
     revalidatePath("/settings/options");
-    revalidatePath("/inventory/add");
+    revalidatePath("/inventory/add", "layout");
+    revalidatePath("/inventory/[id]/edit", "layout");
     return { success: true, message: `Category "${name}" deleted.`, options: [...globalThis._managedCategoriesStore].sort() };
   }
   return { success: false, message: `Category "${name}" not found.` };
@@ -546,7 +547,8 @@ export async function addManagedStorageLocationOption(name: string): Promise<{ s
   store.push(name);
   globalThis._managedStorageLocationsStore = store;
   revalidatePath("/settings/options");
-  revalidatePath("/inventory/add");
+  revalidatePath("/inventory/add", "layout");
+  revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `Storage location "${name}" added.`, options: [...store].sort() };
 }
 
@@ -556,7 +558,8 @@ export async function deleteManagedStorageLocationOption(name: string): Promise<
   globalThis._managedStorageLocationsStore = store.filter(loc => loc !== name);
   if (globalThis._managedStorageLocationsStore.length < initialLength) {
     revalidatePath("/settings/options");
-    revalidatePath("/inventory/add");
+    revalidatePath("/inventory/add", "layout");
+    revalidatePath("/inventory/[id]/edit", "layout");
     return { success: true, message: `Storage location "${name}" deleted.`, options: [...globalThis._managedStorageLocationsStore].sort() };
   }
   return { success: false, message: `Storage location "${name}" not found.` };
@@ -579,7 +582,8 @@ export async function addManagedBinLocationOption(name: string): Promise<{ succe
   store.push(name);
   globalThis._managedBinLocationsStore = store;
   revalidatePath("/settings/options");
-  revalidatePath("/inventory/add");
+  revalidatePath("/inventory/add", "layout");
+  revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `Bin location "${name}" added.`, options: [...store].sort() };
 }
 
@@ -589,8 +593,11 @@ export async function deleteManagedBinLocationOption(name: string): Promise<{ su
   globalThis._managedBinLocationsStore = store.filter(loc => loc !== name);
   if (globalThis._managedBinLocationsStore.length < initialLength) {
     revalidatePath("/settings/options");
-    revalidatePath("/inventory/add");
+    revalidatePath("/inventory/add", "layout");
+    revalidatePath("/inventory/[id]/edit", "layout");
     return { success: true, message: `Bin location "${name}" deleted.`, options: [...globalThis._managedBinLocationsStore].sort() };
   }
   return { success: false, message: `Bin location "${name}" not found.` };
 }
+
+    
