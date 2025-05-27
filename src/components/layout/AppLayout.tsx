@@ -5,9 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 // Separator is not explicitly used in this version, top border of footer acts as separator
 
 interface AppLayoutProps {
