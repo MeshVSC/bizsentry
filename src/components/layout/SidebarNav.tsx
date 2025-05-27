@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Package, BarChart3, Settings } from 'lucide-react';
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -16,6 +16,7 @@ const navItems = [
 
 export default function SidebarNav() {
   const pathname = usePathname();
+  const { state: sidebarState } = useSidebar(); // Get sidebar state from context
 
   return (
     <SidebarMenu>
@@ -38,8 +39,9 @@ export default function SidebarNav() {
               >
                 <a> {/* <a> tag is required when asChild is true with Link */}
                   <item.icon className="h-5 w-5" />
-                  {/* Updated class to target data-state on the parent group (Sidebar <aside>) */}
-                  <span className="group-data-[state=collapsed]:hidden">{item.label}</span>
+                  {sidebarState === 'expanded' && (
+                    <span>{item.label}</span>
+                  )}
                 </a>
               </SidebarMenuButton>
             </Link>
