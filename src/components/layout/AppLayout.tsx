@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react'; 
+import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -37,48 +37,62 @@ function LogoutButton() {
 
 
 export default function AppLayout({ children, currentUser }: AppLayoutProps) {
-  const appVersion = "0.1.0"; 
+  const appVersion = "0.1.0";
 
   return (
-    <SidebarProvider defaultOpen> 
-      {/* The div rendered by SidebarProvider will have group/sidebar-wrapper and data-sidebar-state */}
-      <div className="flex min-h-screen w-full bg-background"> {/* This div is a child of SidebarProvider's wrapper */}
+    <SidebarProvider defaultOpen>
+      <div className="flex min-h-screen w-full bg-background">
         <Sidebar
           variant="sidebar"
           collapsible="icon"
-          // The className here is for additional styling; width is now handled by the Sidebar component internally
-          className="fixed h-full flex flex-col text-sidebar-foreground bg-sidebar" 
+          className="fixed h-full flex flex-col text-sidebar-foreground bg-sidebar"
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
+            {/* Content for collapsed header (e.g., a very small icon if desired, or leave empty) */}
             <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center">
-                <span className="text-xl font-bold text-primary uppercase">SS</span>
+              {/* Intentionally empty or for a tiny brand mark */}
             </div>
-             <div className="w-full group-data-[collapsible=icon]:hidden">
-             </div>
+            {/* Content for expanded header (currently empty as logo is at bottom) */}
+            <div className="w-full group-data-[collapsible=icon]:hidden">
+            </div>
           </SidebarHeader>
 
-          <SidebarContent className="p-2 flex-grow"> 
+          <SidebarContent className="p-2 flex-grow">
             <SidebarNav />
           </SidebarContent>
 
-          <div className="p-4 group-data-[collapsible=icon]:hidden"> 
-            <Link href="/dashboard" className="block text-left">
-                <h1 className="text-2xl font-bold text-primary uppercase leading-tight">
-                    <span className="block">STOCK</span>
-                    <span className="block">SENTRY</span>
-                </h1>
-            </Link>
+          {/* Logo Section - Placed above the footer */}
+          <div className="px-4 pb-2 pt-4 text-primary uppercase font-bold">
+            {/* Expanded Logo: "STOCK" over "SENTRY", left-aligned */}
+            <div className="group-data-[collapsible=icon]:hidden text-left leading-tight">
+              <Link href="/dashboard" className="block">
+                  <span className="block text-xl">STOCK</span>
+                  <span className="block text-xl">SENTRY</span>
+              </Link>
+            </div>
+
+            {/* Collapsed Logo: Vertical "STOCK SENTRY" */}
+            <div className="hidden group-data-[collapsible=icon]:flex flex-col items-center text-center leading-tight py-2">
+              {'STOCK'.split('').map((char, index) => (
+                <span key={`logo-s-${index}`} className="block text-xs tracking-wider"> {/* Adjusted for fit */}
+                  {char}
+                </span>
+              ))}
+              <div className="h-1 w-full my-0.5"></div> {/* Small spacer */}
+              {'SENTRY'.split('').map((char, index) => (
+                <span key={`logo-e-${index}`} className="block text-xs tracking-wider"> {/* Adjusted for fit */}
+                  {char}
+                </span>
+              ))}
+            </div>
           </div>
-          
+
           <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[collapsible=icon]:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
           </SidebarFooter>
-
-           <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center py-2 border-t border-sidebar-border">
-               {/* Icon/short text for collapsed footer */}
-           </div>
+          {/* The SidebarFooter above with group-data...:hidden handles hiding the version when collapsed. No need for a second one. */}
         </Sidebar>
 
         <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
@@ -88,7 +102,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             </div>
             <div className="flex items-center gap-2 md:gap-4">
               <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 bg-card text-foreground hover:bg-muted">
-                <Bell className="h-5 w-5" /> 
+                <Bell className="h-5 w-5" />
                 <span className="sr-only">Toggle notifications</span>
               </Button>
               <UserMenu currentUser={currentUser} />
@@ -135,4 +149,3 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
     </DropdownMenu>
   );
 }
-
