@@ -11,7 +11,7 @@ import { loginUser } from "@/lib/actions/userActions";
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
-import { Package } from "lucide-react"; // Changed from ShieldAlert
+// Package icon removed as per request
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,11 +41,14 @@ export default function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <Package className="h-16 w-16 text-primary" /> {/* Changed from ShieldAlert */}
+          {/* Icon removed */}
+          <div className="mb-4 mt-4"> {/* Adjusted margins for spacing */}
+            <h1 className="text-4xl font-bold text-primary uppercase leading-none">
+              <span className="block">STOCK</span>
+              <span className="block">SENTRY</span>
+            </h1>
           </div>
-          <CardTitle className="text-3xl font-bold text-foreground">StockSentry Login</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-muted-foreground pt-2">
             Enter your credentials to access your inventory.
           </CardDescription>
         </CardHeader>
@@ -83,10 +86,7 @@ export default function LoginPage() {
             </SubmitButton>
           </CardFooter>
         </form>
-         <div className="p-4 text-center text-xs text-muted-foreground border-t mt-2">
-            <p className="font-bold text-destructive">PROTOTYPE ONLY - NOT SECURE</p>
-            <p>Sample users: (admin/adminpassword), (user/userpassword)</p>
-        </div>
+         {/* Removed the prototype warning and sample user section */}
       </Card>
     </div>
   );

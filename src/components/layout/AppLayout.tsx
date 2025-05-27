@@ -49,9 +49,10 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           collapsible="icon" 
           className="fixed h-full flex flex-col w-[var(--sidebar-width)] border-r border-sidebar-border text-sidebar-foreground" 
         >
-          <SidebarHeader className="p-6 flex items-center justify-center h-16">
+          <SidebarHeader className="p-6 flex items-center justify-start h-16"> {/* Changed justify-center to justify-start */}
              <Link href="/dashboard" className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-primary uppercase group-data-[collapsible=icon]:hidden leading-tight text-center">
+                {/* Icon removed */}
+                <h1 className="text-2xl font-bold text-primary uppercase group-data-[collapsible=icon]:hidden leading-tight"> {/* Removed text-center */}
                   <span className="block">STOCK</span>
                   <span className="block">SENTRY</span>
                 </h1>
