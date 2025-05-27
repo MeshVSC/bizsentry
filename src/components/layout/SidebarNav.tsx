@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, BarChart3, Settings } from 'lucide-react'; // Changed Edit3 to Settings
+import { Home, Package, BarChart3, Settings } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -11,7 +11,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/settings/options', label: 'Settings', icon: Settings }, // Changed label and icon
+  { href: '/settings/options', label: 'Settings', icon: Settings },
 ];
 
 export default function SidebarNav() {
@@ -20,7 +20,6 @@ export default function SidebarNav() {
   return (
     <SidebarMenu>
       {navItems.map((item) => {
-        // More specific active check for settings to ensure only /settings/options is active for "Settings"
         const isActive = item.href === '/settings/options' 
           ? pathname === item.href 
           : (pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/'));
@@ -34,12 +33,12 @@ export default function SidebarNav() {
                 tooltip={{children: item.label}}
                 className={cn(
                   "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover",
-                  isActive && "bg-primary/30 text-primary" // Active State: background Primary at 30% opacity, text Primary
+                  isActive && "bg-primary/30 text-primary" 
                 )}
               >
                 <a> {/* <a> tag is required when asChild is true with Link */}
                   <item.icon className="h-5 w-5" />
-                  <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                  <span className="group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">{item.label}</span>
                 </a>
               </SidebarMenuButton>
             </Link>
