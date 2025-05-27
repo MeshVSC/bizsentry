@@ -38,7 +38,8 @@ export default function SidebarNav() {
               >
                 <a> {/* <a> tag is required when asChild is true with Link */}
                   <item.icon className="h-5 w-5" />
-                  <span className="group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">{item.label}</span>
+                  {/* Updated class to target data-state on the parent group (Sidebar <aside>) */}
+                  <span className="group-data-[state=collapsed]:hidden">{item.label}</span>
                 </a>
               </SidebarMenuButton>
             </Link>
