@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -21,9 +22,9 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "256px" // Updated to 256px
-const SIDEBAR_WIDTH_MOBILE = "18rem" // Kept as is, can be adjusted
-const SIDEBAR_WIDTH_ICON = "3rem" // Kept as is
+const SIDEBAR_WIDTH = "256px";
+const SIDEBAR_WIDTH_MOBILE = "18rem"
+const SIDEBAR_WIDTH_ICON = "3rem"; 
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -133,9 +134,10 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper", // Removed flex, min-h-svh, w-full, has-[[data-variant=inset]]:bg-sidebar as AppLayout now handles flex structure
+              "group/sidebar-wrapper", 
               className
             )}
+            data-sidebar-state={state} // Ensure this attribute is set
             ref={ref}
             {...props}
           >
@@ -148,7 +150,7 @@ const SidebarProvider = React.forwardRef<
 )
 SidebarProvider.displayName = "SidebarProvider"
 
-// Sidebar component itself should be styled by its variant in AppLayout
+
 const Sidebar = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
@@ -160,8 +162,8 @@ const Sidebar = React.forwardRef<
   (
     {
       side = "left",
-      variant = "sidebar", // Default variant
-      collapsible = "icon", // Default collapsible behavior for desktop
+      variant = "sidebar", 
+      collapsible = "icon", 
       className,
       children,
       ...props
@@ -170,7 +172,7 @@ const Sidebar = React.forwardRef<
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
-    if (collapsible === "none") { // Non-collapsible sidebar
+    if (collapsible === "none") { 
       return (
         <div
           className={cn(
@@ -185,7 +187,6 @@ const Sidebar = React.forwardRef<
       )
     }
     
-    // Mobile Off-canvas Sidebar
     if (isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
@@ -195,7 +196,7 @@ const Sidebar = React.forwardRef<
             className="w-[var(--sidebar-width)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE, // Use mobile specific width if needed
+                "--sidebar-width": SIDEBAR_WIDTH_MOBILE, 
               } as React.CSSProperties
             }
             side={side}
@@ -206,19 +207,18 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    // Desktop Sidebar (collapsible or fixed)
-    // The fixed positioning and width transitions are now mostly handled in AppLayout.tsx
-    // This component mainly provides the structure and applies base classes.
     return (
       <aside
         ref={ref}
-        data-state={state}
+        data-state={state} // This sets 'expanded' or 'collapsed'
         data-collapsible={collapsible === "icon" && state === "collapsed" ? "icon" : collapsible}
         data-variant={variant}
         data-side={side}
         className={cn(
-          "flex-col bg-sidebar text-sidebar-foreground",
-          // variant === "sidebar" && "border-r border-sidebar-border", // Border applied in AppLayout
+          "fixed h-full flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
+          "w-[var(--sidebar-width)]", // Default width
+          "group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:w-[var(--sidebar-width-icon)]", // Collapsed width based on provider's state
+          "transition-all duration-300 ease-in-out", // Transition for width
           className,
         )}
         {...props}
@@ -260,15 +260,13 @@ SidebarTrigger.displayName = "SidebarTrigger"
 
 const SidebarInset = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> // Changed from main to div for more general use
+  React.ComponentProps<"div"> 
 >(({ className, ...props }, ref) => {
   return (
-    <div // Changed from main to div
+    <div 
       ref={ref}
       className={cn(
-        // Styles related to inset variant, adjust as needed or remove if AppLayout handles all positioning
         "relative flex min-h-svh flex-1 flex-col bg-background",
-        // "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2 md:peer-data-[state=collapsed]:peer-data-[variant=inset]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow",
         className
       )}
       {...props}
@@ -286,7 +284,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col", className)} // Removed default padding/gap, to be set by user
+      className={cn("flex flex-col", className)} 
       {...props}
     />
   )
@@ -301,7 +299,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col mt-auto", className)} // mt-auto to push to bottom
+      className={cn("flex flex-col mt-auto", className)} 
       {...props}
     />
   )
@@ -360,10 +358,9 @@ const sidebarMenuButtonVariants = cva(
     variants: {
       variant: {
         default: "hover:bg-sidebar-hover text-sidebar-foreground",
-        // Removed outline variant for simplicity, can be re-added
       },
-      size: { // Simplified sizes, mostly controlled by direct text-sm font-medium etc.
-        default: "h-10", // Adjusted height to better fit common use cases
+      size: { 
+        default: "h-10", 
       },
     },
     defaultVariants: {
@@ -385,7 +382,7 @@ const SidebarMenuButton = React.forwardRef<
     {
       asChild = false,
       isActive = false,
-      variant, // variant and size now taken from props
+      variant, 
       size,
       tooltip,
       className,
@@ -401,7 +398,7 @@ const SidebarMenuButton = React.forwardRef<
         ref={ref}
         data-sidebar="menu-button"
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)} // Pass variant and size
+        className={cn(sidebarMenuButtonVariants({ variant, size }), className)} 
         {...props}
       />
     )
@@ -432,32 +429,16 @@ const SidebarMenuButton = React.forwardRef<
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
-// Other Sidebar sub-components (SidebarRail, SidebarInput, SidebarSeparator, etc.) are omitted for brevity
-// but can be added back if needed, styled according to the new theme.
-
 export {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  // SidebarGroup,
-  // SidebarGroupAction,
-  // SidebarGroupContent,
-  // SidebarGroupLabel,
   SidebarHeader,
-  // SidebarInput,
   SidebarInset,
   SidebarMenu,
-  // SidebarMenuAction,
-  // SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  // SidebarMenuSkeleton,
-  // SidebarMenuSub,
-  // SidebarMenuSubButton,
-  // SidebarMenuSubItem,
   SidebarProvider,
-  // SidebarRail,
-  // SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 }

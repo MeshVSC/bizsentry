@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LifeBuoy, LogOut, Package } from 'lucide-react'; // Removed Warehouse, Edit3. Added Package
+import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react'; 
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,7 +24,6 @@ interface AppLayoutProps {
   currentUser: CurrentUser | null;
 }
 
-// Logout Form Component for Server Action
 function LogoutButton() {
   return (
     <form action={logoutUser} className="w-full">
@@ -41,19 +40,20 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
   const appVersion = "0.1.0"; 
 
   return (
-    <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-background">
+    <SidebarProvider defaultOpen> 
+      {/* The div rendered by SidebarProvider will have group/sidebar-wrapper and data-sidebar-state */}
+      <div className="flex min-h-screen w-full bg-background"> {/* This div is a child of SidebarProvider's wrapper */}
         <Sidebar
           variant="sidebar"
           collapsible="icon"
-          className="fixed h-full flex flex-col w-[var(--sidebar-width)] border-r border-sidebar-border text-sidebar-foreground bg-sidebar"
+          // The className here is for additional styling; width is now handled by the Sidebar component internally
+          className="fixed h-full flex flex-col text-sidebar-foreground bg-sidebar" 
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
             <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center">
                 <span className="text-xl font-bold text-primary uppercase">SS</span>
             </div>
              <div className="w-full group-data-[collapsible=icon]:hidden">
-                {/* Intentionally empty for now as logo is at bottom */}
              </div>
           </SidebarHeader>
 
@@ -61,10 +61,9 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             <SidebarNav />
           </SidebarContent>
 
-          {/* "STOCK SENTRY" Logo block - placed after content, so it's towards the bottom */}
           <div className="p-4 group-data-[collapsible=icon]:hidden"> 
-            <Link href="/dashboard" className="block">
-                <h1 className="text-2xl font-bold text-primary uppercase leading-tight text-left">
+            <Link href="/dashboard" className="block text-left">
+                <h1 className="text-2xl font-bold text-primary uppercase leading-tight">
                     <span className="block">STOCK</span>
                     <span className="block">SENTRY</span>
                 </h1>
@@ -77,16 +76,15 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             </p>
           </SidebarFooter>
 
-           {/* Placeholder for collapsed footer state if needed */}
            <div className="w-full hidden group-data-[collapsible=icon]:flex items-center justify-center py-2 border-t border-sidebar-border">
-               {/* Could be an icon or very short text if needed for collapsed footer */}
+               {/* Icon/short text for collapsed footer */}
            </div>
         </Sidebar>
 
         <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
             <div>
-               <SidebarTrigger className="text-foreground" /> {/* Removed md:hidden */}
+               <SidebarTrigger className="text-foreground" />
             </div>
             <div className="flex items-center gap-2 md:gap-4">
               <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 bg-card text-foreground hover:bg-muted">
@@ -137,3 +135,4 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
     </DropdownMenu>
   );
 }
+
