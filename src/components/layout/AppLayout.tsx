@@ -47,12 +47,11 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         <Sidebar
           variant="sidebar" 
           collapsible="icon" 
-          className="fixed h-full flex flex-col w-[256px] border-r border-sidebar-border text-sidebar-foreground" 
+          className="fixed h-full flex flex-col w-[var(--sidebar-width)] border-r border-sidebar-border text-sidebar-foreground" 
         >
           <SidebarHeader className="p-6 flex items-center justify-center h-16">
              <Link href="/dashboard" className="flex items-center gap-2">
-                {/* Icon removed as per request */}
-                <h1 className="text-2xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">StockSentry</h1>
+                <h1 className="text-2xl font-semibold text-primary uppercase group-data-[collapsible=icon]:hidden">StockSentry</h1>
              </Link>
           </SidebarHeader>
           <SidebarContent className="p-2 flex-grow"> 
@@ -63,7 +62,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 ml-[256px] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
+        <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
             <div> 
                <SidebarTrigger className="md:hidden text-foreground" /> 
