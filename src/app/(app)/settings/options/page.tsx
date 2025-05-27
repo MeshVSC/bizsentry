@@ -16,8 +16,10 @@ import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import ApplicationSettingsForm from '@/components/settings/ApplicationSettingsForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getCurrentUser } from '@/lib/actions/userActions';
+import { getCurrentUser, getUsers } from '@/lib/actions/userActions';
 import { AlertTriangle } from 'lucide-react';
+import AddUserForm from '@/components/settings/AddUserForm';
+import UserManagementTable from '@/components/settings/UserManagementTable';
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
@@ -38,16 +40,18 @@ export default async function SettingsPage() {
   const initialStorageLocations = await getManagedStorageLocationOptions();
   const initialBinLocations = await getManagedBinLocationOptions();
   const initialAppSettings = await getAppSettings();
+  const allUsers = await getUsers();
 
   return (
     <>
       <PageHeader 
         title="Application Settings" 
-        description="Manage various settings and predefined options for the application." 
+        description="Manage various settings, predefined options, and users for the application." 
       />
       <Tabs defaultValue="application" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-6">
+        <TabsList className="grid w-full grid-cols-5 mb-6"> {/* Updated grid-cols */}
           <TabsTrigger value="application">Application</TabsTrigger>
+          <TabsTrigger value="users">User Management</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="storageLocations">Storage Locations</TabsTrigger>
           <TabsTrigger value="binLocations">Bin Locations</TabsTrigger>
@@ -60,6 +64,18 @@ export default async function SettingsPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <ApplicationSettingsForm currentSettings={initialAppSettings} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+         <TabsContent value="users">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage application users and their roles. <strong className="text-destructive">Note: Passwords are handled in plaintext for this prototype.</strong></CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-6">
+              <AddUserForm />
+              <UserManagementTable initialUsers={allUsers} />
             </CardContent>
           </Card>
         </TabsContent>

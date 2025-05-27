@@ -1,7 +1,7 @@
 
 "use server";
 
-import type { User, UserRole, CurrentUser } from "@/types/user";
+import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -43,7 +43,7 @@ export async function loginUser(
     return { success: false, message: "Username and password are required." };
   }
 
-  const users = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore;
   const user = users.find(
     (u) => u.username === username && u.password === password // Plaintext check for prototype
   );
@@ -55,7 +55,6 @@ export async function loginUser(
       role: user.role,
     };
     globalThis._currentUserStore = currentUserData;
-    // Revalidate all layouts to ensure currentUser is updated everywhere
     revalidatePath("/", "layout");
     return { success: true, user: currentUserData };
   } else {
@@ -65,26 +64,104 @@ export async function loginUser(
 
 export async function logoutUser() {
   globalThis._currentUserStore = null;
-  revalidatePath("/", "layout"); // Revalidate all layouts
+  revalidatePath("/", "layout");
   redirect("/login");
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  // Simulate async operation
   await new Promise(resolve => setTimeout(resolve, 10));
   return globalThis._currentUserStore ? { ...globalThis._currentUserStore } : null;
 }
 
-// Placeholder for future admin user management - NOT fully implemented in this step
-export async function getUsers(): Promise<User[]> {
-  return JSON.parse(JSON.stringify(globalThis._usersStore.map(u => ({...u, password: ''})))); // Don't send passwords
+// --- User Management Actions (Admin) ---
+
+export async function getUsers(): Promise<UserView[]> {
+  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async
+  const users: User[] = globalThis._usersStore;
+  // Return users without passwords
+  return users.map(({ password, ...userView }) => userView);
 }
 
-export async function addUser(username: string, password // For prototype, plaintext
-  : string, role: UserRole): Promise<User> {
-  const id = crypto.randomUUID();
-  const newUser: User = { id, username, password, role };
-  globalThis._usersStore.push(newUser);
-  revalidatePath("/admin/users"); // Assuming an admin users page might exist
-  return JSON.parse(JSON.stringify({...newUser, password: ''}));
+export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
+  const users: User[] = globalThis._usersStore;
+  if (!data.username || !data.password || !data.role) {
+    return { success: false, message: "Username, password, and role are required." };
+  }
+  if (users.find(u => u.username.toLowerCase() === data.username.toLowerCase())) {
+    return { success: false, message: `Username "${data.username}" already exists.` };
+  }
+
+  const newUser: User = {
+    id: crypto.randomUUID(),
+    username: data.username,
+    password: data.password, // Storing plaintext
+    role: data.role,
+  };
+  users.push(newUser);
+  globalThis._usersStore = users;
+
+  revalidatePath("/settings/options", "page");
+  const { password, ...userView } = newUser;
+  return { success: true, message: `User "${newUser.username}" added successfully.`, user: userView };
+}
+
+export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
+  const users: User[] = globalThis._usersStore;
+  const userIndex = users.findIndex(u => u.id === userId);
+
+  if (userIndex === -1) {
+    return { success: false, message: "User not found." };
+  }
+
+  // Basic check: don't let the last admin be demoted (simple version)
+  const currentUser = await getCurrentUser();
+  if (users[userIndex].role === 'admin' && newRole !== 'admin') {
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (adminCount <= 1) {
+      return { success: false, message: "Cannot remove the last administrator's role." };
+    }
+  }
+  
+  users[userIndex].role = newRole;
+  globalThis._usersStore = users;
+
+  revalidatePath("/settings/options", "page");
+  // If the updated user is the currently logged-in user, update their session role too
+  if (currentUser && currentUser.id === userId) {
+    globalThis._currentUserStore = { ...currentUser, role: newRole };
+    revalidatePath("/", "layout"); // Revalidate all layouts if current user's role changed
+  }
+
+  const { password, ...userView } = users[userIndex];
+  return { success: true, message: `User "${userView.username}" role updated to ${newRole}.`, user: userView };
+}
+
+export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+  const users: User[] = globalThis._usersStore;
+  const userIndex = users.findIndex(u => u.id === userId);
+
+  if (userIndex === -1) {
+    return { success: false, message: "User not found." };
+  }
+
+  // Prevent deleting the currently logged-in user (especially if admin)
+  const currentUser = await getCurrentUser();
+  if (currentUser && currentUser.id === userId) {
+    return { success: false, message: "Cannot delete the currently logged-in user." };
+  }
+  
+  // Prevent deleting the last admin (simple check)
+  if (users[userIndex].role === 'admin') {
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    if (adminCount <= 1) {
+        return { success: false, message: "Cannot delete the last administrator." };
+    }
+  }
+
+  const deletedUsername = users[userIndex].username;
+  users.splice(userIndex, 1);
+  globalThis._usersStore = users;
+
+  revalidatePath("/settings/options", "page");
+  return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
 }
