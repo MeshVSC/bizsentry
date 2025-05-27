@@ -1,7 +1,13 @@
 
 import { redirect } from 'next/navigation';
+import { getCurrentUser } from '@/lib/actions/userActions';
 
-export default function HomePage() {
-  redirect('/dashboard');
-  return null; // Or a loading spinner, but redirect handles it.
+export default async function HomePage() {
+  const currentUser = await getCurrentUser();
+  if (currentUser) {
+    redirect('/dashboard');
+  } else {
+    redirect('/login');
+  }
+  return null; 
 }

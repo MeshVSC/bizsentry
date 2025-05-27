@@ -10,7 +10,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground", // Removed default shadow-sm, will be applied explicitly
+      "rounded-lg border bg-card text-card-foreground", 
       className
     )}
     {...props}
@@ -24,20 +24,27 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-4", className)} // Default padding to p-4 (16px)
+    className={cn("flex flex-col space-y-1.5 p-4", className)} 
     {...props}
   />
 ))
 CardHeader.displayName = "CardHeader"
 
+// Updated CardTitle to reflect H2 styling as per MetricCard/ChartCard visual hierarchy
 const CardTitle = React.forwardRef<
-  HTMLParagraphElement, // Changed to HTMLParagraphElement for semantic correctness if not always a true "title"
-  React.HTMLAttributes<HTMLHeadingElement> // Props still HTMLHeadingElement for flexibility
+  HTMLParagraphElement, 
+  React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
-  <p // Can be div or p depending on context. Using p for general text slot.
+  <h2 
     ref={ref}
+    // Matches .h2-style from globals.css: text-2xl font-semibold text-foreground
+    // For StatCard title, it's: text-sm font-medium text-muted-foreground
+    // This means CardTitle might need to be more flexible or StatCard should use a different element for its title.
+    // For now, let's keep a general style, and allow override via className.
+    // The PRD specified H1 for PageHeader title and "text slot, font-size sm, color Text Mid" for MetricCard header.
+    // Let's assume CardTitle by default is for more prominent titles within cards.
     className={cn(
-      "text-sm font-medium leading-none tracking-tight text-muted-foreground", // Style for MetricCard Header: text-sm, color Text Mid
+      "text-lg font-semibold leading-none tracking-tight text-foreground", 
       className
     )}
     {...props}
@@ -49,7 +56,7 @@ const CardDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <p // Changed to p for semantic correctness
+  <p 
     ref={ref}
     className={cn("text-sm text-muted-foreground", className)}
     {...props}
@@ -61,7 +68,10 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-4 pt-0", className)} {...props} /> // Default padding p-4, pt-0
+  // Default padding p-4, but often overridden to pt-0 if header has p-4.
+  // For MetricCard, content has p-4 pt-0. For ChartCard, content has p-4 pt-0.
+  // Let's make the default p-4 and allow specific components to adjust.
+  <div ref={ref} className={cn("p-4", className)} {...props} /> 
 ))
 CardContent.displayName = "CardContent"
 
@@ -71,7 +81,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-4 pt-0", className)} // Default padding p-4, pt-0
+    className={cn("flex items-center p-4 pt-0", className)} 
     {...props}
   />
 ))

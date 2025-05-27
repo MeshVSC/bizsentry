@@ -15,6 +15,10 @@ declare var _managedBinLocationsStore: string[];
 
 // For application settings
 // eslint-disable-next-line no-var
-declare var _appSettingsStore: {
-  defaultItemsPerPage: number;
-};
+declare var _appSettingsStore: import('@/lib/actions/settingsActions').AppSettings;
+
+// For basic user authentication prototype
+// eslint-disable-next-line no-var
+declare var _usersStore: import('@/types/user').User[];
+// eslint-disable-next-line no-var
+declare var _currentUserStore: import('@/types/user').CurrentUser | null;
