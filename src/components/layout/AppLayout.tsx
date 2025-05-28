@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image'; 
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
@@ -17,7 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from '@/components/ui/separator'; // Import Separator
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -40,20 +39,30 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full bg-background group/sidebar-wrapper" data-sidebar-state="expanded"> {/* Ensure group/sidebar-wrapper and initial state is present */}
         <Sidebar
           variant="sidebar"
-          collapsible="icon" // This enables collapsing to icon state
-          className="flex flex-col text-sidebar-foreground bg-sidebar" // Removed fixed width here
+          collapsible="icon"
+          className="flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
-            {/* Content for expanded header (empty as logo is handled below) */}
-            <div className="w-full group-data-[state=collapsed]/sidebar-wrapper:hidden">
-              {/* Intentionally empty as per latest design */}
+            {/* Content for expanded header - can be empty if logo is below nav */}
+            <div className="w-full group-data-[state=collapsed]/sidebar:hidden">
+              {/* Intentionally empty, main logo is in its own div below nav */}
             </div>
-            {/* Content for collapsed header (e.g., a very small icon if desired, or leave empty) */}
-            <div className="w-full hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center">
-              {/* Intentionally empty to keep top clean when collapsed */}
+            {/* Content for collapsed header (e.g., a very small icon if desired) */}
+            <div className="w-full hidden group-data-[state=collapsed]/sidebar:flex items-center justify-center">
+              {/* Placeholder for collapsed icon - user needs to provide /logo-icon.png */}
+              <Link href="/dashboard">
+                <Image
+                  src="/logo-icon.png"
+                  alt="StockSentry Icon"
+                  width={28} // Small icon size
+                  height={28}
+                  className="h-7 w-7"
+                  data-ai-hint="logo abstract"
+                />
+              </Link>
             </div>
           </SidebarHeader>
 
@@ -61,41 +70,32 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             <SidebarNav />
           </SidebarContent>
 
-          {/* Logo Section - Placed above the footer, visible in both states but styled differently */}
+          {/* Logo Section - Placed above the footer */}
           <div className="px-4 pb-2 pt-4 text-primary uppercase font-bold">
-            {/* Expanded Logo: "STOCK" over "SENTRY", left-aligned */}
-            <div className="group-data-[state=collapsed]/sidebar-wrapper:hidden text-left leading-tight">
+            {/* Expanded Logo: Image - user needs to provide /logo.png */}
+            <div className="group-data-[state=collapsed]/sidebar:hidden text-left">
               <Link href="/dashboard" className="block">
-                  <span className="block text-3xl font-bold">STOCK</span>
-                  <span className="block text-3xl font-bold">SENTRY</span>
+                <Image
+                  src="/logo.png"
+                  alt="StockSentry Logo"
+                  width={160} // Adjust as needed
+                  height={40}  // Adjust as needed
+                  className="h-10 w-auto" // Example fixed height
+                  data-ai-hint="logo modern"
+                />
               </Link>
             </div>
-
-            {/* Collapsed Logo: Vertical "STOCK SENTRY" */}
-            <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex flex-col items-center text-center leading-tight py-2">
-              {'STOCK'.split('').map((char, index) => (
-                <span key={`logo-s-${index}`} className="block text-xs tracking-wider font-bold">
-                  {char}
-                </span>
-              ))}
-              <div className="h-1 w-full my-0.5"></div> {/* Small spacer */}
-              {'SENTRY'.split('').map((char, index) => (
-                <span key={`logo-e-${index}`} className="block text-xs tracking-wider font-bold">
-                  {char}
-                </span>
-              ))}
-            </div>
+            {/* Collapsed Logo: Handled by SidebarHeader icon or can be another small image if preferred */}
+            {/* If you want a different image for collapsed state *here*, add another conditional block */}
           </div>
-          
-          {/* Footer with version number, hidden when collapsed */}
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
+
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
           </SidebarFooter>
         </Sidebar>
 
-        {/* Main Content Area */}
         <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
             <div>
@@ -117,7 +117,6 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
     </SidebarProvider>
   );
 }
-
 
 function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
   const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SP";
