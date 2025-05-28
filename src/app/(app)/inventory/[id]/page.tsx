@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart, Fingerprint } from 'lucide-react'; 
+import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart, Fingerprint, Link as LinkIcon } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -42,29 +42,37 @@ interface DetailItemProps {
   value?: string | number | null;
   isCurrency?: boolean;
   isDate?: boolean;
+  isUrl?: boolean;
   className?: string;
 }
 
-function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = false, className }: DetailItemProps) {
+function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = false, isUrl = false, className }: DetailItemProps) {
   if (value === null || typeof value === 'undefined' || value === '') return null;
 
-  let displayValue = value;
+  let displayValue: React.ReactNode = String(value);
   if (isCurrency && typeof value === 'number') {
     displayValue = `$${value.toFixed(2)}`;
   } else if (isDate && typeof value === 'string') {
     try {
       displayValue = new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     } catch (e) {
-      displayValue = "Invalid Date"; // Fallback for invalid date strings
+      displayValue = "Invalid Date"; 
     }
+  } else if (isUrl && typeof value === 'string' && value.startsWith('http')) {
+    displayValue = (
+      <Link href={value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+        {value}
+      </Link>
+    );
   }
+
 
   return (
     <div className="flex items-start space-x-3">
       <Icon className={cn("h-5 w-5 text-muted-foreground mt-1 flex-shrink-0", className)} />
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-sm text-muted-foreground">{String(displayValue)}</p>
+        <p className="text-sm text-muted-foreground">{displayValue}</p>
       </div>
     </div>
   );
@@ -158,7 +166,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={Fingerprint} label="SKU" value={item.sku} />
                 <DetailItem icon={Package} label="Quantity" value={item.quantity} />
                 <DetailItem icon={Layers} label="Category" value={item.category} />
-                <DetailItem icon={DollarSign} label="Original Price" value={item.originalPrice} isCurrency />
+                <DetailItem icon={DollarSign} label="Purchase Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
                 <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
                 {profitLoss !== null && (
@@ -178,6 +186,9 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={Tag} label="Bin Location" value={item.binLocation} />
                 <DetailItem icon={Briefcase} label="Vendor" value={item.vendor} />
                 <DetailItem icon={Briefcase} label="Project" value={item.project} />
+                 {item.productUrl && (
+                   <DetailItem icon={LinkIcon} label="Product URL" value={item.productUrl} isUrl />
+                 )}
                 <DetailItem icon={CalendarDays} label="Created At" value={item.createdAt} isDate />
                 <DetailItem icon={CalendarDays} label="Last Updated" value={item.updatedAt} isDate />
               </div>
@@ -225,4 +236,3 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     </>
   );
 }
-

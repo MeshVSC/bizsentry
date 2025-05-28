@@ -26,6 +26,7 @@ const initialItems: Item[] = [
     qrCodeData: "QR-WM001",
     receiptImageUrl: "https://placehold.co/300x400.png?text=Receipt+Mouse",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Mouse",
+    productUrl: "https://example.com/products/wireless-mouse",
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
@@ -49,6 +50,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-MK002",
     qrCodeData: "QR-MK002",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Keyboard",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
     soldDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
@@ -72,6 +74,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-UCH003",
     qrCodeData: "QR-UCH003",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Hub",
+    productUrl: "https://example.com/products/usb-c-hub",
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
@@ -95,6 +98,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-LS004",
     qrCodeData: "QR-LS004",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Stand",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
@@ -118,6 +122,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-DL005",
     qrCodeData: "QR-DL005",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Lamp",
+    productUrl: "https://example.com/products/desk-lamp",
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
@@ -141,6 +146,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-MA006",
     qrCodeData: "QR-MA006",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Arm",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
@@ -164,6 +170,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-WM007",
     qrCodeData: "QR-WM007",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Markers",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
@@ -187,6 +194,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-SN008",
     qrCodeData: "QR-SN008",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Notes",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
@@ -210,6 +218,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-EC009",
     qrCodeData: "QR-EC009",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Chair",
+    productUrl: "https://example.com/products/ergonomic-chair",
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
@@ -233,6 +242,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-PP010",
     qrCodeData: "QR-PP010",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Paper",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
@@ -256,6 +266,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-DO011",
     qrCodeData: "QR-DO011",
     productImageUrl: "https://placehold.co/600x400.png?text=Desk+Organizer",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
@@ -279,6 +290,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-BS012",
     qrCodeData: "QR-BS012",
     productImageUrl: "https://placehold.co/600x400.png?text=Bluetooth+Speaker",
+    productUrl: "https://example.com/products/bluetooth-speaker",
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
@@ -302,6 +314,7 @@ const initialItems: Item[] = [
     barcodeData: "BARCODE-CM013",
     qrCodeData: "QR-CM013",
     productImageUrl: "https://placehold.co/600x400.png?text=Coffee+Maker",
+    productUrl: undefined,
     purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
     soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
@@ -400,6 +413,7 @@ export async function addItem(data: ItemInput): Promise<Item> {
     project: data.project,
     receiptImageUrl: data.receiptImageUrl,
     productImageUrl: data.productImageUrl,
+    productUrl: data.productUrl,
     purchaseDate: data.purchaseDate,
     soldDate: data.soldDate,
     sold: false, 
@@ -671,16 +685,32 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
 
   const headerLine = lines[0];
   // Expected headers (order matters for this basic parser)
+  // purchasePrice is the display name for originalPrice in CSV
   const expectedHeaders = [
-    "name", "quantity", "originalPrice", "salesPrice", "msrp", "sku", 
+    "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku", 
     "category", "description", "vendor", "storageLocation", "binLocation", 
-    "project", "purchaseDate", "productImageUrl", "receiptImageUrl"
+    "project", "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl"
   ];
   const actualHeaders = headerLine.split(',').map(h => h.trim().toLowerCase());
 
-  // Basic header validation (optional, but good practice)
-  // For simplicity, this basic version assumes headers are correct and in order if present.
-  // A more robust version would map headers to ItemInput fields dynamically.
+  // Basic header validation - find indices
+  const headerMap: { [key: string]: number } = {};
+  expectedHeaders.forEach(expectedHeader => {
+    const index = actualHeaders.indexOf(expectedHeader.toLowerCase());
+    if (index !== -1) {
+      headerMap[expectedHeader] = index;
+    }
+  });
+  
+  // Check for required headers
+  if (headerMap["name"] === undefined || headerMap["quantity"] === undefined) {
+      return { 
+          successCount: 0, 
+          errorCount: lines.length -1, 
+          errors: [{ rowNumber: 1, message: "CSV must contain 'name' and 'quantity' columns.", rowData: headerLine }] 
+      };
+  }
+
 
   const results: BulkImportResult = {
     successCount: 0,
@@ -691,66 +721,60 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1; // 1-based index for user-facing row number
     const line = lines[i];
-    const values = line.split(','); // Basic CSV split, won't handle commas in quoted fields
+    const values = line.split(','); // Basic CSV split
 
-    if (values.length !== expectedHeaders.length) {
-      results.errorCount++;
-      results.errors.push({
-        rowNumber,
-        message: `Incorrect number of columns. Expected ${expectedHeaders.length}, got ${values.length}.`,
-        rowData: line,
-      });
-      continue;
+    const getValue = (headerName: string): string | undefined => {
+        const index = headerMap[headerName];
+        return index !== undefined ? values[index]?.trim() : undefined;
     }
     
     try {
-      const name = values[0]?.trim();
+      const name = getValue("name");
       if (!name) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: "Item name is required.", rowData: line });
         continue;
       }
 
-      const quantityStr = values[1]?.trim();
-      const quantity = parseInt(quantityStr, 10);
+      const quantityStr = getValue("quantity");
+      const quantity = parseInt(quantityStr || "", 10);
       if (isNaN(quantity) || quantity < 0) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: "Invalid quantity. Must be a non-negative number.", rowData: line });
         continue;
       }
+      
+      // Use getValue for all fields
+      const originalPriceStr = getValue("purchasePrice"); // CSV header is "purchasePrice"
+      const salesPriceStr = getValue("salesPrice");
+      const msrpStr = getValue("msrp");
+      const purchaseDateStr = getValue("purchaseDate");
 
       const itemInput: ItemInput = {
         name,
         quantity,
-        originalPrice: values[2]?.trim() ? parseFloat(values[2].trim()) : undefined,
-        salesPrice: values[3]?.trim() ? parseFloat(values[3].trim()) : undefined,
-        msrp: values[4]?.trim() ? parseFloat(values[4].trim()) : undefined,
-        sku: values[5]?.trim() || undefined,
-        category: values[6]?.trim() || undefined,
-        description: values[7]?.trim() || undefined,
-        vendor: values[8]?.trim() || undefined,
-        storageLocation: values[9]?.trim() || undefined,
-        binLocation: values[10]?.trim() || undefined,
-        project: values[11]?.trim() || undefined,
-        purchaseDate: values[12]?.trim() ? new Date(values[12].trim()).toISOString() : undefined,
-        productImageUrl: values[13]?.trim() || undefined,
-        receiptImageUrl: values[14]?.trim() || undefined,
+        originalPrice: originalPriceStr ? parseFloat(originalPriceStr) : undefined,
+        salesPrice: salesPriceStr ? parseFloat(salesPriceStr) : undefined,
+        msrp: msrpStr ? parseFloat(msrpStr) : undefined,
+        sku: getValue("sku") || undefined,
+        category: getValue("category") || undefined,
+        description: getValue("description") || undefined,
+        vendor: getValue("vendor") || undefined,
+        storageLocation: getValue("storageLocation") || undefined,
+        binLocation: getValue("binLocation") || undefined,
+        project: getValue("project") || undefined,
+        purchaseDate: purchaseDateStr ? new Date(purchaseDateStr).toISOString() : undefined,
+        productImageUrl: getValue("productImageUrl") || undefined,
+        receiptImageUrl: getValue("receiptImageUrl") || undefined,
+        productUrl: getValue("productUrl") || undefined,
       };
       
-      // Validate numeric fields that might be NaN after parseFloat
-      if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) {
-        itemInput.originalPrice = undefined; // Or handle as error
+      if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
+      if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) itemInput.salesPrice = undefined;
+      if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) itemInput.msrp = undefined;
+      if (itemInput.purchaseDate && (itemInput.purchaseDate.includes("Invalid Date") || !purchaseDateStr)) { // Also check if original string was empty
+        itemInput.purchaseDate = undefined;
       }
-      if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) {
-        itemInput.salesPrice = undefined; // Or handle as error
-      }
-      if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) {
-        itemInput.msrp = undefined; // Or handle as error
-      }
-       if (itemInput.purchaseDate && itemInput.purchaseDate.includes("Invalid Date")) {
-        itemInput.purchaseDate = undefined; // Or handle as error
-      }
-
 
       await addItem(itemInput);
       results.successCount++;

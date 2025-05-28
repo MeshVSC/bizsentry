@@ -45,7 +45,7 @@ export default async function AnalyticsPage() {
 
   items.forEach(item => {
     const day = format(parseISO(item.createdAt), 'yyyy-MM-dd');
-    const value = (item.originalPrice || 0) * item.quantity;
+    const value = (item.originalPrice || 0) * item.quantity; // Uses originalPrice
     itemsGroupedByDayForStockValue.set(day, (itemsGroupedByDayForStockValue.get(day) || 0) + value);
   });
 
@@ -93,7 +93,7 @@ export default async function AnalyticsPage() {
   const profitByCategory: { [key: string]: number } = {};
   items.filter(item => item.sold && typeof item.salesPrice === 'number' && typeof item.originalPrice === 'number')
     .forEach(item => {
-      const profitPerUnit = item.salesPrice! - item.originalPrice!;
+      const profitPerUnit = item.salesPrice! - item.originalPrice!; // Uses originalPrice
       const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1;
       const totalItemProfit = profitPerUnit * quantitySoldApproximation;
       const category = item.category || "Uncategorized";
@@ -102,12 +102,12 @@ export default async function AnalyticsPage() {
 
   const profitByCategoryChartData = Object.entries(profitByCategory)
     .map(([name, profit]) => ({ name, profit }))
-    .sort((a, b) => b.profit - a.profit); // Sort by profit descending
+    .sort((a, b) => b.profit - a.profit); 
 
   const profitByCategoryChartConfig = {
     profit: {
       label: "Est. Profit ($)",
-      color: "hsl(var(--chart-4))", // Using chart-4 for a new color
+      color: "hsl(var(--chart-4))", 
     },
   } satisfies ChartConfig;
 
@@ -132,7 +132,7 @@ export default async function AnalyticsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
         <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={itemsPerCategoryChartConfig} />
-        <StockValueOverTimeChart data={refinedStockValueData} chartConfig={stockValueChartConfig} />
+        <StockValueOverTimeChart data={refinedStockValueData} chartConfig={stockValueChartConfig} description="Cumulative value of inventory added (based on purchase price)." />
         <ProfitByCategoryChart data={profitByCategoryChartData} chartConfig={profitByCategoryChartConfig} />
       </div>
       

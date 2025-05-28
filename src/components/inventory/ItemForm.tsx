@@ -23,7 +23,7 @@ import { useState, useTransition } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UploadCloud, Image as ImageIcon } from "lucide-react";
+import { Loader2, UploadCloud, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
@@ -46,10 +46,11 @@ const itemFormSchema = z.object({
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
   msrp: z.coerce.number().min(0).optional(), 
-  sku: z.string().max(50).optional().default(""), // SKU field
+  sku: z.string().max(50).optional().default(""),
   project: z.string().max(100).optional().default(""),
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
   productImageUrl: z.string().optional().default(""),
+  productUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""),
   purchaseDate: z.date().optional(), 
   soldDate: z.date().optional(), 
 });
@@ -94,10 +95,11 @@ export default function ItemForm({
       originalPrice: item?.originalPrice ?? "",
       salesPrice: item?.salesPrice ?? "",
       msrp: item?.msrp ?? "", 
-      sku: item?.sku || "", // SKU default value
+      sku: item?.sku || "",
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
+      productUrl: item?.productUrl || "",
       purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined, 
       soldDate: item?.soldDate ? new Date(item.soldDate) : undefined, 
     },
@@ -114,13 +116,12 @@ export default function ItemForm({
         if ('error' in result || !result.items || result.items.length === 0) {
           toast({ title: "Receipt Processing Failed", description: (result as any).error || "Could not extract data from receipt.", variant: "destructive" });
         } else {
-          const extracted = result.items[0] as ExtractedItemData; // Assuming single item extraction for simplicity
+          const extracted = result.items[0] as ExtractedItemData; 
           if (extracted.name) form.setValue("name", extracted.name, { shouldValidate: true });
           if (extracted.description) form.setValue("description", extracted.description, { shouldValidate: true });
           if (extracted.quantity) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
           if (extracted.price) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
           if (extracted.sku) form.setValue("sku", extracted.sku, { shouldValidate: true });
-
 
           form.setValue("receiptImageUrl", base64data, { shouldValidate: true });
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
@@ -160,7 +161,7 @@ export default function ItemForm({
         originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
         salesPrice: data.salesPrice === "" ? undefined : Number(data.salesPrice),
         msrp: data.msrp === "" ? undefined : Number(data.msrp), 
-        sku: data.sku || undefined, // Handle SKU
+        sku: data.sku || undefined,
         description: data.description || undefined,
         category: data.category || undefined,
         storageLocation: data.storageLocation || undefined,
@@ -169,6 +170,7 @@ export default function ItemForm({
         project: data.project || undefined,
         receiptImageUrl: data.receiptImageUrl || undefined,
         productImageUrl: data.productImageUrl || undefined,
+        productUrl: data.productUrl || undefined,
         purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, 
         soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, 
     };
@@ -280,6 +282,18 @@ export default function ItemForm({
                       )}
                     />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="productUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Product URL</FormLabel>
+                      <FormControl><Input placeholder="https://example.com/product-page" {...field} /></FormControl>
+                      <FormDescription>Optional link to the product's official or sales page.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
@@ -294,7 +308,7 @@ export default function ItemForm({
                     name="originalPrice"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Original Price (Cost)</FormLabel>
+                        <FormLabel>Purchase Price (Cost)</FormLabel>
                         <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field}  /></FormControl>
                         <FormMessage />
                         </FormItem>
@@ -535,4 +549,3 @@ export default function ItemForm({
     </Form>
   );
 }
-

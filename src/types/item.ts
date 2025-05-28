@@ -18,6 +18,7 @@ export interface Item {
   qrCodeData?: string;    // Data to be encoded in QR code (e.g., item URL or ID)
   receiptImageUrl?: string; // URL of the uploaded receipt image
   productImageUrl?: string; // URL for a dedicated product image
+  productUrl?: string; // URL for the product (e.g., sales page, manufacturer page)
   purchaseDate?: string; // ISO string for date
   soldDate?: string; // ISO string for date
   createdAt: string; // Store as ISO string for easier serialization
@@ -40,6 +41,7 @@ export type ItemInput = {
   project?: string;
   receiptImageUrl?: string;
   productImageUrl?: string;
+  productUrl?: string;
   purchaseDate?: string; // Will be string from form, convert if Date object
   soldDate?: string; // Will be string from form, convert if Date object
 };
@@ -49,7 +51,6 @@ export interface ExtractedItemData {
   name?: string;
   description?: string;
   quantity?: number;
-  price?: number;
+  price?: number; // This will be mapped to originalPrice in the form
   sku?: string;
 }
-

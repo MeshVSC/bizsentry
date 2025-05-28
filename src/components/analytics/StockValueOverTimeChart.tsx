@@ -8,18 +8,21 @@ import { type ChartConfig, ChartContainer, ChartTooltipContent } from '@/compone
 interface StockValueOverTimeChartProps {
   data: { date: string; value: number }[];
   chartConfig: ChartConfig;
+  description?: string;
 }
 
-export default function StockValueOverTimeChart({ data, chartConfig }: StockValueOverTimeChartProps) {
+export default function StockValueOverTimeChart({ data, chartConfig, description }: StockValueOverTimeChartProps) {
   return (
-    <Card className="shadow-lg"> {/* bg-card, rounded-lg, shadow-lg */}
-      <CardHeader className="p-4"> {/* padding 16px */}
+    <Card className="shadow-lg">
+      <CardHeader className="p-4">
         <CardTitle className="h2-style text-foreground">Stock Value Over Time</CardTitle>
-        <CardDescription className="text-muted-foreground">Cumulative value of inventory added (based on original price).</CardDescription>
+        <CardDescription className="text-muted-foreground">
+          {description || "Cumulative value of inventory added (based on original price)."}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="p-4 pt-0"> {/* padding 16px */}
+      <CardContent className="p-4 pt-0">
         {data.length > 0 ? (
-          <ChartContainer config={chartConfig} className="h-[280px] w-full"> {/* Height 280px */}
+          <ChartContainer config={chartConfig} className="h-[280px] w-full">
             <LineChart
               accessibilityLayer
               data={data}

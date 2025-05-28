@@ -12,12 +12,12 @@ import { Loader2, UploadCloud, CheckCircle, XCircle, AlertTriangle, DownloadClou
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CSV_EXPECTED_COLUMNS_ARRAY = [
-    "name (required)", "quantity (required, number)", "originalPrice (number, optional)", 
+    "name (required)", "quantity (required, number)", "purchasePrice (number, optional)", 
     "salesPrice (number, optional)", "msrp (number, optional)", "sku (optional)", 
     "category (optional)", "description (optional)", "vendor (optional)", 
     "storageLocation (optional)", "binLocation (optional)", "project (optional)", 
     "purchaseDate (YYYY-MM-DD, optional)", "productImageUrl (URL, optional)", 
-    "receiptImageUrl (URL, optional)"
+    "receiptImageUrl (URL, optional)", "productUrl (URL, optional)"
 ];
 const CSV_EXPECTED_COLUMNS_STRING = CSV_EXPECTED_COLUMNS_ARRAY.join(',');
 
@@ -67,10 +67,15 @@ export default function BulkImportPage() {
   }
 
   const handleDownloadTemplate = () => {
-    const csvHeader = CSV_EXPECTED_COLUMNS_ARRAY.join(',') + '\\n'; // Ensure headers are in the first line
+    // Use the actual column names expected by the parser for the template header
+    const csvHeader = [
+        "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku", 
+        "category", "description", "vendor", "storageLocation", "binLocation", 
+        "project", "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl"
+    ].join(',') + '\\n';
     const blob = new Blob([csvHeader], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    if (link.download !== undefined) { // feature detection
+    if (link.download !== undefined) { 
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
         link.setAttribute("download", "stocksentry_import_template.csv");
@@ -90,10 +95,10 @@ export default function BulkImportPage() {
         <CardHeader>
           <CardTitle>Upload CSV File</CardTitle>
           <CardDescription>
-            Ensure your CSV file has the following columns in order: <br />
+            Ensure your CSV file has the following columns: <br />
             <code className="text-xs bg-muted p-1 rounded break-all block my-2">{CSV_EXPECTED_COLUMNS_STRING}</code>
-            The first row should be headers. `name` and `quantity` are required. Other fields are optional.
-            Dates should be in YYYY-MM-DD format.
+            The first row should be headers matching these names (case-insensitive). `name` and `quantity` are required. Other fields are optional.
+            Dates should be in YYYY-MM-DD format. URLs should be valid.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -103,7 +108,7 @@ export default function BulkImportPage() {
               acceptedFileTypes=".csv, text/csv"
               buttonText={selectedFile ? `File: ${selectedFile.name}` : "Select CSV File"}
               buttonIcon={<UploadCloud className="mr-2 h-4 w-4" />}
-              maxFileSizeMB={5} // Allow larger files for CSV
+              maxFileSizeMB={5} 
               disabled={isProcessing}
             />
             <Button onClick={handleDownloadTemplate} variant="outline" disabled={isProcessing}>
