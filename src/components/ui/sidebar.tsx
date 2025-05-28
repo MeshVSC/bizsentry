@@ -211,11 +211,11 @@ const Sidebar = React.forwardRef<
       <aside
         ref={ref}
         data-state={state} 
-        data-collapsible={collapsible === "icon" && state === "collapsed" ? "icon" : collapsible}
+        data-collapsible-type={collapsible} // Added type attribute
         data-variant={variant}
         data-side={side}
         className={cn(
-          "group", // Added "group" class here
+          "group",
           "fixed h-full flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
           "w-[var(--sidebar-width)]", 
           "group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:w-[var(--sidebar-width-icon)]", 
@@ -317,7 +317,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto", // Removed group-data-[collapsible=icon]:overflow-hidden here, button handles it
         className
       )}
       {...props}
@@ -354,7 +354,14 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-active active:text-sidebar-active-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-primary/30 data-[active=true]:text-primary group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  // Peer class for potential future use with actions on the same item.
+  // Base styles for the button: flex, full width, item alignment, gap, overflow handling, rounding, padding, text alignment, focus styles.
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-active active:text-sidebar-active-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-primary/30 data-[active=true]:text-primary",
+  // Styles for when the PARENT sidebar (group) is collapsed AND its collapsible type is "icon".
+  // This shrinks the button to icon size and adjusts padding.
+  "group-data-[state=collapsed][data-collapsible-type=icon]:!size-8 group-data-[state=collapsed][data-collapsible-type=icon]:!p-2",
+  // Styles for children SVG icons and the last span (assumed to be the label).
+  "[&>svg]:size-4 [&>svg]:shrink-0 [&>span:last-child]:truncate",
   {
     variants: {
       variant: {
@@ -413,6 +420,8 @@ const SidebarMenuButton = React.forwardRef<
         children: tooltip,
       }
     }
+    
+    const isActuallyCollapsed = state === "collapsed";
 
     return (
       <Tooltip>
@@ -421,7 +430,8 @@ const SidebarMenuButton = React.forwardRef<
           side="right"
           align="center"
           className="bg-popover text-popover-foreground"
-          hidden={state !== "collapsed" || isMobile}
+          // Tooltip should only show if sidebar is actually collapsed and not on mobile
+          hidden={!isActuallyCollapsed || isMobile} 
           {...tooltip}
         />
       </Tooltip>
@@ -443,4 +453,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-

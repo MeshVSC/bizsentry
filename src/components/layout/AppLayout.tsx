@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image'; // Keep this for potential future use of actual image logo
+import Image from 'next/image'; 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from '@/components/ui/separator'; // Import Separator
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -42,16 +43,17 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
       <div className="flex min-h-screen w-full bg-background">
         <Sidebar
           variant="sidebar"
-          collapsible="icon"
-          className="fixed h-full flex flex-col text-sidebar-foreground bg-sidebar"
+          collapsible="icon" // This enables collapsing to icon state
+          className="flex flex-col text-sidebar-foreground bg-sidebar" // Removed fixed width here
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
-            {/* Content for collapsed header (e.g., a very small icon if desired, or leave empty) */}
-            <div className="w-full hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center">
-              {/* Intentionally empty as per user not liking "SS" and to keep top clean */}
-            </div>
             {/* Content for expanded header (empty as logo is handled below) */}
-            <div className="w-full group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+            <div className="w-full group-data-[state=collapsed]/sidebar-wrapper:hidden">
+              {/* Intentionally empty as per latest design */}
+            </div>
+            {/* Content for collapsed header (e.g., a very small icon if desired, or leave empty) */}
+            <div className="w-full hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center">
+              {/* Intentionally empty to keep top clean when collapsed */}
             </div>
           </SidebarHeader>
 
@@ -59,18 +61,18 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             <SidebarNav />
           </SidebarContent>
 
-          {/* Logo Section - Placed above the footer */}
+          {/* Logo Section - Placed above the footer, visible in both states but styled differently */}
           <div className="px-4 pb-2 pt-4 text-primary uppercase font-bold">
             {/* Expanded Logo: "STOCK" over "SENTRY", left-aligned */}
-            <div className="group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden text-left leading-tight">
+            <div className="group-data-[state=collapsed]/sidebar-wrapper:hidden text-left leading-tight">
               <Link href="/dashboard" className="block">
-                  <span className="block text-xl font-bold">STOCK</span>
-                  <span className="block text-xl font-bold">SENTRY</span>
+                  <span className="block text-3xl font-bold">STOCK</span>
+                  <span className="block text-3xl font-bold">SENTRY</span>
               </Link>
             </div>
 
             {/* Collapsed Logo: Vertical "STOCK SENTRY" */}
-            <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex flex-col items-center text-center leading-tight py-2">
+            <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex flex-col items-center text-center leading-tight py-2">
               {'STOCK'.split('').map((char, index) => (
                 <span key={`logo-s-${index}`} className="block text-xs tracking-wider font-bold">
                   {char}
@@ -84,9 +86,9 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
               ))}
             </div>
           </div>
-
+          
           {/* Footer with version number, hidden when collapsed */}
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>

@@ -16,7 +16,7 @@ const navItems = [
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const { state: sidebarState } = useSidebar(); // Get sidebar state from context
+  // const { state: sidebarState } = useSidebar(); // No longer directly using context state here for visibility
 
   return (
     <SidebarMenu>
@@ -31,7 +31,7 @@ export default function SidebarNav() {
               <SidebarMenuButton
                 asChild
                 isActive={isActive}
-                tooltip={{children: item.label}}
+                tooltip={{children: item.label}} // Tooltip will show when collapsed
                 className={cn(
                   "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover",
                   isActive && "bg-primary/30 text-primary" 
@@ -39,9 +39,8 @@ export default function SidebarNav() {
               >
                 <a> {/* <a> tag is required when asChild is true with Link */}
                   <item.icon className="h-5 w-5" />
-                  {sidebarState === 'expanded' && (
-                    <span>{item.label}</span>
-                  )}
+                  {/* The span is always rendered. Visibility is handled by parent button's overflow and sizing */}
+                  <span>{item.label}</span>
                 </a>
               </SidebarMenuButton>
             </Link>
