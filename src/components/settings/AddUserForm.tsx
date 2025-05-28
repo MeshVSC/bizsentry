@@ -16,7 +16,7 @@ import { SubmitButton } from "@/components/shared/SubmitButton";
 import { PlusCircle } from "lucide-react";
 import { useTransition } from "react";
 
-const userRoles: UserRole[] = ["admin", "viewer"];
+const userRoles: UserRole[] = ["admin", "manager", "viewer"]; // Added 'manager'
 
 const addUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters.").max(50),
@@ -48,7 +48,7 @@ export default function AddUserForm() {
       const result = await addUser(data as UserFormInput);
       if (result.success) {
         toast({ title: "Success", description: result.message });
-        form.reset(); // Reset form fields
+        form.reset();
       } else {
         toast({ title: "Error", description: result.message || "Failed to add user.", variant: "destructive" });
       }
@@ -79,7 +79,7 @@ export default function AddUserForm() {
                 <FormLabel>Password</FormLabel>
                 <FormControl><Input type="password" placeholder="Enter password" {...field} /></FormControl>
                 <FormDescription className="text-xs">
-                  Min 5 characters, 1 uppercase, 1 number. E.g., Pass123
+                  Min 5 chars, 1 uppercase, 1 number. E.g., Pass123
                 </FormDescription>
                 <FormMessage />
               </FormItem>

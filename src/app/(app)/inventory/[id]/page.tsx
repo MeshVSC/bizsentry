@@ -1,16 +1,15 @@
 
-import { getItemById } from '@/lib/actions/itemActions';
+import { getItemById, deleteItem } from '@/lib/actions/itemActions';
 import { notFound, redirect } from 'next/navigation';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart, Fingerprint, Link as LinkIcon } from 'lucide-react'; 
+import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart, Fingerprint, Link as LinkIcon, Archive, PackageOpen, Construction, Building } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -19,7 +18,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { deleteItem } from '@/lib/actions/itemActions';
 import { SubmitButton } from '@/components/shared/SubmitButton';
 import { cn } from "@/lib/utils";
 
@@ -51,7 +49,7 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 
   let displayValue: React.ReactNode = String(value);
   if (isCurrency && typeof value === 'number') {
-    displayValue = `$${value.toFixed(2)}`;
+    displayValue = `$${value.toFixed(2)}`; // Uses dot for decimals
   } else if (isDate && typeof value === 'string') {
     try {
       displayValue = new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -65,7 +63,6 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
       </Link>
     );
   }
-
 
   return (
     <div className="flex items-start space-x-3">
@@ -94,12 +91,23 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     profitLoss = item.salesPrice - item.originalPrice;
     if (profitLoss > 0) {
       profitLossIcon = TrendingUp;
-      profitLossColor = "text-green-600"; 
+      profitLossColor = "text-green-500"; 
     } else if (profitLoss < 0) {
       profitLossIcon = TrendingDown;
-      profitLossColor = "text-red-600"; 
+      profitLossColor = "text-red-500"; 
     }
   }
+
+  const statusColors: Record<string, string> = {
+    'in stock': 'bg-green-100 text-green-700',
+    'in use': 'bg-blue-100 text-blue-700',
+    'sold': 'bg-red-100 text-red-700',
+  };
+  const statusText: Record<string, string> = {
+    'in stock': 'In Stock',
+    'in use': 'In Use',
+    'sold': 'Sold',
+  };
 
 
   return (
@@ -141,60 +149,47 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
         <div className="md:col-span-2 space-y-6">
           {item.productImageUrl && (
             <Card>
-              <CardHeader>
-                <CardTitle>Product Image</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Product Image</CardTitle></CardHeader>
               <CardContent>
                 <div className="relative aspect-video w-full max-w-md mx-auto">
-                  <Image
-                    src={item.productImageUrl}
-                    alt={`Product image for ${item.name}`}
-                    fill
-                    className="rounded-md border object-contain"
-                    data-ai-hint="product commercial"
-                   />
+                  <Image src={item.productImageUrl} alt={`Product image for ${item.name}`} fill className="rounded-md border object-contain" data-ai-hint="product commercial" />
                 </div>
               </CardContent>
             </Card>
           )}
           <Card>
-            <CardHeader>
-              <CardTitle>Item Information</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Item Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
                 <DetailItem icon={Fingerprint} label="SKU" value={item.sku} />
                 <DetailItem icon={Package} label="Quantity" value={item.quantity} />
                 <DetailItem icon={Layers} label="Category" value={item.category} />
+                <DetailItem icon={Archive} label="Subcategory" value={item.subcategory} /> {/* New */}
                 <DetailItem icon={DollarSign} label="Purchase Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
                 <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
                 {profitLoss !== null && (
-                  <DetailItem
-                    icon={profitLossIcon}
-                    label="Est. Profit/Loss"
-                    value={profitLoss}
-                    isCurrency
-                    className={profitLossColor}
-                  />
+                  <DetailItem icon={profitLossIcon} label="Est. Profit/Loss" value={profitLoss} isCurrency className={profitLossColor} />
                 )}
+                <DetailItem icon={PackageOpen} label="Storage Location" value={item.storageLocation} />
+                <DetailItem icon={Tag} label="Bin Location" value={item.binLocation} />
+                <DetailItem icon={Building} label="Room" value={item.room} /> {/* New */}
+                <DetailItem icon={Briefcase} label="Vendor" value={item.vendor} />
+                <DetailItem icon={Construction} label="Project" value={item.project} /> {/* New */}
+                {item.productUrl && (<DetailItem icon={LinkIcon} label="Product URL" value={item.productUrl} isUrl />)}
                 <DetailItem icon={CalendarDays} label="Purchase Date" value={item.purchaseDate} isDate />
-                {item.sold && item.soldDate && (
+                {item.status === 'in use' && item.inUseDate && (
+                    <DetailItem icon={CalendarDays} label="In Use Since" value={item.inUseDate} isDate />
+                )}
+                {item.status === 'sold' && item.soldDate && (
                     <DetailItem icon={CalendarDays} label="Sold Date" value={item.soldDate} isDate />
                 )}
-                <DetailItem icon={MapPin} label="Storage Location" value={item.storageLocation} />
-                <DetailItem icon={Tag} label="Bin Location" value={item.binLocation} />
-                <DetailItem icon={Briefcase} label="Vendor" value={item.vendor} />
-                <DetailItem icon={Briefcase} label="Project" value={item.project} />
-                 {item.productUrl && (
-                   <DetailItem icon={LinkIcon} label="Product URL" value={item.productUrl} isUrl />
-                 )}
                 <DetailItem icon={CalendarDays} label="Created At" value={item.createdAt} isDate />
                 <DetailItem icon={CalendarDays} label="Last Updated" value={item.updatedAt} isDate />
               </div>
                <div className="mt-4">
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${item.sold ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                  {item.sold ? 'Sold Out' : 'In Stock'}
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusColors[item.status] || 'bg-gray-100 text-gray-700'}`}>
+                  {statusText[item.status] || item.status}
                 </span>
               </div>
             </CardContent>
@@ -203,9 +198,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Codes</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Codes</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium flex items-center"><Barcode className="mr-2 h-4 w-4 text-muted-foreground" /> Barcode Data</h3>
@@ -223,9 +216,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
           {item.receiptImageUrl && (
             <Card>
-              <CardHeader>
-                <CardTitle>Receipt</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle>Receipt</CardTitle></CardHeader>
               <CardContent>
                 <Image src={item.receiptImageUrl} alt="Receipt" width={300} height={400} className="rounded-md border w-full object-contain max-h-96" data-ai-hint="receipt shopping" />
               </CardContent>

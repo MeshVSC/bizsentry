@@ -8,23 +8,25 @@ import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Edit3, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Trash2, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface UserManagementTableProps {
   initialUsers: UserView[];
 }
 
-const userRoles: UserRole[] = ["admin", "viewer"];
+const userRoles: UserRole[] = ["admin", "manager", "viewer"]; // Added 'manager'
 
 export default function UserManagementTable({ initialUsers }: UserManagementTableProps) {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserView[]>(initialUsers);
-  const [isPendingMap, setIsPendingMap] = useState<Record<string, boolean>>({}); // Track pending state per user
+  const [isPendingMap, setIsPendingMap] = useState<Record<string, boolean>>({});
+  const [_, startTransition] = useTransition();
+
 
   useEffect(() => {
-    setUsers(initialUsers); // Update local state if initialUsers prop changes (e.g., after adding a new user)
+    setUsers(initialUsers);
   }, [initialUsers]);
 
   const handleRoleChange = (userId: string, newRole: UserRole) => {
@@ -54,10 +56,6 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
       setIsPendingMap(prev => ({ ...prev, [`delete-${userId}`]: false }));
     });
   };
-
-  // General transition for server actions (can be replaced by individual transitions if preferred)
-  const [_, startTransition] = useTransition();
-
 
   if (users.length === 0) {
     return <p className="text-muted-foreground">No users found. Add one above.</p>;
@@ -117,7 +115,7 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
                         <AlertDialogFooter>
                           <AlertDialogCancel disabled={isPendingMap[`delete-${user.id}`]}>Cancel</AlertDialogCancel>
                           <Button variant="destructive" onClick={() => handleDeleteUser(user.id)} disabled={isPendingMap[`delete-${user.id}`]}>
-                            Delete User
+                            {isPendingMap[`delete-${user.id}`] ? "Deleting..." : "Delete User"}
                           </Button>
                         </AlertDialogFooter>
                       </AlertDialogContent>

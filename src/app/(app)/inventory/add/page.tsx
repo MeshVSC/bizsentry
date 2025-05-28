@@ -4,14 +4,22 @@ import PageHeader from '@/components/shared/PageHeader';
 import { 
   addItem, 
   getManagedCategoryOptions, 
+  getManagedSubcategoryOptions,
   getManagedStorageLocationOptions, 
-  getManagedBinLocationOptions 
+  getManagedBinLocationOptions,
+  getManagedRoomOptions,
+  getManagedVendorOptions,
+  getManagedProjectOptions,
 } from '@/lib/actions/itemActions';
 
 export default async function AddItemPage() {
   const managedCategories = await getManagedCategoryOptions();
+  const managedSubcategories = await getManagedSubcategoryOptions();
   const managedStorageLocations = await getManagedStorageLocationOptions();
   const managedBinLocations = await getManagedBinLocationOptions();
+  const managedRooms = await getManagedRoomOptions();
+  const managedVendors = await getManagedVendorOptions();
+  const managedProjects = await getManagedProjectOptions();
 
   return (
     <>
@@ -20,8 +28,12 @@ export default async function AddItemPage() {
         onSubmitAction={addItem} 
         isEditing={false} 
         availableCategories={managedCategories}
+        availableSubcategories={managedSubcategories}
         availableStorageLocations={managedStorageLocations}
         availableBinLocations={managedBinLocations}
+        availableRooms={managedRooms}
+        availableVendors={managedVendors}
+        availableProjects={managedProjects}
       />
     </>
   );

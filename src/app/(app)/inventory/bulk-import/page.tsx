@@ -8,19 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { bulkImportItems, type BulkImportResult } from '@/lib/actions/itemActions';
-import { Loader2, UploadCloud, CheckCircle, XCircle, AlertTriangle, DownloadCloud } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle, XCircle, DownloadCloud } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const CSV_EXPECTED_COLUMNS_ARRAY = [
     "name (required)", "quantity (required, number)", "purchasePrice (number, optional)", 
     "salesPrice (number, optional)", "msrp (number, optional)", "sku (optional)", 
-    "category (optional)", "description (optional)", "vendor (optional)", 
-    "storageLocation (optional)", "binLocation (optional)", "project (optional)", 
+    "category (optional)", "subcategory (optional)", "description (optional)", "vendor (optional)", 
+    "storageLocation (optional)", "binLocation (optional)", "room (optional)", "project (optional)", 
     "purchaseDate (YYYY-MM-DD, optional)", "productImageUrl (URL, optional)", 
-    "receiptImageUrl (URL, optional)", "productUrl (URL, optional)"
+    "receiptImageUrl (URL, optional)", "productUrl (URL, optional)", "status (in stock/in use/sold, optional, defaults to 'in stock')"
 ];
 const CSV_EXPECTED_COLUMNS_STRING = CSV_EXPECTED_COLUMNS_ARRAY.join(',');
-
 
 export default function BulkImportPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -30,7 +29,7 @@ export default function BulkImportPage() {
 
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
-    setImportResult(null); // Reset previous results
+    setImportResult(null); 
   };
 
   const handleImport = async () => {
@@ -55,23 +54,16 @@ export default function BulkImportPage() {
       } catch (error) {
         console.error("Bulk import error:", error);
         toast({ title: "Import Error", description: "An unexpected error occurred during import.", variant: "destructive" });
-        setImportResult({ successCount: 0, errorCount: linesInFile(selectedFile) -1, errors: [{rowNumber: 0, message: "Failed to read or process file.", rowData: ""}]}); // Approx error count
+        setImportResult({ successCount: 0, errorCount: 1, errors: [{rowNumber: 0, message: "Failed to read or process file.", rowData: ""}]}); 
       }
     });
   };
 
-  const linesInFile = (file: File | null) => {
-      // This is a rough sync estimate, actual parsing might differ.
-      // For better estimate, would need to read file content here too.
-      return file ? 10 : 0; // Placeholder
-  }
-
   const handleDownloadTemplate = () => {
-    // Use the actual column names expected by the parser for the template header
     const csvHeader = [
         "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku", 
-        "category", "description", "vendor", "storageLocation", "binLocation", 
-        "project", "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl"
+        "category", "subcategory", "description", "vendor", "storageLocation", "binLocation", "room", "project",
+        "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl", "status"
     ].join(',') + '\\n';
     const blob = new Blob([csvHeader], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -98,7 +90,7 @@ export default function BulkImportPage() {
             Ensure your CSV file has the following columns: <br />
             <code className="text-xs bg-muted p-1 rounded break-all block my-2">{CSV_EXPECTED_COLUMNS_STRING}</code>
             The first row should be headers matching these names (case-insensitive). `name` and `quantity` are required. Other fields are optional.
-            Dates should be in YYYY-MM-DD format. URLs should be valid.
+            Dates should be in YYYY-MM-DD format. URLs should be valid. Status can be 'in stock', 'in use', or 'sold'.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -5,21 +5,30 @@ import {
   getItemById, 
   updateItem, 
   getManagedCategoryOptions, 
+  getManagedSubcategoryOptions,
   getManagedStorageLocationOptions, 
-  getManagedBinLocationOptions 
+  getManagedBinLocationOptions,
+  getManagedRoomOptions,
+  getManagedVendorOptions,
+  getManagedProjectOptions,
 } from '@/lib/actions/itemActions';
 import type { ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
   const item = await getItemById(params.id);
-  const managedCategories = await getManagedCategoryOptions();
-  const managedStorageLocations = await getManagedStorageLocationOptions();
-  const managedBinLocations = await getManagedBinLocationOptions();
-
+  
   if (!item) {
     notFound();
   }
+
+  const managedCategories = await getManagedCategoryOptions();
+  const managedSubcategories = await getManagedSubcategoryOptions();
+  const managedStorageLocations = await getManagedStorageLocationOptions();
+  const managedBinLocations = await getManagedBinLocationOptions();
+  const managedRooms = await getManagedRoomOptions();
+  const managedVendors = await getManagedVendorOptions();
+  const managedProjects = await getManagedProjectOptions();
 
   const updateItemWithId = async (data: ItemInput) => {
     "use server";
@@ -34,8 +43,12 @@ export default async function EditItemPage({ params }: { params: { id: string } 
         onSubmitAction={updateItemWithId} 
         isEditing={true} 
         availableCategories={managedCategories}
+        availableSubcategories={managedSubcategories}
         availableStorageLocations={managedStorageLocations}
         availableBinLocations={managedBinLocations}
+        availableRooms={managedRooms}
+        availableVendors={managedVendors}
+        availableProjects={managedProjects}
       />
     </>
   );

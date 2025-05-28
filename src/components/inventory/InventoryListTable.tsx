@@ -1,46 +1,73 @@
+
 "use client";
 
-import type { Item } from '@/types/item';
-import { useState, useEffect, useMemo } from 'react';
+import type { Item, ItemStatus } from '@/types/item';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import Link from 'next/link';
-import { Eye, FilePenLine, Trash2, MoreHorizontal } from 'lucide-react';
+import { Eye, FilePenLine, Trash2, MoreHorizontal, PackagePlus, PackageCheck, PackageX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { SubmitButton } from '@/components/shared/SubmitButton';
-import ToggleSoldStatusForm from '@/components/inventory/ToggleSoldStatusForm';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
-import { bulkDeleteItems, bulkUpdateSoldStatus, deleteItem as individualDeleteItem } from '@/lib/actions/itemActions';
-import { useTransition } from 'react';
+import { bulkDeleteItems, bulkUpdateItemStatus, deleteItem as individualDeleteItem, updateItemStatus } from '@/lib/actions/itemActions';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'; // For status update control
 
+const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
 interface InventoryListTableProps {
   items: Item[];
 }
+
+function UpdateItemStatusControl({ item }: { item: Item }) {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  const [currentStatus, setCurrentStatus] = useState(item.status);
+
+  useEffect(() => {
+    setCurrentStatus(item.status);
+  }, [item.status]);
+
+  const handleStatusChange = (newStatus: ItemStatus) => {
+    if (newStatus === currentStatus) return;
+    
+    startTransition(async () => {
+      const result = await updateItemStatus(item.id, newStatus);
+      if (result) {
+        setCurrentStatus(result.status);
+        toast({
+          title: "Status Updated",
+          description: `Item "${result.name}" status changed to ${result.status}.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update item status.",
+          variant: "destructive",
+        });
+        // Revert optimistic update if needed, though server action revalidates
+        setCurrentStatus(item.status); 
+      }
+    });
+  };
+
+  return (
+    <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
+      <SelectTrigger className="w-[120px] h-8 text-xs capitalize">
+        <SelectValue placeholder="Set status" />
+      </SelectTrigger>
+      <SelectContent>
+        {itemStatuses.map(statusVal => (
+          <SelectItem key={statusVal} value={statusVal} className="capitalize text-xs">
+            {statusVal}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 
 export default function InventoryListTable({ items }: InventoryListTableProps) {
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
@@ -48,68 +75,46 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
   const { toast } = useToast();
   const [isPendingBulkAction, startTransitionBulkAction] = useTransition();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  useEffect(() => { setIsMounted(true); }, []);
 
   const allItemIds = useMemo(() => items.map(item => item.id), [items]);
-
-  const isAllSelected = useMemo(() => {
-    return items.length > 0 && selectedItemIds.length === items.length && selectedItemIds.every(id => allItemIds.includes(id));
-  }, [selectedItemIds, items.length, allItemIds]);
+  const isAllSelected = useMemo(() => items.length > 0 && selectedItemIds.length === items.length && selectedItemIds.every(id => allItemIds.includes(id)), [selectedItemIds, items.length, allItemIds]);
 
   const handleSelectAll = (checked: boolean | 'indeterminate') => {
-    if (checked === true) {
-      setSelectedItemIds(items.map(item => item.id));
-    } else {
-      setSelectedItemIds([]);
-    }
+    setSelectedItemIds(checked === true ? items.map(item => item.id) : []);
   };
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
-    setSelectedItemIds(prev =>
-      checked ? [...prev, itemId] : prev.filter(id => id !== itemId)
-    );
+    setSelectedItemIds(prev => checked ? [...prev, itemId] : prev.filter(id => id !== itemId));
   };
 
   const handleBulkDelete = async () => {
     if (selectedItemIds.length === 0) return;
     startTransitionBulkAction(async () => {
-        try {
+      try {
         const result = await bulkDeleteItems(selectedItemIds);
-        if (result.success) {
-            toast({ title: "Success", description: `${selectedItemIds.length} item(s) deleted.` });
-            setSelectedItemIds([]); 
-        } else {
-            toast({ title: "Error", description: result.message || "Failed to delete items.", variant: "destructive" });
-        }
-        } catch (error) {
-            toast({ title: "Error", description: "An unexpected error occurred during bulk delete.", variant: "destructive" });
-        }
+        toast({ title: result.success ? "Success" : "Error", description: result.message || (result.success ? `${selectedItemIds.length} item(s) deleted.` : "Failed to delete items."), variant: result.success ? "default" : "destructive" });
+        if (result.success) setSelectedItemIds([]);
+      } catch (error) {
+        toast({ title: "Error", description: "Bulk delete failed.", variant: "destructive" });
+      }
     });
   };
 
-  const handleBulkUpdateStatus = async (sold: boolean) => {
+  const handleBulkUpdateStatus = async (newStatus: ItemStatus) => {
     if (selectedItemIds.length === 0) return;
     startTransitionBulkAction(async () => {
-        try {
-        const result = await bulkUpdateSoldStatus(selectedItemIds, sold);
-        if (result.success) {
-            toast({ title: "Success", description: `${selectedItemIds.length} item(s) updated to ${sold ? 'Sold' : 'In Stock'}.` });
-            setSelectedItemIds([]);
-        } else {
-            toast({ title: "Error", description: result.message || "Failed to update item statuses.", variant: "destructive" });
-        }
-        } catch (error) {
-        toast({ title: "Error", description: "An unexpected error occurred during bulk status update.", variant: "destructive" });
-        }
+      try {
+        const result = await bulkUpdateItemStatus(selectedItemIds, newStatus);
+        toast({ title: result.success ? "Success" : "Error", description: result.message || (result.success ? `${selectedItemIds.length} item(s) status updated.` : "Failed to update statuses."), variant: result.success ? "default" : "destructive" });
+        if (result.success) setSelectedItemIds([]);
+      } catch (error) {
+        toast({ title: "Error", description: "Bulk status update failed.", variant: "destructive" });
+      }
     });
   };
 
-
   if (!isMounted) {
-    // Avoid hydration mismatch for checkboxes by rendering them only on client
-    // Render a skeleton or placeholder table during server render / hydration
     return (
       <div className="overflow-x-auto rounded-lg border shadow-sm">
         <Table>
@@ -124,19 +129,7 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {[...Array(3)].map((_, i) => (
-              <TableRow key={`skeleton-${i}`}>
-                <TableCell><Checkbox disabled /></TableCell>
-                <TableCell className="font-medium">Loading...</TableCell>
-                <TableCell className="hidden md:table-cell">Loading...</TableCell>
-                <TableCell className="text-right">...</TableCell>
-                <TableCell className="text-right hidden sm:table-cell">...</TableCell>
-                <TableCell className="text-center">Loading...</TableCell>
-                <TableCell className="text-right">...</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+          <TableBody>{[...Array(3)].map((_, i) => (<TableRow key={`skeleton-${i}`}><TableCell><Checkbox disabled /></TableCell><TableCell>Loading...</TableCell><TableCell className="hidden md:table-cell">Loading...</TableCell><TableCell className="text-right">...</TableCell><TableCell className="text-right hidden sm:table-cell">...</TableCell><TableCell className="text-center">Loading...</TableCell><TableCell className="text-right">...</TableCell></TableRow>))}</TableBody>
         </Table>
       </div>
     );
@@ -148,26 +141,32 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
         <div className="mb-4 p-3 bg-muted/50 rounded-md flex flex-col sm:flex-row items-center justify-between gap-2 shadow">
           <span className="text-sm font-medium">{selectedItemIds.length} item(s) selected</span>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleBulkUpdateStatus(false)} disabled={isPendingBulkAction}>Mark as In Stock</Button>
-            <Button variant="outline" size="sm" onClick={() => handleBulkUpdateStatus(true)} disabled={isPendingBulkAction}>Mark as Sold</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={isPendingBulkAction}>
+                  {isPendingBulkAction && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Set Status
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuContent align="end">
+                  {itemStatuses.map(status => (
+                    <DropdownMenuItem key={status} onClick={() => handleBulkUpdateStatus(status)} className="capitalize">
+                       {status === 'in stock' && <PackagePlus className="mr-2 h-4 w-4" />}
+                       {status === 'in use' && <PackageCheck className="mr-2 h-4 w-4" />}
+                       {status === 'sold' && <PackageX className="mr-2 h-4 w-4" />}
+                      Set as {status}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenuPortal>
+            </DropdownMenu>
             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" disabled={isPendingBulkAction}>Delete Selected</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete {selectedItemIds.length} selected item(s).
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <Button variant="destructive" onClick={handleBulkDelete} disabled={isPendingBulkAction}>
-                        {isPendingBulkAction ? 'Deleting...' : 'Confirm Delete'}
-                    </Button>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
+              <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={isPendingBulkAction}>Delete Selected</Button></AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete {selectedItemIds.length} selected item(s).</AlertDialogDescription></AlertDialogHeader>
+                <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><Button variant="destructive" onClick={handleBulkDelete} disabled={isPendingBulkAction}>{isPendingBulkAction ? 'Deleting...' : 'Confirm Delete'}</Button></AlertDialogFooter>
+              </AlertDialogContent>
             </AlertDialog>
           </div>
         </div>
@@ -176,13 +175,7 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={isAllSelected ? true : (selectedItemIds.length > 0 ? 'indeterminate' : false)}
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Select all items"
-                />
-              </TableHead>
+              <TableHead className="w-[50px]"><Checkbox checked={isAllSelected ? true : (selectedItemIds.length > 0 ? 'indeterminate' : false)} onCheckedChange={handleSelectAll} aria-label="Select all items" /></TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="hidden md:table-cell">Category</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
@@ -192,39 +185,19 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                  No items in inventory. Get started by adding one!
-                </TableCell>
-              </TableRow>
-            )}
+            {items.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center h-24 text-muted-foreground">No items in inventory.</TableCell></TableRow>)}
             {items.map((item) => (
               <TableRow key={item.id} data-state={selectedItemIds.includes(item.id) ? "selected" : ""}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedItemIds.includes(item.id)}
-                    onCheckedChange={(checked) => handleSelectItem(item.id, !!checked)}
-                    aria-label={`Select item ${item.name}`}
-                  />
-                </TableCell>
+                <TableCell><Checkbox checked={selectedItemIds.includes(item.id)} onCheckedChange={(checked) => handleSelectItem(item.id, !!checked)} aria-label={`Select item ${item.name}`} /></TableCell>
                 <TableCell className="font-medium">
-                  <Link href={`/inventory/${item.id}`} className="hover:underline text-primary">
-                    {item.name}
-                  </Link>
+                  <Link href={`/inventory/${item.id}`} className="hover:underline text-primary">{item.name}</Link>
                   <div className="text-xs text-muted-foreground md:hidden">{item.category || '-'}</div>
                 </TableCell>
                 <TableCell className="hidden md:table-cell">{item.category || '-'}</TableCell>
                 <TableCell className="text-right">{item.quantity}</TableCell>
-                <TableCell className="text-right hidden sm:table-cell">
-                  {item.salesPrice ? `$${item.salesPrice.toFixed(2)}` : '-'}
-                </TableCell>
-                <TableCell className="text-center">
-                  <ToggleSoldStatusForm item={item} />
-                </TableCell>
-                <TableCell className="text-right">
-                   <IndividualItemActions item={item} />
-                </TableCell>
+                <TableCell className="text-right hidden sm:table-cell">{item.salesPrice ? `$${item.salesPrice.toFixed(2)}` : '-'}</TableCell>
+                <TableCell className="text-center"><UpdateItemStatusControl item={item} /></TableCell>
+                <TableCell className="text-right"><IndividualItemActions item={item} /></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -242,11 +215,7 @@ function IndividualItemActions({ item }: { item: Item }) {
     startTransition(async () => {
       try {
         const result = await individualDeleteItem(item.id);
-        if (result) {
-          toast({ title: "Success", description: `Item "${item.name}" deleted.` });
-        } else {
-          toast({ title: "Error", description: "Failed to delete item.", variant: "destructive" });
-        }
+        toast({ title: result ? "Success" : "Error", description: result ? `Item "${item.name}" deleted.` : "Failed to delete item.", variant: result ? "default" : "destructive" });
       } catch (error) {
         toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
       }
@@ -255,51 +224,19 @@ function IndividualItemActions({ item }: { item: Item }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="More actions">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More actions"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild>
-          <Link href={`/inventory/${item.id}`} className="flex items-center w-full cursor-pointer">
-            <Eye className="mr-2 h-4 w-4" /> View
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href={`/inventory/${item.id}/edit`} className="flex items-center w-full cursor-pointer">
-            <FilePenLine className="mr-2 h-4 w-4" /> Edit
-          </Link>
-        </DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href={`/inventory/${item.id}`} className="flex items-center w-full cursor-pointer"><Eye className="mr-2 h-4 w-4" /> View</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link href={`/inventory/${item.id}/edit`} className="flex items-center w-full cursor-pointer"><FilePenLine className="mr-2 h-4 w-4" /> Edit</Link></DropdownMenuItem>
         <DropdownMenuSeparator />
         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <DropdownMenuItem 
-              onSelect={(e) => e.preventDefault()} 
-              className="text-destructive focus:bg-destructive/10 focus:text-destructive w-full flex items-center cursor-pointer"
-              disabled={isPending}
-            >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </DropdownMenuItem>
-          </AlertDialogTrigger>
+          <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive w-full flex items-center cursor-pointer" disabled={isPending}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem></AlertDialogTrigger>
           <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the item "{item.name}".
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-                {isPending ? "Deleting..." : "Delete"}
-              </Button>
-            </AlertDialogFooter>
+            <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{item.name}".</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><Button variant="destructive" onClick={handleDelete} disabled={isPending}>{isPending ? "Deleting..." : "Delete"}</Button></AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
-
-    

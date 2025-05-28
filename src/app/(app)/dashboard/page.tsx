@@ -2,39 +2,26 @@
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
-import { Package, PackageCheck, DollarSign, Layers, TrendingUp, PlusCircle } from 'lucide-react';
+import { Package, PackageCheck, DollarSign, Layers, TrendingUp, PlusCircle, Archive } from 'lucide-react';
 import type { Item } from '@/types/item';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-
-// Chart component imports for dashboard - using existing analytics charts for placeholder
 import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 import type { ChartConfig } from '@/components/ui/chart';
-import { format, parseISO } from 'date-fns';
-
 
 export default async function DashboardPage() {
   const { items } = await getItems();
 
-  const totalItemsInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + item.quantity, 0);
-  const totalItemsSoldCount = items.filter(item => item.sold).length; 
+  const totalItemsInStorage = items.filter(item => item.status === 'in stock' || item.status === 'in use').reduce((sum, item) => sum + item.quantity, 0);
+  const totalItemsSoldCount = items.filter(item => item.status === 'sold').length; 
   
-  const categories = new Set(items.map(item => item.category).filter(Boolean));
+  const categories = new Set(items.filter(item => item.status === 'in stock' || item.status === 'in use').map(item => item.category).filter(Boolean));
   const numberOfCategories = categories.size;
-
-  const totalValueInStorage = items.filter(item => !item.sold).reduce((sum, item) => sum + (item.salesPrice || 0) * item.quantity, 0);
   
   const totalEstimatedProfitSold = items
-    .filter(item => item.sold && typeof item.salesPrice === 'number' && typeof item.originalPrice === 'number')
+    .filter(item => item.status === 'sold' && typeof item.salesPrice === 'number' && typeof item.originalPrice === 'number')
     .reduce((sum, item) => {
       const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1;
       const profitPerUnit = item.salesPrice! - item.originalPrice!;
@@ -45,20 +32,13 @@ export default async function DashboardPage() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
 
-  // Placeholder data for a chart on the dashboard
   const categoriesData: { [key: string]: number } = {};
-  items.filter(item => !item.sold).forEach(item => {
+  items.filter(item => item.status === 'in stock' || item.status === 'in use').forEach(item => {
     const category = item.category || "Uncategorized";
     categoriesData[category] = (categoriesData[category] || 0) + item.quantity;
   });
-  const itemsPerCategoryChartData = Object.entries(categoriesData).map(([name, count]) => ({ name, count })).slice(0, 5); // Show top 5
-  const itemsPerCategoryChartConfig = {
-    count: {
-      label: "Items in Stock",
-      color: "hsl(var(--chart-1))",
-    },
-  } satisfies ChartConfig;
-
+  const itemsPerCategoryChartData = Object.entries(categoriesData).map(([name, count]) => ({ name, count })).slice(0, 5); 
+  const itemsPerCategoryChartConfig = { count: { label: "Items (In Stock/Use)", color: "hsl(var(--chart-1))" } } satisfies ChartConfig;
 
   return (
     <>
@@ -73,26 +53,24 @@ export default async function DashboardPage() {
           </Button>
         }
       />
-      {/* Metrics row: grid 4-column gap 24px */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6"> 
-        <StatCard title="Total Items in Storage" value={totalItemsInStorage} icon={Package} description="Sum of quantities for all active items" />
-        <StatCard title="Distinct Items Sold" value={totalItemsSoldCount} icon={PackageCheck} description="Number of unique item types marked as sold" />
-        <StatCard title="Number of Categories" value={numberOfCategories} icon={Layers} description="Unique product categories" />
+        <StatCard title="Total Items (In Stock/Use)" value={totalItemsInStorage} icon={Package} description="Sum of quantities for active items" />
+        <StatCard title="Distinct Items Sold" value={totalItemsSoldCount} icon={PackageCheck} description="Number of unique item types 'sold'" />
+        <StatCard title="Categories with Stock" value={numberOfCategories} icon={Layers} description="Unique categories with active items" />
         <StatCard 
             title="Total Est. Profit (Sold)" 
             value={`$${totalEstimatedProfitSold.toFixed(2)}`} 
             icon={TrendingUp} 
-            description="Approx. profit from items marked as sold" 
+            description="Approx. profit from 'sold' items" 
         />
       </div>
 
-      {/* Chart row: full-width ChartCard + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
            <ItemsPerCategoryChart data={itemsPerCategoryChartData} chartConfig={itemsPerCategoryChartConfig} />
         </div>
         
-        <Card className="shadow-lg"> {/* Recent Activity Card styled like MetricCard */}
+        <Card className="shadow-lg">
           <CardHeader className="p-4">
             <CardTitle className="h2-style text-foreground">Recent Activity</CardTitle>
             <CardDescription className="text-muted-foreground">Overview of recent inventory changes.</CardDescription>
@@ -114,9 +92,7 @@ export default async function DashboardPage() {
               <p className="text-muted-foreground">No recent item additions.</p>
             )}
           </CardContent>
-           <CardFooter className="p-4">
-             {/* Button moved to PageHeader actions */}
-          </CardFooter>
+           <CardFooter className="p-4"></CardFooter>
         </Card>
       </div>
     </>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { Item, ItemInput, ExtractedItemData } from "@/types/item";
+import type { Item, ItemInput, ExtractedItemData, ItemStatus } from "@/types/item";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,7 +23,7 @@ import { useState, useTransition } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UploadCloud, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import { Loader2, UploadCloud, Image as ImageIcon, Link as LinkIcon, PackagePlus, PackageCheck, PackageX } from "lucide-react";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
@@ -34,25 +34,32 @@ import {
 } from "@/components/ui/select";
 import NextImage from "next/image";
 import { DatePicker } from "@/components/shared/DatePicker"; 
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
+const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
   description: z.string().max(500).optional().default(""),
   quantity: z.coerce.number().min(0, { message: "Quantity must be non-negative." }),
   category: z.string().max(50).optional().default(""),
+  subcategory: z.string().max(50).optional().default(""), // New
   storageLocation: z.string().max(100).optional().default(""),
   binLocation: z.string().max(50).optional().default(""),
-  vendor: z.string().max(100).optional().default(""),
+  room: z.string().max(100).optional().default(""), // New
+  vendor: z.string().max(100).optional().default(""), // Will be dropdown
+  project: z.string().max(100).optional().default(""), // Will be dropdown
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
   msrp: z.coerce.number().min(0).optional(), 
   sku: z.string().max(50).optional().default(""),
-  project: z.string().max(100).optional().default(""),
+  status: z.enum(itemStatuses, { required_error: "Status is required."}).default("in stock"), // Updated
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
   productImageUrl: z.string().optional().default(""),
   productUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""),
   purchaseDate: z.date().optional(), 
   soldDate: z.date().optional(), 
+  inUseDate: z.date().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -62,8 +69,12 @@ interface ItemFormProps {
   onSubmitAction: (data: ItemInput) => Promise<Item | { error: string } | undefined>;
   isEditing?: boolean;
   availableCategories: string[];
+  availableSubcategories: string[]; // New
   availableStorageLocations: string[];
   availableBinLocations: string[];
+  availableRooms: string[]; // New
+  availableVendors: string[]; // New
+  availableProjects: string[]; // New
 }
 
 const MAX_IMAGE_SIZE_MB = 2;
@@ -73,8 +84,12 @@ export default function ItemForm({
   onSubmitAction,
   isEditing = false,
   availableCategories,
+  availableSubcategories,
   availableStorageLocations,
-  availableBinLocations
+  availableBinLocations,
+  availableRooms,
+  availableVendors,
+  availableProjects,
 }: ItemFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -89,19 +104,23 @@ export default function ItemForm({
       description: item?.description || "",
       quantity: item?.quantity || 0,
       category: item?.category || "",
+      subcategory: item?.subcategory || "",
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
+      room: item?.room || "",
       vendor: item?.vendor || "",
+      project: item?.project || "",
       originalPrice: item?.originalPrice ?? "",
       salesPrice: item?.salesPrice ?? "",
       msrp: item?.msrp ?? "", 
       sku: item?.sku || "",
-      project: item?.project || "",
+      status: item?.status || "in stock",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
       productUrl: item?.productUrl || "",
       purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined, 
       soldDate: item?.soldDate ? new Date(item.soldDate) : undefined, 
+      inUseDate: item?.inUseDate ? new Date(item.inUseDate) : undefined,
     },
   });
 
@@ -117,12 +136,11 @@ export default function ItemForm({
           toast({ title: "Receipt Processing Failed", description: (result as any).error || "Could not extract data from receipt.", variant: "destructive" });
         } else {
           const extracted = result.items[0] as ExtractedItemData; 
-          if (extracted.name) form.setValue("name", extracted.name, { shouldValidate: true });
-          if (extracted.description) form.setValue("description", extracted.description, { shouldValidate: true });
-          if (extracted.quantity) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
-          if (extracted.price) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
-          if (extracted.sku) form.setValue("sku", extracted.sku, { shouldValidate: true });
-
+          if (extracted.name && !form.getValues("name")) form.setValue("name", extracted.name, { shouldValidate: true });
+          if (extracted.description && !form.getValues("description")) form.setValue("description", extracted.description, { shouldValidate: true });
+          if (extracted.quantity && form.getValues("quantity") === 0) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
+          if (extracted.price && !form.getValues("originalPrice")) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
+          if (extracted.sku && !form.getValues("sku")) form.setValue("sku", extracted.sku, { shouldValidate: true });
           form.setValue("receiptImageUrl", base64data, { shouldValidate: true });
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
         }
@@ -164,15 +182,19 @@ export default function ItemForm({
         sku: data.sku || undefined,
         description: data.description || undefined,
         category: data.category || undefined,
+        subcategory: data.subcategory || undefined,
         storageLocation: data.storageLocation || undefined,
         binLocation: data.binLocation || undefined,
+        room: data.room || undefined,
         vendor: data.vendor || undefined,
         project: data.project || undefined,
+        status: data.status,
         receiptImageUrl: data.receiptImageUrl || undefined,
         productImageUrl: data.productImageUrl || undefined,
         productUrl: data.productUrl || undefined,
         purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, 
         soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, 
+        inUseDate: data.inUseDate ? data.inUseDate.toISOString() : undefined,
     };
 
     startTransition(async () => {
@@ -186,19 +208,11 @@ export default function ItemForm({
           router.push('/inventory');
         } else {
           const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input.`;
-          toast({
-            title: "Operation Failed",
-            description: errorMsg,
-            variant: "destructive",
-          });
+          toast({ title: "Operation Failed", description: errorMsg, variant: "destructive" });
         }
       } catch (error) {
         console.error("Failed to submit item form:", error);
-        toast({
-          title: "Submission Error",
-          description: `An unexpected error occurred: ${(error as Error).message}. Please try again.`,
-          variant: "destructive",
-        });
+        toast({ title: "Submission Error", description: `An unexpected error occurred: ${(error as Error).message}. Please try again.`, variant: "destructive" });
       }
     });
   }
@@ -236,19 +250,19 @@ export default function ItemForm({
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SKU (Stock Keeping Unit)</FormLabel>
-                      <FormControl><Input placeholder="e.g., WM-BLK-001" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
+                      control={form.control}
+                      name="sku"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>SKU (Stock Keeping Unit)</FormLabel>
+                          <FormControl><Input placeholder="e.g., WM-BLK-001" {...field} /></FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
                       control={form.control}
                       name="quantity"
                       render={({ field }) => (
@@ -259,6 +273,8 @@ export default function ItemForm({
                         </FormItem>
                       )}
                     />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="category"
@@ -266,15 +282,25 @@ export default function ItemForm({
                         <FormItem>
                           <FormLabel>Category</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                            </FormControl>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
                             <SelectContent>
-                              {availableCategories.map(option => (
-                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                              ))}
+                              {availableCategories.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="subcategory"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subcategory</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a subcategory" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {availableSubcategories.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -294,12 +320,40 @@ export default function ItemForm({
                     </FormItem>
                   )}
                 />
+                 <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Status*</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4"
+                        >
+                          {itemStatuses.map((statusVal) => (
+                            <FormItem key={statusVal} className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value={statusVal} />
+                              </FormControl>
+                              <FormLabel className="font-normal capitalize">
+                                {statusVal}
+                              </FormLabel>
+                            </FormItem>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Pricing & Dates</CardTitle>
+                <CardTitle>Pricing & Purchase Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -344,51 +398,63 @@ export default function ItemForm({
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                             <FormLabel>Purchase Date</FormLabel>
-                            <DatePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Select purchase date"
-                            />
+                            <DatePicker value={field.value} onChange={field.onChange} placeholder="Select purchase date" />
                             <FormMessage />
                             </FormItem>
                         )}
                     />
                     <FormField
                         control={form.control}
-                        name="soldDate"
+                        name="vendor"
                         render={({ field }) => (
-                            <FormItem className="flex flex-col">
-                            <FormLabel>Sold Date</FormLabel>
-                            <DatePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                                placeholder="Select sold date"
-                            />
+                            <FormItem>
+                            <FormLabel>Vendor</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a vendor" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                {availableVendors.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
+                                </SelectContent>
+                            </Select>
                             <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
-                <FormField
-                  control={form.control}
-                  name="vendor"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vendor</FormLabel>
-                      <FormControl><Input placeholder="e.g., Supplier Inc." {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch("status") === 'sold' && (
+                    <FormField
+                        control={form.control}
+                        name="soldDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Sold Date</FormLabel>
+                            <DatePicker value={field.value} onChange={field.onChange} placeholder="Select sold date"/>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
+                 {form.watch("status") === 'in use' && (
+                    <FormField
+                        control={form.control}
+                        name="inUseDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>In Use Date</FormLabel>
+                            <DatePicker value={field.value} onChange={field.onChange} placeholder="Select in use date"/>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Location & Project</CardTitle>
+                <CardTitle>Location & Association</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="storageLocation"
@@ -396,15 +462,9 @@ export default function ItemForm({
                         <FormItem>
                           <FormLabel>Storage Location</FormLabel>
                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a storage location" />
-                              </SelectTrigger>
-                            </FormControl>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select storage location" /></SelectTrigger></FormControl>
                             <SelectContent>
-                              {availableStorageLocations.map(option => (
-                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                              ))}
+                              {availableStorageLocations.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -418,15 +478,25 @@ export default function ItemForm({
                         <FormItem>
                           <FormLabel>Bin Location</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a bin location" />
-                              </SelectTrigger>
-                            </FormControl>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select bin location" /></SelectTrigger></FormControl>
                             <SelectContent>
-                              {availableBinLocations.map(option => (
-                                <SelectItem key={option} value={option}>{option}</SelectItem>
-                              ))}
+                              {availableBinLocations.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="room"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Room</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a room" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {availableRooms.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -440,7 +510,12 @@ export default function ItemForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Project</FormLabel>
-                      <FormControl><Input placeholder="e.g., Q4 Retail Stock" {...field} /></FormControl>
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a project" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {availableProjects.map(option => (<SelectItem key={option} value={option}>{option}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -467,29 +542,10 @@ export default function ItemForm({
                     {form.watch("productImageUrl") && (
                     <div className="mt-4">
                         <FormLabel>Product Image Preview</FormLabel>
-                        <NextImage
-                            src={form.watch("productImageUrl")!}
-                            alt="Product Preview"
-                            width={200}
-                            height={200}
-                            className="mt-2 rounded-md border max-h-60 w-full object-contain"
-                            onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                            }}
-                            onLoad={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'block';
-                            }}
-                            data-ai-hint="product item"
-                        />
+                        <NextImage src={form.watch("productImageUrl")!} alt="Product Preview" width={200} height={200} className="mt-2 rounded-md border max-h-60 w-full object-contain" data-ai-hint="product item" />
                     </div>
                     )}
-                    <FormField
-                      control={form.control}
-                      name="productImageUrl"
-                      render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)}
-                    />
+                    <FormField control={form.control} name="productImageUrl" render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
                 </CardContent>
             </Card>
             <Card>
@@ -509,29 +565,10 @@ export default function ItemForm({
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
                     <FormLabel>Receipt Preview</FormLabel>
-                    <NextImage
-                        src={form.watch("receiptImageUrl")!}
-                        alt="Receipt Preview"
-                        width={200}
-                        height={200}
-                        className="mt-2 rounded-md border max-h-60 w-full object-contain"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                        }}
-                        onLoad={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'block';
-                        }}
-                        data-ai-hint="receipt paper"
-                    />
+                    <NextImage src={form.watch("receiptImageUrl")!} alt="Receipt Preview" width={200} height={200} className="mt-2 rounded-md border max-h-60 w-full object-contain" data-ai-hint="receipt paper" />
                   </div>
                 )}
-                 <FormField
-                  control={form.control}
-                  name="receiptImageUrl"
-                  render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)}
-                />
+                 <FormField control={form.control} name="receiptImageUrl" render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
               </CardContent>
             </Card>
           </div>
