@@ -2,7 +2,7 @@
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
-import { Package, PackageCheck, DollarSign, Layers, TrendingUp } from 'lucide-react';
+import { Package, PackageCheck, DollarSign, Layers, TrendingUp, PlusCircle } from 'lucide-react';
 import type { Item } from '@/types/item';
 import {
   Card,
@@ -62,7 +62,17 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader title="Dashboard" description="Overview of your inventory." />
+      <PageHeader 
+        title="Dashboard" 
+        description="Overview of your inventory." 
+        actions={
+          <Button asChild>
+            <Link href="/inventory/add">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
+            </Link>
+          </Button>
+        }
+      />
       {/* Metrics row: grid 4-column gap 24px */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6"> 
         <StatCard title="Total Items in Storage" value={totalItemsInStorage} icon={Package} description="Sum of quantities for all active items" />
@@ -105,9 +115,7 @@ export default async function DashboardPage() {
             )}
           </CardContent>
            <CardFooter className="p-4">
-             <Button asChild>
-               <Link href="/inventory/add">Add New Item</Link>
-             </Button>
+             {/* Button moved to PageHeader actions */}
           </CardFooter>
         </Card>
       </div>
