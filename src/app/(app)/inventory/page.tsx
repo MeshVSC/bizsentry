@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Upload } from 'lucide-react';
 import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { getItems, getUniqueCategories } from '@/lib/actions/itemActions';
@@ -23,7 +23,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const currentPage = parseInt(searchParams?.page || '1', 10);
 
   const appSettings = await getAppSettings();
-  const itemsPerPage = appSettings.defaultItemsPerPage || 5; // Fallback if not set
+  const itemsPerPage = appSettings.defaultItemsPerPage || 5; 
 
   const { items, totalPages, count } = await getItems({ 
     name: nameFilter, 
@@ -39,11 +39,18 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         title="Inventory"
         description="Manage your stock items."
         actions={
-          <Button asChild>
-            <Link href="/inventory/add">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/inventory/bulk-import">
+                <Upload className="mr-2 h-4 w-4" /> Bulk Import
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/inventory/add">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+              </Link>
+            </Button>
+          </div>
         }
       />
       <InventoryFilters

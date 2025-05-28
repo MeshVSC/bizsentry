@@ -1,7 +1,7 @@
 
 "use server";
 
-import type { Item, ItemInput } from "@/types/item";
+import type { Item, ItemInput, ExtractedItemData } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 
@@ -402,7 +402,7 @@ export async function addItem(data: ItemInput): Promise<Item> {
     productImageUrl: data.productImageUrl,
     purchaseDate: data.purchaseDate,
     soldDate: data.soldDate,
-    sold: false, // New items are not sold by default
+    sold: false, 
     barcodeData: `BARCODE-${id.substring(0,8).toUpperCase()}`,
     qrCodeData: `QR-${id.toUpperCase()}`,
     createdAt: new Date().toISOString(),
@@ -462,7 +462,6 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
     if (!extractedData.items) {
-      // Ensure items is always an array even if AI returns nothing for it
       return { ...extractedData, items: [] };
     }
     return extractedData;
@@ -483,7 +482,6 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
   }
   const currentItem = globalThis._itemsStore[itemIndex];
   currentItem.sold = !currentItem.sold;
-  // If item is marked as sold, set soldDate. If marked as not sold, clear soldDate.
   currentItem.soldDate = currentItem.sold ? new Date().toISOString() : undefined;
   currentItem.updatedAt = new Date().toISOString();
 
@@ -525,7 +523,7 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
     if (itemIds.includes(item.id)) {
       if (item.sold !== sold) {
         item.sold = sold;
-        item.soldDate = sold ? currentDateISO : undefined; // Update soldDate based on new status
+        item.soldDate = sold ? currentDateISO : undefined; 
         item.updatedAt = currentDateISO;
         updatedCount++;
       }
@@ -550,7 +548,6 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
 
 // Actions for managed dropdown options
 
-// Categories (used for Inventory Filters on inventory list page - derived from actual items)
 export async function getUniqueCategories(): Promise<string[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
   const store = globalThis._itemsStore || [];
@@ -558,7 +555,6 @@ export async function getUniqueCategories(): Promise<string[]> {
   return categories;
 }
 
-// Managed Category Options (for ItemForm dropdown)
 export async function getManagedCategoryOptions(): Promise<string[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
   return [...(globalThis._managedCategoriesStore || [])].sort();
@@ -593,7 +589,6 @@ export async function deleteManagedCategoryOption(name: string): Promise<{ succe
   return { success: false, message: `Category "${name}" not found.` };
 }
 
-// Managed Storage Location Options (for ItemForm dropdown)
 export async function getManagedStorageLocationOptions(): Promise<string[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
   return [...(globalThis._managedStorageLocationsStore || [])].sort();
@@ -628,7 +623,6 @@ export async function deleteManagedStorageLocationOption(name: string): Promise<
   return { success: false, message: `Storage location "${name}" not found.` };
 }
 
-// Managed Bin Location Options (for ItemForm dropdown)
 export async function getManagedBinLocationOptions(): Promise<string[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
   return [...(globalThis._managedBinLocationsStore || [])].sort();
@@ -663,3 +657,118 @@ export async function deleteManagedBinLocationOption(name: string): Promise<{ su
   return { success: false, message: `Bin location "${name}" not found.` };
 }
 
+export interface BulkImportResult {
+  successCount: number;
+  errorCount: number;
+  errors: { rowNumber: number; message: string; rowData: string }[];
+}
+
+export async function bulkImportItems(csvFileContent: string): Promise<BulkImportResult> {
+  const lines = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '');
+  if (lines.length <= 1) {
+    return { successCount: 0, errorCount: 0, errors: [{ rowNumber: 0, message: "CSV file is empty or contains only a header.", rowData: "" }] };
+  }
+
+  const headerLine = lines[0];
+  // Expected headers (order matters for this basic parser)
+  const expectedHeaders = [
+    "name", "quantity", "originalPrice", "salesPrice", "msrp", "sku", 
+    "category", "description", "vendor", "storageLocation", "binLocation", 
+    "project", "purchaseDate", "productImageUrl", "receiptImageUrl"
+  ];
+  const actualHeaders = headerLine.split(',').map(h => h.trim().toLowerCase());
+
+  // Basic header validation (optional, but good practice)
+  // For simplicity, this basic version assumes headers are correct and in order if present.
+  // A more robust version would map headers to ItemInput fields dynamically.
+
+  const results: BulkImportResult = {
+    successCount: 0,
+    errorCount: 0,
+    errors: [],
+  };
+
+  for (let i = 1; i < lines.length; i++) {
+    const rowNumber = i + 1; // 1-based index for user-facing row number
+    const line = lines[i];
+    const values = line.split(','); // Basic CSV split, won't handle commas in quoted fields
+
+    if (values.length !== expectedHeaders.length) {
+      results.errorCount++;
+      results.errors.push({
+        rowNumber,
+        message: `Incorrect number of columns. Expected ${expectedHeaders.length}, got ${values.length}.`,
+        rowData: line,
+      });
+      continue;
+    }
+    
+    try {
+      const name = values[0]?.trim();
+      if (!name) {
+        results.errorCount++;
+        results.errors.push({ rowNumber, message: "Item name is required.", rowData: line });
+        continue;
+      }
+
+      const quantityStr = values[1]?.trim();
+      const quantity = parseInt(quantityStr, 10);
+      if (isNaN(quantity) || quantity < 0) {
+        results.errorCount++;
+        results.errors.push({ rowNumber, message: "Invalid quantity. Must be a non-negative number.", rowData: line });
+        continue;
+      }
+
+      const itemInput: ItemInput = {
+        name,
+        quantity,
+        originalPrice: values[2]?.trim() ? parseFloat(values[2].trim()) : undefined,
+        salesPrice: values[3]?.trim() ? parseFloat(values[3].trim()) : undefined,
+        msrp: values[4]?.trim() ? parseFloat(values[4].trim()) : undefined,
+        sku: values[5]?.trim() || undefined,
+        category: values[6]?.trim() || undefined,
+        description: values[7]?.trim() || undefined,
+        vendor: values[8]?.trim() || undefined,
+        storageLocation: values[9]?.trim() || undefined,
+        binLocation: values[10]?.trim() || undefined,
+        project: values[11]?.trim() || undefined,
+        purchaseDate: values[12]?.trim() ? new Date(values[12].trim()).toISOString() : undefined,
+        productImageUrl: values[13]?.trim() || undefined,
+        receiptImageUrl: values[14]?.trim() || undefined,
+      };
+      
+      // Validate numeric fields that might be NaN after parseFloat
+      if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) {
+        itemInput.originalPrice = undefined; // Or handle as error
+      }
+      if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) {
+        itemInput.salesPrice = undefined; // Or handle as error
+      }
+      if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) {
+        itemInput.msrp = undefined; // Or handle as error
+      }
+       if (itemInput.purchaseDate && itemInput.purchaseDate.includes("Invalid Date")) {
+        itemInput.purchaseDate = undefined; // Or handle as error
+      }
+
+
+      await addItem(itemInput);
+      results.successCount++;
+    } catch (error: any) {
+      results.errorCount++;
+      results.errors.push({
+        rowNumber,
+        message: error.message || "Failed to add item.",
+        rowData: line,
+      });
+    }
+  }
+
+  if (results.successCount > 0) {
+    revalidatePath("/inventory", "layout");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/analytics", "layout");
+  }
+
+  return results;
+}
