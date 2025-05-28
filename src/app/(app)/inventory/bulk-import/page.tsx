@@ -8,17 +8,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { bulkImportItems, type BulkImportResult } from '@/lib/actions/itemActions';
-import { Loader2, UploadCloud, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle, XCircle, AlertTriangle, DownloadCloud } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-const CSV_EXPECTED_COLUMNS = [
+const CSV_EXPECTED_COLUMNS_ARRAY = [
     "name (required)", "quantity (required, number)", "originalPrice (number, optional)", 
     "salesPrice (number, optional)", "msrp (number, optional)", "sku (optional)", 
     "category (optional)", "description (optional)", "vendor (optional)", 
     "storageLocation (optional)", "binLocation (optional)", "project (optional)", 
     "purchaseDate (YYYY-MM-DD, optional)", "productImageUrl (URL, optional)", 
     "receiptImageUrl (URL, optional)"
-].join(', ');
+];
+const CSV_EXPECTED_COLUMNS_STRING = CSV_EXPECTED_COLUMNS_ARRAY.join(',');
 
 
 export default function BulkImportPage() {
@@ -65,6 +66,22 @@ export default function BulkImportPage() {
       return file ? 10 : 0; // Placeholder
   }
 
+  const handleDownloadTemplate = () => {
+    const csvHeader = CSV_EXPECTED_COLUMNS_ARRAY.join(',') + '\\n'; // Ensure headers are in the first line
+    const blob = new Blob([csvHeader], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) { // feature detection
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", "stocksentry_import_template.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+  };
+
   return (
     <>
       <PageHeader title="Bulk Import Items" description="Upload a CSV file to add multiple items to your inventory." />
@@ -74,20 +91,25 @@ export default function BulkImportPage() {
           <CardTitle>Upload CSV File</CardTitle>
           <CardDescription>
             Ensure your CSV file has the following columns in order: <br />
-            <code className="text-xs bg-muted p-1 rounded break-all block my-2">{CSV_EXPECTED_COLUMNS}</code>
+            <code className="text-xs bg-muted p-1 rounded break-all block my-2">{CSV_EXPECTED_COLUMNS_STRING}</code>
             The first row should be headers. `name` and `quantity` are required. Other fields are optional.
             Dates should be in YYYY-MM-DD format.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FileUploadInput
-            onFileSelect={handleFileSelect}
-            acceptedFileTypes=".csv, text/csv"
-            buttonText={selectedFile ? `File: ${selectedFile.name}` : "Select CSV File"}
-            buttonIcon={<UploadCloud className="mr-2 h-4 w-4" />}
-            maxFileSizeMB={5} // Allow larger files for CSV
-            disabled={isProcessing}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FileUploadInput
+              onFileSelect={handleFileSelect}
+              acceptedFileTypes=".csv, text/csv"
+              buttonText={selectedFile ? `File: ${selectedFile.name}` : "Select CSV File"}
+              buttonIcon={<UploadCloud className="mr-2 h-4 w-4" />}
+              maxFileSizeMB={5} // Allow larger files for CSV
+              disabled={isProcessing}
+            />
+            <Button onClick={handleDownloadTemplate} variant="outline" disabled={isProcessing}>
+              <DownloadCloud className="mr-2 h-4 w-4" /> Download CSV Template
+            </Button>
+          </div>
           <Button onClick={handleImport} disabled={!selectedFile || isProcessing} className="w-full sm:w-auto">
             {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
             Import Items
