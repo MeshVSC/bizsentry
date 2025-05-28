@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescript
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import { bulkDeleteItems, bulkUpdateItemStatus, deleteItem as individualDeleteItem, updateItemStatus } from '@/lib/actions/itemActions';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'; // For status update control
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'; 
 
 const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
@@ -46,7 +46,6 @@ function UpdateItemStatusControl({ item }: { item: Item }) {
           description: "Failed to update item status.",
           variant: "destructive",
         });
-        // Revert optimistic update if needed, though server action revalidates
         setCurrentStatus(item.status); 
       }
     });
@@ -240,3 +239,5 @@ function IndividualItemActions({ item }: { item: Item }) {
     </DropdownMenu>
   );
 }
+
+    
