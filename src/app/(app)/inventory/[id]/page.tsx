@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart } from 'lucide-react'; // Added ShoppingCart
+import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart, Fingerprint } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -86,10 +86,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     profitLoss = item.salesPrice - item.originalPrice;
     if (profitLoss > 0) {
       profitLossIcon = TrendingUp;
-      profitLossColor = "text-green-600"; // Use Tailwind class directly for specific color
+      profitLossColor = "text-green-600"; 
     } else if (profitLoss < 0) {
       profitLossIcon = TrendingDown;
-      profitLossColor = "text-red-600"; // Use Tailwind class directly for specific color
+      profitLossColor = "text-red-600"; 
     }
   }
 
@@ -155,11 +155,12 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                <DetailItem icon={Fingerprint} label="SKU" value={item.sku} />
                 <DetailItem icon={Package} label="Quantity" value={item.quantity} />
                 <DetailItem icon={Layers} label="Category" value={item.category} />
                 <DetailItem icon={DollarSign} label="Original Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
-                 <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
+                <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
                 {profitLoss !== null && (
                   <DetailItem
                     icon={profitLossIcon}
@@ -224,3 +225,4 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     </>
   );
 }
+

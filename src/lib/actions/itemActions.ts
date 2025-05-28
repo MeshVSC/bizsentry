@@ -19,6 +19,7 @@ const initialItems: Item[] = [
     originalPrice: 15.99,
     salesPrice: 29.99,
     msrp: 34.99,
+    sku: "TEC-MOU-WRL-001",
     project: "Office Upgrade",
     sold: false,
     barcodeData: "BARCODE-WM001",
@@ -42,6 +43,7 @@ const initialItems: Item[] = [
     originalPrice: 79.50,
     salesPrice: 120.00,
     msrp: 129.00,
+    sku: "TEC-KEY-MEC-002",
     project: "Gaming Setup",
     sold: true,
     barcodeData: "BARCODE-MK002",
@@ -64,6 +66,7 @@ const initialItems: Item[] = [
     originalPrice: 22.00,
     salesPrice: 35.00,
     msrp: 39.99,
+    sku: "ACC-HUB-USBC-003",
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-UCH003",
@@ -86,6 +89,7 @@ const initialItems: Item[] = [
     originalPrice: 18.00,
     salesPrice: 32.50,
     msrp: 35.00,
+    sku: "ACC-LSTD-ALU-004",
     project: "Ergonomics Improvement",
     sold: false,
     barcodeData: "BARCODE-LS004",
@@ -108,6 +112,7 @@ const initialItems: Item[] = [
     originalPrice: 25.00,
     salesPrice: 45.00,
     msrp: 49.99,
+    sku: "OFS-LAMP-LED-005",
     project: "New Office Setup",
     sold: false,
     barcodeData: "BARCODE-DL005",
@@ -130,6 +135,7 @@ const initialItems: Item[] = [
     originalPrice: 40.00,
     salesPrice: 75.00,
     msrp: 79.99,
+    sku: "ACC-MARM-GAS-006",
     project: "Ergonomics Upgrade",
     sold: false,
     barcodeData: "BARCODE-MA006",
@@ -152,6 +158,7 @@ const initialItems: Item[] = [
     originalPrice: 8.00,
     salesPrice: 15.00,
     msrp: 16.00,
+    sku: "OFS-MRK-WB-007",
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-WM007",
@@ -174,6 +181,7 @@ const initialItems: Item[] = [
     originalPrice: 5.00,
     salesPrice: 9.99,
     msrp: 10.99,
+    sku: "OFS-STN-COL-008",
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-SN008",
@@ -196,6 +204,7 @@ const initialItems: Item[] = [
     originalPrice: 150.00,
     salesPrice: 299.00,
     msrp: 320.00,
+    sku: "FUR-CHR-ERG-009",
     project: "New Office Setup",
     sold: false,
     barcodeData: "BARCODE-EC009",
@@ -218,6 +227,7 @@ const initialItems: Item[] = [
     originalPrice: 4.50,
     salesPrice: 8.00,
     msrp: 9.00,
+    sku: "OFS-PPR-LTR-010",
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-PP010",
@@ -240,6 +250,7 @@ const initialItems: Item[] = [
     originalPrice: 12.00,
     salesPrice: 20.00,
     msrp: 22.50,
+    sku: "OFS-ORG-DSK-011",
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-DO011",
@@ -262,6 +273,7 @@ const initialItems: Item[] = [
     originalPrice: 30.00,
     salesPrice: 55.00,
     msrp: 59.99,
+    sku: "TEC-SPK-BT-012",
     project: "Promotional Giveaway",
     sold: false,
     barcodeData: "BARCODE-BS012",
@@ -284,6 +296,7 @@ const initialItems: Item[] = [
     originalPrice: 45.00,
     salesPrice: 70.00,
     msrp: 75.00,
+    sku: "APP-CMK-PRG-013",
     project: "Office Amenities",
     sold: false,
     barcodeData: "BARCODE-CM013",
@@ -383,6 +396,7 @@ export async function addItem(data: ItemInput): Promise<Item> {
     originalPrice: data.originalPrice,
     salesPrice: data.salesPrice,
     msrp: data.msrp,
+    sku: data.sku,
     project: data.project,
     receiptImageUrl: data.receiptImageUrl,
     productImageUrl: data.productImageUrl,
@@ -448,6 +462,7 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
     if (!extractedData.items) {
+      // Ensure items is always an array even if AI returns nothing for it
       return { ...extractedData, items: [] };
     }
     return extractedData;
@@ -647,3 +662,4 @@ export async function deleteManagedBinLocationOption(name: string): Promise<{ su
   }
   return { success: false, message: `Bin location "${name}" not found.` };
 }
+

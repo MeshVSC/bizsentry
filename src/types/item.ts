@@ -11,6 +11,7 @@ export interface Item {
   originalPrice?: number; // Purchase price for the business
   salesPrice?: number;    // Price at which item is sold
   msrp?: number; // Manufacturer's Suggested Retail Price
+  sku?: string; // Stock Keeping Unit
   project?: string;
   sold: boolean;          // True if this stock of item is sold out / not available
   barcodeData?: string;   // Data to be encoded in barcode (e.g., item ID)
@@ -35,6 +36,7 @@ export type ItemInput = {
   originalPrice?: number; // Zod ensures this is number | undefined
   salesPrice?: number;    // Zod ensures this is number | undefined
   msrp?: number; // Zod ensures this is number | undefined
+  sku?: string; // Stock Keeping Unit
   project?: string;
   receiptImageUrl?: string;
   productImageUrl?: string;
@@ -48,4 +50,6 @@ export interface ExtractedItemData {
   description?: string;
   quantity?: number;
   price?: number;
+  sku?: string;
 }
+

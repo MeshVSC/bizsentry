@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import NextImage from "next/image";
-import { DatePicker } from "@/components/shared/DatePicker"; // New import
+import { DatePicker } from "@/components/shared/DatePicker"; 
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -45,12 +45,13 @@ const itemFormSchema = z.object({
   vendor: z.string().max(100).optional().default(""),
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
-  msrp: z.coerce.number().min(0).optional(), // New field
+  msrp: z.coerce.number().min(0).optional(), 
+  sku: z.string().max(50).optional().default(""), // SKU field
   project: z.string().max(100).optional().default(""),
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
   productImageUrl: z.string().optional().default(""),
-  purchaseDate: z.date().optional(), // New field
-  soldDate: z.date().optional(), // New field
+  purchaseDate: z.date().optional(), 
+  soldDate: z.date().optional(), 
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -92,12 +93,13 @@ export default function ItemForm({
       vendor: item?.vendor || "",
       originalPrice: item?.originalPrice ?? "",
       salesPrice: item?.salesPrice ?? "",
-      msrp: item?.msrp ?? "", // New field
+      msrp: item?.msrp ?? "", 
+      sku: item?.sku || "", // SKU default value
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
-      purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined, // New field
-      soldDate: item?.soldDate ? new Date(item.soldDate) : undefined, // New field
+      purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined, 
+      soldDate: item?.soldDate ? new Date(item.soldDate) : undefined, 
     },
   });
 
@@ -112,11 +114,13 @@ export default function ItemForm({
         if ('error' in result || !result.items || result.items.length === 0) {
           toast({ title: "Receipt Processing Failed", description: (result as any).error || "Could not extract data from receipt.", variant: "destructive" });
         } else {
-          const extracted = result.items[0] as ExtractedItemData;
+          const extracted = result.items[0] as ExtractedItemData; // Assuming single item extraction for simplicity
           if (extracted.name) form.setValue("name", extracted.name, { shouldValidate: true });
           if (extracted.description) form.setValue("description", extracted.description, { shouldValidate: true });
           if (extracted.quantity) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
           if (extracted.price) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
+          if (extracted.sku) form.setValue("sku", extracted.sku, { shouldValidate: true });
+
 
           form.setValue("receiptImageUrl", base64data, { shouldValidate: true });
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
@@ -155,7 +159,8 @@ export default function ItemForm({
         ...data,
         originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
         salesPrice: data.salesPrice === "" ? undefined : Number(data.salesPrice),
-        msrp: data.msrp === "" ? undefined : Number(data.msrp), // New field
+        msrp: data.msrp === "" ? undefined : Number(data.msrp), 
+        sku: data.sku || undefined, // Handle SKU
         description: data.description || undefined,
         category: data.category || undefined,
         storageLocation: data.storageLocation || undefined,
@@ -164,8 +169,8 @@ export default function ItemForm({
         project: data.project || undefined,
         receiptImageUrl: data.receiptImageUrl || undefined,
         productImageUrl: data.productImageUrl || undefined,
-        purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, // New field
-        soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, // New field
+        purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, 
+        soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, 
     };
 
     startTransition(async () => {
@@ -225,6 +230,17 @@ export default function ItemForm({
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl><Textarea placeholder="e.g., Ergonomic, 2.4GHz, Black" {...field} rows={3} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>SKU (Stock Keeping Unit)</FormLabel>
+                      <FormControl><Input placeholder="e.g., WM-BLK-001" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -519,3 +535,4 @@ export default function ItemForm({
     </Form>
   );
 }
+
