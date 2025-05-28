@@ -10,12 +10,15 @@ export interface Item {
   vendor?: string;
   originalPrice?: number; // Purchase price for the business
   salesPrice?: number;    // Price at which item is sold
+  msrp?: number; // Manufacturer's Suggested Retail Price
   project?: string;
   sold: boolean;          // True if this stock of item is sold out / not available
   barcodeData?: string;   // Data to be encoded in barcode (e.g., item ID)
   qrCodeData?: string;    // Data to be encoded in QR code (e.g., item URL or ID)
   receiptImageUrl?: string; // URL of the uploaded receipt image
   productImageUrl?: string; // URL for a dedicated product image
+  purchaseDate?: string; // ISO string for date
+  soldDate?: string; // ISO string for date
   createdAt: string; // Store as ISO string for easier serialization
   updatedAt: string; // Store as ISO string
 }
@@ -31,9 +34,12 @@ export type ItemInput = {
   vendor?: string;
   originalPrice?: number; // Zod ensures this is number | undefined
   salesPrice?: number;    // Zod ensures this is number | undefined
+  msrp?: number; // Zod ensures this is number | undefined
   project?: string;
-  receiptImageUrl?: string; // Zod ensures this is string | undefined (if url() passes or empty)
-  productImageUrl?: string; // Zod ensures this is string | undefined
+  receiptImageUrl?: string;
+  productImageUrl?: string;
+  purchaseDate?: string; // Will be string from form, convert if Date object
+  soldDate?: string; // Will be string from form, convert if Date object
 };
 
 // For AI extraction mapping
@@ -43,4 +49,3 @@ export interface ExtractedItemData {
   quantity?: number;
   price?: number;
 }
-

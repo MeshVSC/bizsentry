@@ -18,12 +18,15 @@ const initialItems: Item[] = [
     vendor: "TechSupply Co.",
     originalPrice: 15.99,
     salesPrice: 29.99,
+    msrp: 34.99,
     project: "Office Upgrade",
     sold: false,
     barcodeData: "BARCODE-WM001",
     qrCodeData: "QR-WM001",
     receiptImageUrl: "https://placehold.co/300x400.png?text=Receipt+Mouse",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Mouse",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },
@@ -38,11 +41,14 @@ const initialItems: Item[] = [
     vendor: "Keychron",
     originalPrice: 79.50,
     salesPrice: 120.00,
+    msrp: 129.00,
     project: "Gaming Setup",
     sold: true,
     barcodeData: "BARCODE-MK002",
     qrCodeData: "QR-MK002",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Keyboard",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+    soldDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
@@ -57,11 +63,14 @@ const initialItems: Item[] = [
     vendor: "Accessory King",
     originalPrice: 22.00,
     salesPrice: 35.00,
+    msrp: 39.99,
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-UCH003",
     qrCodeData: "QR-UCH003",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Hub",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
   },
@@ -76,11 +85,14 @@ const initialItems: Item[] = [
     vendor: "StandUp Inc.",
     originalPrice: 18.00,
     salesPrice: 32.50,
+    msrp: 35.00,
     project: "Ergonomics Improvement",
     sold: false,
     barcodeData: "BARCODE-LS004",
     qrCodeData: "QR-LS004",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Stand",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },
@@ -95,11 +107,14 @@ const initialItems: Item[] = [
     vendor: "Lights R Us",
     originalPrice: 25.00,
     salesPrice: 45.00,
+    msrp: 49.99,
     project: "New Office Setup",
     sold: false,
     barcodeData: "BARCODE-DL005",
     qrCodeData: "QR-DL005",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Lamp",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
@@ -114,11 +129,14 @@ const initialItems: Item[] = [
     vendor: "Mounts Inc.",
     originalPrice: 40.00,
     salesPrice: 75.00,
+    msrp: 79.99,
     project: "Ergonomics Upgrade",
     sold: false,
     barcodeData: "BARCODE-MA006",
     qrCodeData: "QR-MA006",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Arm",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 18).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
   },
@@ -133,11 +151,14 @@ const initialItems: Item[] = [
     vendor: "Stationery World",
     originalPrice: 8.00,
     salesPrice: 15.00,
+    msrp: 16.00,
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-WM007",
     qrCodeData: "QR-WM007",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Markers",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
@@ -152,11 +173,14 @@ const initialItems: Item[] = [
     vendor: "Office Essentials",
     originalPrice: 5.00,
     salesPrice: 9.99,
+    msrp: 10.99,
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-SN008",
     qrCodeData: "QR-SN008",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Notes",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
@@ -171,11 +195,14 @@ const initialItems: Item[] = [
     vendor: "Comfort Seating",
     originalPrice: 150.00,
     salesPrice: 299.00,
+    msrp: 320.00,
     project: "New Office Setup",
     sold: false,
     barcodeData: "BARCODE-EC009",
     qrCodeData: "QR-EC009",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Chair",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 45).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(),
   },
@@ -190,11 +217,14 @@ const initialItems: Item[] = [
     vendor: "Paper R Us",
     originalPrice: 4.50,
     salesPrice: 8.00,
+    msrp: 9.00,
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-PP010",
     qrCodeData: "QR-PP010",
     productImageUrl: "https://placehold.co/600x400.png?text=Product+Paper",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
   },
@@ -209,11 +239,14 @@ const initialItems: Item[] = [
     vendor: "Office Essentials",
     originalPrice: 12.00,
     salesPrice: 20.00,
+    msrp: 22.50,
     project: "General Stock",
     sold: false,
     barcodeData: "BARCODE-DO011",
     qrCodeData: "QR-DO011",
     productImageUrl: "https://placehold.co/600x400.png?text=Desk+Organizer",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
   },
@@ -228,11 +261,14 @@ const initialItems: Item[] = [
     vendor: "SoundWave Inc.",
     originalPrice: 30.00,
     salesPrice: 55.00,
+    msrp: 59.99,
     project: "Promotional Giveaway",
     sold: false,
     barcodeData: "BARCODE-BS012",
     qrCodeData: "QR-BS012",
     productImageUrl: "https://placehold.co/600x400.png?text=Bluetooth+Speaker",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
   },
@@ -247,11 +283,14 @@ const initialItems: Item[] = [
     vendor: "BrewMaster",
     originalPrice: 45.00,
     salesPrice: 70.00,
+    msrp: 75.00,
     project: "Office Amenities",
     sold: false,
     barcodeData: "BARCODE-CM013",
     qrCodeData: "QR-CM013",
     productImageUrl: "https://placehold.co/600x400.png?text=Coffee+Maker",
+    purchaseDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
+    soldDate: undefined,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
   }
@@ -286,9 +325,9 @@ export interface ItemFilters {
 
 // Item CRUD Actions
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  await new Promise(resolve => setTimeout(resolve, 50)); 
+  await new Promise(resolve => setTimeout(resolve, 50));
   const store = globalThis._itemsStore || [];
-  let filteredItems = [...store]; 
+  let filteredItems = [...store];
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -302,25 +341,26 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   }
 
   filteredItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  
+
   const totalFilteredItems = filteredItems.length;
 
   if (filters?.page && filters?.limit) {
     const page = filters.page;
     const limit = filters.limit;
-    
+
     const startIndex = (page - 1) * limit;
     const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
     const totalPages = Math.ceil(totalFilteredItems / limit);
-    
+
     return { items: paginatedItems, totalPages, count: totalFilteredItems };
   } else {
+    // If no pagination, return all filtered items
     return { items: filteredItems, totalPages: 1, count: totalFilteredItems };
   }
 }
 
 export async function getItemById(id: string): Promise<Item | undefined> {
-  await new Promise(resolve => setTimeout(resolve, 50)); 
+  await new Promise(resolve => setTimeout(resolve, 50));
   const store = globalThis._itemsStore || [];
   const item = store.find((item) => item.id === id);
   return item ? JSON.parse(JSON.stringify(item)) : undefined;
@@ -328,7 +368,7 @@ export async function getItemById(id: string): Promise<Item | undefined> {
 
 export async function addItem(data: ItemInput): Promise<Item> {
   const store = globalThis._itemsStore || [];
-  globalThis._itemsStore = store; 
+  globalThis._itemsStore = store;
 
   const id = crypto.randomUUID();
   const newItem: Item = {
@@ -342,16 +382,19 @@ export async function addItem(data: ItemInput): Promise<Item> {
     vendor: data.vendor,
     originalPrice: data.originalPrice,
     salesPrice: data.salesPrice,
+    msrp: data.msrp,
     project: data.project,
     receiptImageUrl: data.receiptImageUrl,
     productImageUrl: data.productImageUrl,
-    sold: false,
+    purchaseDate: data.purchaseDate,
+    soldDate: data.soldDate,
+    sold: false, // New items are not sold by default
     barcodeData: `BARCODE-${id.substring(0,8).toUpperCase()}`,
     qrCodeData: `QR-${id.toUpperCase()}`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  globalThis._itemsStore.unshift(newItem); 
+  globalThis._itemsStore.unshift(newItem);
 
   revalidatePath("/inventory", "layout");
   revalidatePath("/dashboard", "layout");
@@ -375,10 +418,10 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
     ...updatedItemDetails,
     updatedAt: new Date().toISOString(),
   };
-  
+
   revalidatePath("/inventory", "layout");
-  revalidatePath(`/inventory/${id}`);
-  revalidatePath(`/inventory/${id}/edit`);
+  revalidatePath(`/inventory/${id}`, "layout");
+  revalidatePath(`/inventory/${id}/edit`, "layout");
   revalidatePath("/dashboard", "layout");
   revalidatePath("/analytics", "layout");
   return JSON.parse(JSON.stringify(globalThis._itemsStore[itemIndex]));
@@ -387,8 +430,8 @@ export async function updateItem(id: string, data: Partial<ItemInput>): Promise<
 export async function deleteItem(id: string): Promise<boolean> {
   const store = globalThis._itemsStore || [];
   const initialLength = store.length;
-  
-  globalThis._itemsStore = store.filter((item) => item.id !== id); 
+
+  globalThis._itemsStore = store.filter((item) => item.id !== id);
 
   if (globalThis._itemsStore.length < initialLength) {
     revalidatePath("/inventory", "layout");
@@ -405,7 +448,7 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
     if (!extractedData.items) {
-      return { ...extractedData, items: [] }; 
+      return { ...extractedData, items: [] };
     }
     return extractedData;
   } catch (error) {
@@ -423,23 +466,26 @@ export async function toggleItemSoldStatus(id: string): Promise<Item | undefined
   if (itemIndex === -1) {
     return undefined;
   }
-  globalThis._itemsStore[itemIndex].sold = !globalThis._itemsStore[itemIndex].sold;
-  globalThis._itemsStore[itemIndex].updatedAt = new Date().toISOString();
-  
+  const currentItem = globalThis._itemsStore[itemIndex];
+  currentItem.sold = !currentItem.sold;
+  // If item is marked as sold, set soldDate. If marked as not sold, clear soldDate.
+  currentItem.soldDate = currentItem.sold ? new Date().toISOString() : undefined;
+  currentItem.updatedAt = new Date().toISOString();
+
   revalidatePath("/inventory", "layout");
-  revalidatePath(`/inventory/${id}`);
+  revalidatePath(`/inventory/${id}`, "layout");
   revalidatePath("/dashboard", "layout");
   revalidatePath("/analytics", "layout");
-  return JSON.parse(JSON.stringify(globalThis._itemsStore[itemIndex]));
+  return JSON.parse(JSON.stringify(currentItem));
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
   const store = globalThis._itemsStore || [];
-  globalThis._itemsStore = store; 
+  globalThis._itemsStore = store;
 
   const initialLength = globalThis._itemsStore.length;
   globalThis._itemsStore = globalThis._itemsStore.filter((item) => !itemIds.includes(item.id));
-  
+
   const numDeleted = initialLength - globalThis._itemsStore.length;
 
   if (numDeleted > 0) {
@@ -456,14 +502,16 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 
 export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Promise<{ success: boolean; message?: string }> {
   const store = globalThis._itemsStore || [];
-  globalThis._itemsStore = store; 
+  globalThis._itemsStore = store;
 
   let updatedCount = 0;
+  const currentDateISO = new Date().toISOString();
   globalThis._itemsStore = globalThis._itemsStore.map(item => {
     if (itemIds.includes(item.id)) {
-      if (item.sold !== sold) { 
+      if (item.sold !== sold) {
         item.sold = sold;
-        item.updatedAt = new Date().toISOString();
+        item.soldDate = sold ? currentDateISO : undefined; // Update soldDate based on new status
+        item.updatedAt = currentDateISO;
         updatedCount++;
       }
     }
@@ -475,7 +523,7 @@ export async function bulkUpdateSoldStatus(itemIds: string[], sold: boolean): Pr
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     itemIds.forEach(id => {
-        revalidatePath(`/inventory/${id}`);
+        revalidatePath(`/inventory/${id}`, "layout");
     });
     return { success: true, message: `${updatedCount} item(s) status updated.` };
   }
@@ -511,9 +559,9 @@ export async function addManagedCategoryOption(name: string): Promise<{ success:
   }
   store.push(name);
   globalThis._managedCategoriesStore = store;
-  revalidatePath("/settings/options");
-  revalidatePath("/inventory/add", "layout"); 
-  revalidatePath("/inventory/[id]/edit", "layout"); 
+  revalidatePath("/settings/options", "layout");
+  revalidatePath("/inventory/add", "layout");
+  revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `Category "${name}" added.`, options: [...store].sort() };
 }
 
@@ -522,7 +570,7 @@ export async function deleteManagedCategoryOption(name: string): Promise<{ succe
   const initialLength = store.length;
   globalThis._managedCategoriesStore = store.filter(cat => cat !== name);
   if (globalThis._managedCategoriesStore.length < initialLength) {
-    revalidatePath("/settings/options");
+    revalidatePath("/settings/options", "layout");
     revalidatePath("/inventory/add", "layout");
     revalidatePath("/inventory/[id]/edit", "layout");
     return { success: true, message: `Category "${name}" deleted.`, options: [...globalThis._managedCategoriesStore].sort() };
@@ -546,7 +594,7 @@ export async function addManagedStorageLocationOption(name: string): Promise<{ s
   }
   store.push(name);
   globalThis._managedStorageLocationsStore = store;
-  revalidatePath("/settings/options");
+  revalidatePath("/settings/options", "layout");
   revalidatePath("/inventory/add", "layout");
   revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `Storage location "${name}" added.`, options: [...store].sort() };
@@ -557,7 +605,7 @@ export async function deleteManagedStorageLocationOption(name: string): Promise<
   const initialLength = store.length;
   globalThis._managedStorageLocationsStore = store.filter(loc => loc !== name);
   if (globalThis._managedStorageLocationsStore.length < initialLength) {
-    revalidatePath("/settings/options");
+    revalidatePath("/settings/options", "layout");
     revalidatePath("/inventory/add", "layout");
     revalidatePath("/inventory/[id]/edit", "layout");
     return { success: true, message: `Storage location "${name}" deleted.`, options: [...globalThis._managedStorageLocationsStore].sort() };
@@ -581,7 +629,7 @@ export async function addManagedBinLocationOption(name: string): Promise<{ succe
   }
   store.push(name);
   globalThis._managedBinLocationsStore = store;
-  revalidatePath("/settings/options");
+  revalidatePath("/settings/options", "layout");
   revalidatePath("/inventory/add", "layout");
   revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `Bin location "${name}" added.`, options: [...store].sort() };
@@ -592,12 +640,10 @@ export async function deleteManagedBinLocationOption(name: string): Promise<{ su
   const initialLength = store.length;
   globalThis._managedBinLocationsStore = store.filter(loc => loc !== name);
   if (globalThis._managedBinLocationsStore.length < initialLength) {
-    revalidatePath("/settings/options");
+    revalidatePath("/settings/options", "layout");
     revalidatePath("/inventory/add", "layout");
     revalidatePath("/inventory/[id]/edit", "layout");
     return { success: true, message: `Bin location "${name}" deleted.`, options: [...globalThis._managedBinLocationsStore].sort() };
   }
   return { success: false, message: `Bin location "${name}" not found.` };
 }
-
-    

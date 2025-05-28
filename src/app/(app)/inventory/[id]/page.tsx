@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart } from 'lucide-react'; // Added ShoppingCart
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { deleteItem } from '@/lib/actions/itemActions';
 import { SubmitButton } from '@/components/shared/SubmitButton';
+import { cn } from "@/lib/utils";
 
 async function DeleteItemAction({ itemId }: { itemId: string }) {
   const deleteItemWithId = async () => {
@@ -46,12 +47,16 @@ interface DetailItemProps {
 
 function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = false, className }: DetailItemProps) {
   if (value === null || typeof value === 'undefined' || value === '') return null;
-  
+
   let displayValue = value;
   if (isCurrency && typeof value === 'number') {
     displayValue = `$${value.toFixed(2)}`;
   } else if (isDate && typeof value === 'string') {
-    displayValue = new Date(value).toLocaleDateString();
+    try {
+      displayValue = new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) {
+      displayValue = "Invalid Date"; // Fallback for invalid date strings
+    }
   }
 
   return (
@@ -81,10 +86,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     profitLoss = item.salesPrice - item.originalPrice;
     if (profitLoss > 0) {
       profitLossIcon = TrendingUp;
-      profitLossColor = "text-green-600";
+      profitLossColor = "text-green-600"; // Use Tailwind class directly for specific color
     } else if (profitLoss < 0) {
       profitLossIcon = TrendingDown;
-      profitLossColor = "text-red-600";
+      profitLossColor = "text-red-600"; // Use Tailwind class directly for specific color
     }
   }
 
@@ -133,9 +138,9 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
               </CardHeader>
               <CardContent>
                 <div className="relative aspect-video w-full max-w-md mx-auto">
-                  <Image 
-                    src={item.productImageUrl} 
-                    alt={`Product image for ${item.name}`} 
+                  <Image
+                    src={item.productImageUrl}
+                    alt={`Product image for ${item.name}`}
                     fill
                     className="rounded-md border object-contain"
                     data-ai-hint="product commercial"
@@ -154,14 +159,19 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={Layers} label="Category" value={item.category} />
                 <DetailItem icon={DollarSign} label="Original Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
+                 <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
                 {profitLoss !== null && (
-                  <DetailItem 
-                    icon={profitLossIcon} 
-                    label="Est. Profit/Loss" 
-                    value={profitLoss} 
-                    isCurrency 
+                  <DetailItem
+                    icon={profitLossIcon}
+                    label="Est. Profit/Loss"
+                    value={profitLoss}
+                    isCurrency
                     className={profitLossColor}
                   />
+                )}
+                <DetailItem icon={CalendarDays} label="Purchase Date" value={item.purchaseDate} isDate />
+                {item.sold && item.soldDate && (
+                    <DetailItem icon={CalendarDays} label="Sold Date" value={item.soldDate} isDate />
                 )}
                 <DetailItem icon={MapPin} label="Storage Location" value={item.storageLocation} />
                 <DetailItem icon={Tag} label="Bin Location" value={item.binLocation} />
@@ -214,8 +224,3 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     </>
   );
 }
-
-// Helper for cn function if not already globally available or imported
-// (Assuming cn is available from "@/lib/utils")
-import { cn } from "@/lib/utils";
-

@@ -32,7 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import NextImage from "next/image"; // Renamed to avoid conflict with Lucide's Image
+import NextImage from "next/image";
+import { DatePicker } from "@/components/shared/DatePicker"; // New import
 
 const itemFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
@@ -44,9 +45,12 @@ const itemFormSchema = z.object({
   vendor: z.string().max(100).optional().default(""),
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
+  msrp: z.coerce.number().min(0).optional(), // New field
   project: z.string().max(100).optional().default(""),
-  receiptImageUrl: z.string().optional().or(z.literal("")).default(""), // Accepts URL or Data URI
-  productImageUrl: z.string().optional().default(""), // Accepts URL or Data URI
+  receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
+  productImageUrl: z.string().optional().default(""),
+  purchaseDate: z.date().optional(), // New field
+  soldDate: z.date().optional(), // New field
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -60,12 +64,12 @@ interface ItemFormProps {
   availableBinLocations: string[];
 }
 
-const MAX_IMAGE_SIZE_MB = 2; // Define max image size for uploads
+const MAX_IMAGE_SIZE_MB = 2;
 
-export default function ItemForm({ 
-  item, 
-  onSubmitAction, 
-  isEditing = false, 
+export default function ItemForm({
+  item,
+  onSubmitAction,
+  isEditing = false,
   availableCategories,
   availableStorageLocations,
   availableBinLocations
@@ -86,11 +90,14 @@ export default function ItemForm({
       storageLocation: item?.storageLocation || "",
       binLocation: item?.binLocation || "",
       vendor: item?.vendor || "",
-      originalPrice: item?.originalPrice ?? "", 
-      salesPrice: item?.salesPrice ?? "", 
+      originalPrice: item?.originalPrice ?? "",
+      salesPrice: item?.salesPrice ?? "",
+      msrp: item?.msrp ?? "", // New field
       project: item?.project || "",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
+      purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined, // New field
+      soldDate: item?.soldDate ? new Date(item.soldDate) : undefined, // New field
     },
   });
 
@@ -110,8 +117,8 @@ export default function ItemForm({
           if (extracted.description) form.setValue("description", extracted.description, { shouldValidate: true });
           if (extracted.quantity) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
           if (extracted.price) form.setValue("originalPrice", extracted.price, { shouldValidate: true });
-          
-          form.setValue("receiptImageUrl", base64data, { shouldValidate: true }); 
+
+          form.setValue("receiptImageUrl", base64data, { shouldValidate: true });
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
         }
       } catch (error) {
@@ -148,6 +155,7 @@ export default function ItemForm({
         ...data,
         originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
         salesPrice: data.salesPrice === "" ? undefined : Number(data.salesPrice),
+        msrp: data.msrp === "" ? undefined : Number(data.msrp), // New field
         description: data.description || undefined,
         category: data.category || undefined,
         storageLocation: data.storageLocation || undefined,
@@ -156,6 +164,8 @@ export default function ItemForm({
         project: data.project || undefined,
         receiptImageUrl: data.receiptImageUrl || undefined,
         productImageUrl: data.productImageUrl || undefined,
+        purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, // New field
+        soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, // New field
     };
 
     startTransition(async () => {
@@ -166,12 +176,7 @@ export default function ItemForm({
             title: isEditing ? "Item Updated" : "Item Added",
             description: `${data.name} has been successfully ${isEditing ? 'updated' : 'added'}.`,
           });
-          if (isEditing) {
-            router.push(`/inventory/${result.id}`);
-          } else {
-             router.push('/inventory');
-          }
-          router.refresh();
+          router.push('/inventory');
         } else {
           const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input.`;
           toast({
@@ -264,14 +269,14 @@ export default function ItemForm({
 
             <Card>
               <CardHeader>
-                <CardTitle>Pricing & Vendor</CardTitle>
+                <CardTitle>Pricing & Dates</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                     control={form.control}
                     name="originalPrice"
-                    render={({ field }) => ( 
+                    render={({ field }) => (
                         <FormItem>
                         <FormLabel>Original Price (Cost)</FormLabel>
                         <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field}  /></FormControl>
@@ -282,13 +287,56 @@ export default function ItemForm({
                     <FormField
                     control={form.control}
                     name="salesPrice"
-                    render={({ field }) => ( 
+                    render={({ field }) => (
                         <FormItem>
                         <FormLabel>Sales Price</FormLabel>
                         <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="msrp"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>MSRP</FormLabel>
+                        <FormControl><Input type="number" step="0.01" placeholder="0.00" {...field} /></FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="purchaseDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Purchase Date</FormLabel>
+                            <DatePicker
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Select purchase date"
+                            />
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="soldDate"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                            <FormLabel>Sold Date</FormLabel>
+                            <DatePicker
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Select sold date"
+                            />
+                            <FormMessage />
+                            </FormItem>
+                        )}
                     />
                 </div>
                 <FormField
@@ -397,7 +445,7 @@ export default function ItemForm({
                             className="mt-2 rounded-md border max-h-60 w-full object-contain"
                             onError={(e) => {
                                 const target = e.target as HTMLImageElement;
-                                target.style.display = 'none'; // Hide if error (e.g. invalid Data URI or broken link)
+                                target.style.display = 'none';
                             }}
                             onLoad={(e) => {
                                 const target = e.target as HTMLImageElement;
@@ -431,12 +479,12 @@ export default function ItemForm({
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
                     <FormLabel>Receipt Preview</FormLabel>
-                    <NextImage 
-                        src={form.watch("receiptImageUrl")!} 
+                    <NextImage
+                        src={form.watch("receiptImageUrl")!}
                         alt="Receipt Preview"
                         width={200}
                         height={200}
-                        className="mt-2 rounded-md border max-h-60 w-full object-contain" 
+                        className="mt-2 rounded-md border max-h-60 w-full object-contain"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
@@ -458,7 +506,7 @@ export default function ItemForm({
             </Card>
           </div>
         </div>
-        
+
         <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending || isReceiptProcessing || isProductImageProcessing}>
             Cancel
@@ -471,4 +519,3 @@ export default function ItemForm({
     </Form>
   );
 }
-
