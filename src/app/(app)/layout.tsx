@@ -9,6 +9,8 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
+    // If no current user, redirect to the login page.
+    // This check protects all routes within the (app) group.
     redirect('/login');
   }
 

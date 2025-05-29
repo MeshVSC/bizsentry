@@ -56,7 +56,7 @@ export async function logoutUser() {
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  await new Promise(resolve => setTimeout(resolve, 10));
+  await new Promise(resolve => setTimeout(resolve, 10)); // Simulate async
   return globalThis._currentUserStore ? { ...globalThis._currentUserStore } : null;
 }
 
@@ -78,13 +78,13 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const newUser: User = {
     id: crypto.randomUUID(),
     username: data.username,
-    password: data.password,
+    password: data.password, // Storing plaintext for prototype
     role: data.role,
   };
   users.push(newUser);
   globalThis._usersStore = users;
 
-  revalidatePath("/settings/users", "page"); // Corrected path
+  revalidatePath("/settings/users", "page");
   const { password, ...userView } = newUser;
   return { success: true, message: `User "${newUser.username}" added successfully.`, user: userView };
 }
@@ -98,7 +98,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   }
   
   const currentUser = await getCurrentUser();
-  // Prevent non-admins from changing roles, or admin from demoting last admin
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to change roles." };
   }
@@ -113,10 +112,11 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   users[userIndex].role = newRole;
   globalThis._usersStore = users;
 
-  revalidatePath("/settings/users", "page"); // Corrected path
+  revalidatePath("/settings/users", "page");
   if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
+    // If admin changes their own role, update current user session (though they might lose admin access immediately)
     globalThis._currentUserStore = { ...currentUser, role: newRole };
-    revalidatePath("/", "layout"); 
+    revalidatePath("/", "layout"); // Revalidate layout if current user's role changed
   }
 
   const { password, ...userView } = users[userIndex];
@@ -124,7 +124,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  const users: User[] = globalThis._usersStore || [];
+  let users: User[] = globalThis._usersStore || [];
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
@@ -147,10 +147,10 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   }
 
   const deletedUsername = users[userIndex].username;
-  users.splice(userIndex, 1);
+  users = users.filter(u => u.id !== userId);
   globalThis._usersStore = users;
 
-  revalidatePath("/settings/users", "page"); // Corrected path
+  revalidatePath("/settings/users", "page");
   return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
 }
 
