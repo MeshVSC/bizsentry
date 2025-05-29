@@ -52,9 +52,11 @@ export async function loginUser(
       maxAge: 60 * 60 * 24 * 7, // 7 days
       sameSite: 'lax',
     });
-    // Removing revalidatePath from here, relying on client-side router.refresh()
-    // revalidatePath("/", "layout"); 
-    return { success: true, user: currentUserData };
+    // No server-side revalidatePath here, client-side router.refresh() or redirect handles it.
+    // Forcing redirect from server action
+    redirect('/dashboard');
+    // The lines below are effectively unreachable due to redirect, but kept for structural consistency
+    // return { success: true, user: currentUserData }; 
   } else {
     return { success: false, message: "Invalid username or password." };
   }
@@ -128,7 +130,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     return { success: false, message: "User not found." };
   }
 
-  const currentUser = await getCurrentUser(); // This will also ensure store is initialized
+  const currentUser = await getCurrentUser();
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to change roles." };
   }
@@ -144,6 +146,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   revalidatePath("/settings/users", "page");
   if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
+    // If current user's role changed, revalidate everything to update layout/permissions
     revalidatePath("/", "layout"); 
   }
 
@@ -160,7 +163,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     return { success: false, message: "User not found." };
   }
 
-  const currentUser = await getCurrentUser(); // This will also ensure store is initialized
+  const currentUser = await getCurrentUser(); 
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to delete users." };
   }
@@ -181,3 +184,9 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   revalidatePath("/settings/users", "page");
   return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
 }
+
+// TODO: Item 5: Password Reset Functionality (Placeholder from user request)
+// Implement password reset functionality. This will require a mechanism for users
+// to securely verify their identity (e.g., email verification, security questions if desired,
+// or admin-initiated reset). Current system does not store emails.
+// This is a significant feature and needs careful design.

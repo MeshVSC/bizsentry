@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation"; // No longer needed for push/refresh here
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
 
 export default function LoginPage() {
-  const router = useRouter();
+  // const router = useRouter(); // No longer needed for push/refresh here
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -24,15 +24,15 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
+      // The loginUser action will now handle the redirect on success.
+      // It might return an error object if login fails before redirecting.
       const result = await loginUser(formData);
-      if (result.success && result.user) {
-        toast({ title: "Login Successful", description: `Welcome back, ${result.user.username}!` });
-        router.push("/dashboard"); 
-        router.refresh(); 
-      } else {
+      if (result && result.success === false) { // Check if loginUser returned an error object
         setError(result.message || "Login failed. Please try again.");
         toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
       }
+      // If loginUser redirects, this part of the code might not be reached,
+      // or result might be undefined. If it successfully redirects, no client-side action is needed.
     });
   };
 
@@ -41,15 +41,17 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 mt-4 mx-auto">
-            <Image
-              src="/logo.png" 
-              alt="StockSentry Logo"
-              width={1024} 
-              height={1024} 
-              className="h-16 sm:h-24 w-auto" // Made responsive: h-16 on small, h-24 on sm and up
-              priority
-              data-ai-hint="logo company"
-            />
+             <div className="inline-block text-center">
+                <Image
+                  src="/logo.png"
+                  alt="StockSentry Logo"
+                  width={1024}
+                  height={1024}
+                  className="h-16 sm:h-24 w-auto mx-auto"
+                  priority
+                  data-ai-hint="logo company"
+                />
+            </div>
           </div>
           <CardDescription className="text-muted-foreground pt-2">
             Enter your credentials to access your inventory.
