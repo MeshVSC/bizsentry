@@ -4,6 +4,7 @@
 import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { cookies } from 'next/headers';
 
 // --- VERY IMPORTANT ---
 // THIS IS A PROTOTYPE AUTH SYSTEM AND IS NOT SECURE.
@@ -20,9 +21,7 @@ if (typeof globalThis._usersStore === "undefined") {
   ];
 }
 
-if (typeof globalThis._currentUserStore === "undefined") {
-  globalThis._currentUserStore = null;
-}
+// globalThis._currentUserStore is no longer used for cookie-based sessions.
 
 export async function loginUser(
   formData: FormData
@@ -41,8 +40,14 @@ export async function loginUser(
 
   if (user) {
     const currentUserData: CurrentUser = { id: user.id, username: user.username, role: user.role };
-    globalThis._currentUserStore = currentUserData;
-    revalidatePath("/", "layout");
+    // Set cookie instead of globalThis variable
+    cookies().set('sessionUserId', user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+    revalidatePath("/", "layout"); // Revalidate to update layouts that depend on currentUser
     return { success: true, user: currentUserData };
   } else {
     return { success: false, message: "Invalid username or password." };
@@ -50,14 +55,29 @@ export async function loginUser(
 }
 
 export async function logoutUser() {
-  globalThis._currentUserStore = null;
+  // Clear cookie
+  cookies().set('sessionUserId', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 0,
+  });
   revalidatePath("/", "layout");
   redirect("/login");
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   await new Promise(resolve => setTimeout(resolve, 10)); // Simulate async
-  return globalThis._currentUserStore ? { ...globalThis._currentUserStore } : null;
+  const userId = cookies().get('sessionUserId')?.value;
+
+  if (userId) {
+    const users: User[] = globalThis._usersStore || [];
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      return { id: user.id, username: user.username, role: user.role };
+    }
+  }
+  return null;
 }
 
 export async function getUsers(): Promise<UserView[]> {
@@ -97,7 +117,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     return { success: false, message: "User not found." };
   }
   
-  const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser(); // This will now read from cookie
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to change roles." };
   }
@@ -113,11 +133,8 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   globalThis._usersStore = users;
 
   revalidatePath("/settings/users", "page");
-  if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
-    // If admin changes their own role, update current user session (though they might lose admin access immediately)
-    globalThis._currentUserStore = { ...currentUser, role: newRole };
-    revalidatePath("/", "layout"); // Revalidate layout if current user's role changed
-  }
+  // If admin changes their own role, the cookie remains but their permissions change on next getCurrentUser call.
+  // If they demote themselves, they might lose access to the page they are on if it requires admin.
 
   const { password, ...userView } = users[userIndex];
   return { success: true, message: `User "${userView.username}" role updated to ${newRole}.`, user: userView };
@@ -131,10 +148,12 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     return { success: false, message: "User not found." };
   }
 
-  const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser(); // Reads from cookie
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to delete users." };
   }
+  // It's generally not good practice to allow a user to delete their own active session/account easily.
+  // This check is basic. A real app would have more robust checks.
   if (currentUser && currentUser.id === userId) {
     return { success: false, message: "Cannot delete the currently logged-in user." };
   }
@@ -154,8 +173,9 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
 }
 
-// TODO: Placeholder for Item 5: Password Reset Functionality
-// Implement password reset functionality. This will require a mechanism for users
-// to securely verify their identity (e.g., email verification, security questions if desired,
-// or admin-initiated reset). Current system does not store emails.
-// This is a significant feature and needs careful design.
+// TODO: Item 5: Password Reset Functionality (Placeholder)
+// Discuss and implement password reset functionality.
+// Challenges: No email addresses currently stored.
+// Possible approaches for a prototype: Admin-initiated password change via User Management panel,
+// or (less secure) a "forgot password" flow based on username that simply shows the password (NOT for production).
+// For a real app, email verification is standard.

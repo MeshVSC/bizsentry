@@ -10,40 +10,39 @@ declare var _itemsStore: import('@/types/item').Item[];
 // eslint-disable-next-line no-var
 declare var _managedCategoriesStore: string[];
 // eslint-disable-next-line no-var
-declare var _managedSubcategoriesStore: string[]; // New
+declare var _managedSubcategoriesStore: string[];
 // eslint-disable-next-line no-var
 declare var _managedStorageLocationsStore: string[];
 // eslint-disable-next-line no-var
 declare var _managedBinLocationsStore: string[];
 // eslint-disable-next-line no-var
-declare var _managedRoomsStore: string[]; // New
+declare var _managedRoomsStore: string[];
 // eslint-disable-next-line no-var
-declare var _managedVendorsStore: string[]; // New
+declare var _managedVendorsStore: string[];
 // eslint-disable-next-line no-var
-declare var _managedProjectsStore: string[]; // New
+declare var _managedProjectsStore: string[];
 
 
 // For application settings
 // eslint-disable-next-line no-var
 declare var _appSettingsStore: import('@/lib/actions/settingsActions').AppSettings;
 
-// For basic user authentication prototype
+// For basic user authentication prototype (user "database")
 // eslint-disable-next-line no-var
 declare var _usersStore: import('@/types/user').User[];
+// _currentUserStore is no longer used as sessions are cookie-based.
 // eslint-disable-next-line no-var
-declare var _currentUserStore: import('@/types/user').CurrentUser | null;
+// declare var _currentUserStore: import('@/types/user').CurrentUser | null;
 
-// Placeholder for Password Reset discussion - Item 5
-// TODO: Discuss and implement password reset functionality.
+
+// TODO: Item 5: Password Reset Functionality (Placeholder from user request)
+// Discuss and implement password reset functionality.
 // Current challenge: No email addresses are stored for users.
-// Possible approaches: Security questions (less secure), admin-initiated reset,
-// or requiring email collection for password reset.
 
-// Placeholder for Consolidating Product Setup Settings - Item 7
-// TODO: Evaluate consolidating all product-related managed options (Category, Subcategory, Storage Location, Bin Location, Room, Vendor, Project)
-// into a single settings page or a more unified "Product Setup" section if the current tabbed interface becomes too cluttered.
+// TODO: Item 7: Consolidating Product Setup Settings (Placeholder from user request)
+// Evaluate consolidating all product-related managed options (Category, Subcategory, etc.)
+// into a single settings page or a more unified "Product Setup" section.
 
-// Placeholder for Dashboard View Refinement - Item 10
-// TODO: Review and refine the dashboard layout and information displayed
-// based on user feedback and evolving needs. Consider most critical KPIs
-// for an at-a-glance view.
+// TODO: Item 10: Dashboard View Refinement (Placeholder from user request)
+// Review and refine the dashboard layout and information displayed
+// based on user feedback and evolving needs.
