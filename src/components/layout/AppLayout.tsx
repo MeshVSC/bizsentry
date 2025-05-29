@@ -55,7 +55,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
                   alt="StockSentry Icon"
                   width={500} 
                   height={500} 
-                  className="h-14 w-14" // Doubled from h-7 w-7
+                  className="h-14 w-14"
                   priority
                   data-ai-hint="logo abstract"
                 />
@@ -75,7 +75,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
                 alt="StockSentry Logo"
                 width={1024} 
                 height={1024}
-                className="h-20 w-auto" // Doubled from h-10
+                className="h-20 w-auto"
                 priority
                 data-ai-hint="logo modern"
               />
