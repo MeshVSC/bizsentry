@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -39,8 +40,8 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
   const appVersion = "0.1.0";
 
   return (
-    <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-background group/sidebar-wrapper" data-sidebar-state="expanded">
+    <SidebarProvider defaultOpen> {/* This applies group/sidebar-wrapper and data-sidebar-state */}
+      <div className="flex min-h-screen w-full bg-background">
         <Sidebar
           variant="sidebar"
           collapsible="icon"
@@ -48,15 +49,14 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
             {/* Collapsed Logo - Icon Image */}
-            <div className="group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full hidden">
+            <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png" 
+                  src="/logo-icon.png"
                   alt="StockSentry Icon"
-                  width={500} 
-                  height={500} 
-                  className="h-14 w-14" 
-                  priority
+                  width={500} // Original width from user
+                  height={500} // Original height from user
+                  className="h-14 w-14" // Display size, double of previous h-7 w-7
                   data-ai-hint="logo abstract"
                 />
               </Link>
@@ -66,28 +66,49 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           <SidebarContent className="p-2 flex-grow">
             <SidebarNav />
           </SidebarContent>
-          
+
           {/* Expanded Logo Section - Placed above the footer */}
-          <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden group-data-[mobile=true]:px-2 group-data-[mobile=true]:py-1">
+          {/* This div is for the expanded logo */}
+          <div className={cn(
+            "px-4 pb-2 pt-4 text-left leading-tight",
+            "group-data-[state=collapsed]/sidebar-wrapper:hidden", // Hide when sidebar wrapper is collapsed
+            "group-data-[mobile=true]/sidebar:text-center group-data-[mobile=true]/sidebar:px-2 group-data-[mobile=true]/sidebar:py-1" // Mobile sheet specific styles
+          )}>
             <Link href="/dashboard" className="block">
-              <div className="leading-tight group-data-[mobile=true]:text-center">
-                <span className="block font-bold text-primary uppercase text-xl group-data-[mobile=true]:text-lg">STOCK</span>
-                <span className="block font-bold text-primary uppercase text-xl group-data-[mobile=true]:text-lg">SENTRY</span>
-              </div>
+              <span className={cn(
+                "block font-bold text-primary uppercase",
+                "text-3xl group-data-[mobile=true]/sidebar:text-lg" // Responsive font size
+              )}>STOCK</span>
+              <span className={cn(
+                "block font-bold text-primary uppercase",
+                "text-3xl group-data-[mobile=true]/sidebar:text-lg" // Responsive font size
+              )}>SENTRY</span>
             </Link>
           </div>
           
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden group-data-[mobile=true]:px-2 group-data-[mobile=true]:py-1 group-data-[mobile=true]:text-center">
-            <p className="text-xs text-muted-foreground text-left w-full group-data-[mobile=true]:text-center">
+          {/* Footer for version number */}
+          <SidebarFooter className={cn(
+            "p-4 pt-2 border-t border-sidebar-border text-left",
+            "group-data-[state=collapsed]/sidebar-wrapper:hidden", // Hide when sidebar wrapper is collapsed
+            "group-data-[mobile=true]/sidebar:px-2 group-data-[mobile=true]/sidebar:py-1 group-data-[mobile=true]/sidebar:text-center" // Mobile sheet specific styles
+          )}>
+            <p className="text-xs text-muted-foreground w-full">
               Version {appVersion}
             </p>
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 sm:px-6">
+        {/* Main content area */}
+        <div className={cn(
+          "flex flex-col flex-1 transition-all duration-300 ease-in-out",
+          "ml-0", // Base for mobile: no margin
+          "md:ml-[var(--sidebar-width)]", // Margin for desktop expanded
+          "group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]" // Margin for desktop collapsed
+        )}>
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-1 border-b border-border bg-background px-4 sm:px-6 sm:gap-2 md:gap-4">
             <div>
-               <SidebarTrigger className="text-foreground" />
+              {/* SidebarTrigger is always visible now to control desktop and mobile sidebar */}
+              <SidebarTrigger className="text-foreground" />
             </div>
             <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
               <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 bg-card text-foreground hover:bg-muted">
@@ -137,3 +158,5 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
     </DropdownMenu>
   );
 }
+
+    
