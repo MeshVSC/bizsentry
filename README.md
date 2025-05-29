@@ -1,132 +1,125 @@
-
 # StockSentry
 
-StockSentry is a modern inventory management tool built with Next.js, Firebase, and Tailwind CSS. Designed for speed, simplicity, and clarity, it helps small businesses and solo operators track stock levels, categories, and historical changes efficiently — all for free.
+StockSentry is a modern inventory management tool built with Next.js and Tailwind CSS, developed with the assistance of Firebase Studio's App Prototyper. Designed for speed, simplicity, and clarity, it helps track stock levels, categories, and historical changes efficiently.
+
+**Important Note:** This project currently includes a prototype in-app user authentication and management system. It is intended for demonstration and development purposes only and is **NOT secure for production use** due to plaintext password storage in the mock data.
 
 ---
 
 ## ✨ Features
 
-- 🔐 User authentication with role-based access (3 access tiers)
-- 📦 Inventory CRUD (Create, Read, Update, Delete)
-- 📊 Dashboard analytics (item counts, categories, estimated profit)
-- 📝 Upload & store receipts as visual references
-- 📂 Firebase backend with real-time capabilities
-- 📈 Visual category breakdown (Recharts)
-- ⚙️ Clean component architecture & modular code
-- 🌐 Responsive design for desktop, tablet, and mobile
+*   🔐 Basic User Authentication (Admin, Manager, Viewer roles) - **Prototype Only**
+*   👤 User Management (Add, Edit Role, Delete users by Admin) - **Prototype Only**
+*   📦 Inventory CRUD (Create, Read, Update, Delete items)
+*   🏷️ Support for SKU, Product URL, Purchase/Sold/In-Use Dates, MSRP.
+*   📝 AI-Powered Receipt Data Extraction for quick item entry (via Genkit).
+*   🖼️ Product Image URL association.
+*   📊 Dashboard with key inventory statistics.
+*   📈 Analytics Page with charts:
+    *   Items per Category
+    *   Stock Value Over Time
+    *   Sales Trends (approximated)
+    *   Profit by Category (approximated)
+    *   Key metric cards (total units in stock/use/sold, total value in stock/use/sold).
+*   📂 Managed Dropdown Options:
+    *   Categories, Subcategories, Storage Locations, Bin Locations, Rooms, Vendors, Projects.
+    *   Settings pages to manage these options.
+*   📤 Bulk CSV Import for items (with template download functionality).
+*   🎨 Modern Dark Theme with Turquoise Accents (Montserrat font).
+*   📱 Responsive Design for Desktop, Tablet, and Mobile.
+*   ⚙️ Collapsible Sidebar navigation.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Clone the repo
-
+### 1. Clone the repository
+(If you've cloned this from a Git repository)
 ```bash
-git clone https://github.com/your-username/stocksentry.git
+git clone <your-repository-url>
 cd stocksentry
 ```
 
 ### 2. Install dependencies
-
 ```bash
 npm install
 ```
+(Or `yarn install` if using Yarn)
 
-### 3. Environment setup
-
-Create a `.env.local` file in the root directory and configure the following:
-
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=...
-```
+### 3. Environment Setup (for Genkit AI)
+*   Genkit is used for AI features (like receipt processing). It's configured to use Google AI by default.
+*   Create a `.env` file in the root of your project (or set environment variables directly).
+*   Add your Google AI API key:
+    ```
+    GOOGLE_API_KEY=your_google_api_key_here
+    ```
+*   To run Genkit flows locally during development (e.g., for testing AI features), you might use:
+    ```bash
+    npm run genkit:dev
+    ```
+    or
+    ```bash
+    npm run genkit:watch
+    ```
 
 ### 4. Start the development server
-
 ```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) (or the port specified by Next.js/Firebase Studio) with your browser to see the result.
+
+**Default Admin Login (Prototype):**
+*   Username: `admin`
+*   Password: `adminpassword`
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Structure (Simplified)
 
 ```
-src/
-│
-├── app/               # App router pages and layout
-├── components/        # Reusable UI components
-├── hooks/             # Custom React hooks
-├── lib/               # Utility functions and Firebase actions
-├── types/             # Global TypeScript types
+.
+├── public/              # Static assets (e.g., logo.png, logo-icon.png)
+├── src/
+│   ├── app/             # Next.js App Router (pages, layouts)
+│   ├── components/      # Reusable UI components (ShadCN, custom)
+│   ├── hooks/           # Custom React hooks
+│   ├── lib/             # Server actions, utility functions
+│   ├── types/           # TypeScript type definitions
+│   └── ai/              # Genkit AI flows and configuration
+├── .env                 # Environment variables (GOOGLE_API_KEY)
+├── next.config.ts       # Next.js configuration
+├── package.json         # Project dependencies and scripts
+├── README.md            # This file
+└── ...
 ```
 
 ---
 
 ## 🧠 Tech Stack
 
-- [Next.js](https://nextjs.org/)
-- [Firebase](https://firebase.google.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [React Hook Form](https://react-hook-form.com/)
-- [Recharts](https://recharts.org/)
-- [Radix UI](https://www.radix-ui.com/)
-- [Zod](https://zod.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
+*   [Next.js](https://nextjs.org/) (App Router, Server Components, Server Actions)
+*   [React](https://react.dev/)
+*   [TypeScript](https://www.typescriptlang.org/)
+*   [Tailwind CSS](https://tailwindcss.com/)
+*   [ShadCN UI](https://ui.shadcn.com/) (Component Library)
+*   [Lucide React](https://lucide.dev/) (Icons)
+*   [Recharts](https://recharts.org/) (for charts, via ShadCN UI)
+*   [Genkit (by Firebase)](https://firebase.google.com/docs/genkit) (for AI features, using Google AI plugin)
+*   [Zod](https://zod.dev/) (Schema validation for forms)
 
 ---
 
 ## 📜 License
 
-All rights reserved © 2025  
-Vibecoded by MeshCode
-
-
----
-
-## 📜 License
-
-This project is licensed under a **custom license**.  
-You are free to use and modify the code for personal or internal business use.  
-**Resale or redistribution of the software, in part or whole, is strictly prohibited.**  
+This project is licensed under a **custom license** as defined in `LICENSE.txt`.
+You are free to use and modify the code for personal or internal business use.
+**Resale or redistribution of the software, in part or whole, is strictly prohibited.**
 For commercial inquiries, contact [stephcolors@hotmail.com](mailto:stephcolors@hotmail.com).
 
 ---
 
-## 🙋‍♂️ Support
+## 🙋‍♂️ Support & Contact
 
-For setup help, questions, or feature requests:  
+For questions, feedback, or commercial inquiries regarding StockSentry:
 📧 [stephcolors@hotmail.com](mailto:stephcolors@hotmail.com)
-
----
-
-## 🌱 Contributing
-
-We welcome feedback and contributions!  
-- Fork the repo  
-- Create a branch for your feature/fix  
-- Submit a pull request with a clear description
-
----
-
-
-## 📸 Screenshots
-
-| Desktop | Tablet | Mobile | Multi-Device |
-|--------|--------|--------|--------------|
-| ![Desktop](sandbox:/mnt/data/A_high-resolution_digital_photograph_captures_a_mo.png) | ![Tablet](sandbox:/mnt/data/A_high-resolution_digital_photograph_displays_a_pe.png) | ![Phone](sandbox:/mnt/data/A_digital_photograph_shows_a_person_holding_a_mode.png) | ![Multi](sandbox:/mnt/data/A_high-resolution_digital_photograph_displays_four.png) |
-
-*(Replace `link-to-...` with actual hosted image URLs once uploaded)*
-
----
-
-## 🔒 Security
-
-If you discover a vulnerability, please do **not** create a public issue.  
-Instead, email [stephcolors@hotmail.com](mailto:stephcolors@hotmail.com) directly.
-
+```
