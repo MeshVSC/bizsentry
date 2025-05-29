@@ -37,16 +37,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 relative">
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
-          <div className="mb-4 mt-4">
-            <h1 className="text-4xl font-bold text-primary uppercase leading-none text-center">
-              <div className="inline-block text-left">
-                <span className="block">STOCK</span>
-                <span className="block">SENTRY</span>
-              </div>
-            </h1>
+          <div className="mb-4 mt-4 mx-auto">
+            <Image
+              src="/logo.png" 
+              alt="StockSentry Logo"
+              width={1024} 
+              height={1024} 
+              className="h-24 w-auto" // Made it larger for login page
+              priority
+              data-ai-hint="logo company"
+            />
           </div>
           <CardDescription className="text-muted-foreground pt-2">
             Enter your credentials to access your inventory.
@@ -87,6 +90,9 @@ export default function LoginPage() {
           </CardFooter>
         </form>
       </Card>
+      <div className="absolute bottom-4 right-4 text-xs text-muted-foreground">
+        MeshCode 2025
+      </div>
     </div>
   );
 }
