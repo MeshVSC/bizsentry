@@ -47,19 +47,22 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           className="flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-between border-b border-sidebar-border">
-            {/* Content for expanded header - Intentionally empty as logo is lower */}
-            <div className="w-full group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+            {/* Content for expanded header - Intentionally empty or minimal */}
+            <div className="w-full group-data-[state=collapsed]/sidebar-wrapper:hidden">
+              {/* Can be empty or hold a minimal element if needed for spacing */}
             </div>
             {/* Content for collapsed header - Icon Logo */}
-            <div className="w-full hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center">
+            <div className="w-full hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center">
               <Link href="/dashboard">
+                {/* Expects public/logo-icon.png */}
                 <Image
-                  src="/logo-icon.png"
+                  src="/logo-icon.png" 
                   alt="StockSentry Icon"
-                  width={500}
+                  width={500} 
                   height={500}
                   className="h-7 w-7"
                   data-ai-hint="logo abstract"
+                  priority
                 />
               </Link>
             </div>
@@ -71,29 +74,47 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 
           {/* Logo Section - Placed above the footer */}
           {/* Expanded Logo: Image */}
-          <div className="px-4 pb-2 pt-4 group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+          <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
             <Link href="/dashboard" className="block">
+              {/* Expects public/logo.png */}
               <Image
                 src="/logo.png"
                 alt="StockSentry Logo"
                 width={1024}
                 height={1024}
-                className="h-10 w-auto" 
+                className="h-10 w-auto"
                 data-ai-hint="logo modern"
+                priority
               />
             </Link>
           </div>
           
-          {/* Collapsed Logo - Handled by SidebarHeader */}
+          {/* Collapsed Logo (alternative for vertical text if image fails, but image is preferred) */}
+          {/* This part can be removed if the SidebarHeader icon works for collapsed view */}
+          {/* <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">S</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">T</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">O</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">C</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">K</span>
+            <div className="my-1 h-px w-full bg-sidebar-border"></div>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">S</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">E</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">N</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">T</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">R</span>
+            <span className="block text-xs font-bold text-primary uppercase tracking-wider">Y</span>
+          </div> */}
+          
 
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
+        <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
             <div>
                <SidebarTrigger className="text-foreground" />
@@ -122,6 +143,7 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8">
           <Avatar className="h-full w-full bg-card">
+            {/* Using a generic placeholder for avatar, can be updated if user images are implemented */}
             <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
             <AvatarFallback className="bg-card text-foreground">{fallback}</AvatarFallback>
           </Avatar>
