@@ -51,11 +51,11 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             <div className="group-data-[state=expanded]/sidebar-wrapper:hidden flex items-center justify-center w-full">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png"
+                  src="/logo-icon.png" // Path to the icon for collapsed sidebar
                   alt="StockSentry Icon"
-                  width={500} 
-                  height={500} 
-                  className="h-14 w-14"
+                  width={500} // Original width of your icon
+                  height={500} // Original height of your icon
+                  className="h-14 w-14" // Display size when collapsed
                   priority
                   data-ai-hint="logo abstract"
                 />
@@ -71,11 +71,11 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
             <Link href="/dashboard" className="block">
               <Image
-                src="/logo.png" 
+                src="/logo.png" // Path to your main logo for expanded sidebar
                 alt="StockSentry Logo"
-                width={1024} 
-                height={1024}
-                className="h-20 w-auto"
+                width={1024} // Original width of your logo
+                height={1024} // Original height of your logo
+                className="h-20 w-auto" // Display size
                 priority
                 data-ai-hint="logo modern"
               />
