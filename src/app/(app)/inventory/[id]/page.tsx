@@ -116,7 +116,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
         title={item.name}
         description={item.description || "No description available."}
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
               <Link href={`/inventory/${item.id}/edit`}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
@@ -164,7 +164,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={Fingerprint} label="SKU" value={item.sku} />
                 <DetailItem icon={Package} label="Quantity" value={item.quantity} />
                 <DetailItem icon={Layers} label="Category" value={item.category} />
-                <DetailItem icon={Archive} label="Subcategory" value={item.subcategory} /> {/* New */}
+                <DetailItem icon={Archive} label="Subcategory" value={item.subcategory} />
                 <DetailItem icon={DollarSign} label="Purchase Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
                 <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
@@ -173,9 +173,9 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 )}
                 <DetailItem icon={PackageOpen} label="Storage Location" value={item.storageLocation} />
                 <DetailItem icon={Tag} label="Bin Location" value={item.binLocation} />
-                <DetailItem icon={Building} label="Room" value={item.room} /> {/* New */}
+                <DetailItem icon={Building} label="Room" value={item.room} />
                 <DetailItem icon={Briefcase} label="Vendor" value={item.vendor} />
-                <DetailItem icon={Construction} label="Project" value={item.project} /> {/* New */}
+                <DetailItem icon={Construction} label="Project" value={item.project} />
                 {item.productUrl && (<DetailItem icon={LinkIcon} label="Product URL" value={item.productUrl} isUrl />)}
                 <DetailItem icon={CalendarDays} label="Purchase Date" value={item.purchaseDate} isDate />
                 {item.status === 'in use' && item.inUseDate && (
@@ -203,7 +203,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
               <div>
                 <h3 className="text-sm font-medium flex items-center"><Barcode className="mr-2 h-4 w-4 text-muted-foreground" /> Barcode Data</h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.barcodeData || 'N/A'}</p>
-                <Image src={`https://placehold.co/300x100.png?text=${item.barcodeData || 'BARCODE'}`} alt="Barcode placeholder" width={300} height={100} className="mt-2 rounded border" data-ai-hint="barcode serial" />
+                <Image src={`https://placehold.co/300x100.png?text=${item.barcodeData || 'BARCODE'}`} alt="Barcode placeholder" width={300} height={100} className="mt-2 rounded border w-full max-w-xs" data-ai-hint="barcode serial" />
               </div>
               <Separator />
               <div>

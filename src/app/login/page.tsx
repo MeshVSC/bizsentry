@@ -46,7 +46,7 @@ export default function LoginPage() {
               alt="StockSentry Logo"
               width={1024} 
               height={1024} 
-              className="h-24 w-auto" // Made it larger for login page
+              className="h-16 sm:h-24 w-auto" // Made responsive: h-16 on small, h-24 on sm and up
               priority
               data-ai-hint="logo company"
             />

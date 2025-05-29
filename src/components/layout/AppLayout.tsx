@@ -48,14 +48,14 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
             {/* Collapsed Logo - Icon Image */}
-            <div className="group-data-[state=expanded]/sidebar-wrapper:hidden flex items-center justify-center w-full">
+            <div className="group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full hidden">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png" // Path to the icon for collapsed sidebar
+                  src="/logo-icon.png" 
                   alt="StockSentry Icon"
-                  width={500} // Original width of your icon
-                  height={500} // Original height of your icon
-                  className="h-14 w-14" // Display size when collapsed
+                  width={500} 
+                  height={500} 
+                  className="h-14 w-14" 
                   priority
                   data-ai-hint="logo abstract"
                 />
@@ -66,35 +66,30 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           <SidebarContent className="p-2 flex-grow">
             <SidebarNav />
           </SidebarContent>
-
+          
           {/* Expanded Logo Section - Placed above the footer */}
-          <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
+          <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden group-data-[mobile=true]:px-2 group-data-[mobile=true]:py-1">
             <Link href="/dashboard" className="block">
-              <Image
-                src="/logo.png" // Path to your main logo for expanded sidebar
-                alt="StockSentry Logo"
-                width={1024} // Original width of your logo
-                height={1024} // Original height of your logo
-                className="h-20 w-auto" // Display size
-                priority
-                data-ai-hint="logo modern"
-              />
+              <div className="leading-tight group-data-[mobile=true]:text-center">
+                <span className="block font-bold text-primary uppercase text-xl group-data-[mobile=true]:text-lg">STOCK</span>
+                <span className="block font-bold text-primary uppercase text-xl group-data-[mobile=true]:text-lg">SENTRY</span>
+              </div>
             </Link>
           </div>
           
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
-            <p className="text-xs text-muted-foreground text-left w-full">
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden group-data-[mobile=true]:px-2 group-data-[mobile=true]:py-1 group-data-[mobile=true]:text-center">
+            <p className="text-xs text-muted-foreground text-left w-full group-data-[mobile=true]:text-center">
               Version {appVersion}
             </p>
           </SidebarFooter>
         </Sidebar>
 
         <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
-          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-4 sm:px-6">
             <div>
                <SidebarTrigger className="text-foreground" />
             </div>
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
               <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 bg-card text-foreground hover:bg-muted">
                 <Bell className="h-5 w-5" />
                 <span className="sr-only">Toggle notifications</span>
@@ -102,7 +97,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
               <UserMenu currentUser={currentUser} />
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6 bg-background">
+          <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background">
             {children}
           </main>
         </div>
