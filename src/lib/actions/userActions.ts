@@ -9,27 +9,28 @@ import { cookies } from 'next/headers';
 // --- VERY IMPORTANT ---
 // THIS IS A PROTOTYPE AUTH SYSTEM AND IS NOT SECURE.
 // Passwords are in plaintext. DO NOT USE IN PRODUCTION.
-// For production, use a proper auth solution (e.g., NextAuth.js, Firebase Auth)
-// and proper password hashing (e.g., bcrypt, Argon2).
 // --- VERY IMPORTANT ---
 
-// Define initialUsersSeed at the top level of the module
 const initialUsersSeed: User[] = [
   { id: "1", username: "admin", password: "adminpassword", role: "admin" },
   { id: "2", username: "viewer", password: "viewerpassword", role: "viewer" },
   { id: "3", username: "manager_user", password: "managerpassword", role: "manager" },
 ];
 
-// Main initialization for the module.
-// This ensures _usersStore is initialized when the module is first loaded.
-if (typeof globalThis._usersStore === "undefined") {
-  // Use a deep copy to prevent modification of the seed array if _usersStore is directly assigned this.
-  globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
+function ensureUsersStoreInitialized() {
+  if (typeof globalThis._usersStore === 'undefined') {
+    // console.log("Initializing _usersStore via ensureUsersStoreInitialized"); // For debugging
+    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
+  }
 }
+
+// Ensure it's called once at module level as a baseline
+ensureUsersStoreInitialized();
 
 export async function loginUser(
   formData: FormData
 ): Promise<{ success: boolean; message?: string; user?: CurrentUser }> {
+  ensureUsersStoreInitialized();
   const username = formData.get("username") as string;
   const password = formData.get("password") as string;
 
@@ -37,10 +38,6 @@ export async function loginUser(
     return { success: false, message: "Username and password are required." };
   }
 
-  // Ensure users store is available
-  if (typeof globalThis._usersStore === "undefined") {
-      globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
   const users: User[] = globalThis._usersStore;
   const user = users.find(
     (u) => u.username === username && u.password === password
@@ -50,12 +47,13 @@ export async function loginUser(
     const currentUserData: CurrentUser = { id: user.id, username: user.username, role: user.role };
     cookies().set('sessionUserId', user.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // True for HTTPS, false for HTTP
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
-      sameSite: 'lax', // Good default for security
+      sameSite: 'lax',
     });
-    revalidatePath("/", "layout"); 
+    // Removing revalidatePath from here, relying on client-side router.refresh()
+    // revalidatePath("/", "layout"); 
     return { success: true, user: currentUserData };
   } else {
     return { success: false, message: "Invalid username or password." };
@@ -67,20 +65,18 @@ export async function logoutUser() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 0, // Expire the cookie
+    maxAge: 0, 
     sameSite: 'lax',
   });
-  revalidatePath("/", "layout");
+  revalidatePath("/", "layout"); // Revalidate all after logout to ensure UI reflects logged-out state
   redirect("/login");
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  await new Promise(resolve => setTimeout(resolve, 10)); // Simulate small delay
+  await new Promise(resolve => setTimeout(resolve, 10)); 
+  ensureUsersStoreInitialized();
+  
   const userId = cookies().get('sessionUserId')?.value;
-
-  if (typeof globalThis._usersStore === "undefined") {
-    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
   const users: User[] = globalThis._usersStore;
 
   if (userId && users) { 
@@ -94,17 +90,13 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
 export async function getUsers(): Promise<UserView[]> {
   await new Promise(resolve => setTimeout(resolve, 50));
-  if (typeof globalThis._usersStore === "undefined") {
-    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
+  ensureUsersStoreInitialized();
   const users: User[] = globalThis._usersStore;
   return users.map(({ password, ...userView }) => userView);
 }
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  if (typeof globalThis._usersStore === "undefined") {
-    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
+  ensureUsersStoreInitialized();
   const users: User[] = globalThis._usersStore;
 
   if (!data.username || !data.password || !data.role) {
@@ -117,7 +109,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const newUser: User = {
     id: crypto.randomUUID(),
     username: data.username,
-    password: data.password, // Storing plaintext password
+    password: data.password, 
     role: data.role,
   };
   users.push(newUser); 
@@ -128,9 +120,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  if (typeof globalThis._usersStore === "undefined") {
-    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
+  ensureUsersStoreInitialized();
   const users: User[] = globalThis._usersStore;
   const userIndex = users.findIndex(u => u.id === userId);
 
@@ -138,7 +128,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     return { success: false, message: "User not found." };
   }
 
-  const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser(); // This will also ensure store is initialized
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to change roles." };
   }
@@ -154,9 +144,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   revalidatePath("/settings/users", "page");
   if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
-    // If admin changes their own role, the session cookie remains valid (userId)
-    // but next getCurrentUser() call will reflect the new role from _usersStore.
-    // A layout revalidation helps refresh components that might depend on role.
     revalidatePath("/", "layout"); 
   }
 
@@ -165,9 +152,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  if (typeof globalThis._usersStore === "undefined") {
-    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
+  ensureUsersStoreInitialized();
   let users: User[] = globalThis._usersStore; 
   const userIndex = users.findIndex(u => u.id === userId);
 
@@ -175,7 +160,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     return { success: false, message: "User not found." };
   }
 
-  const currentUser = await getCurrentUser();
+  const currentUser = await getCurrentUser(); // This will also ensure store is initialized
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to delete users." };
   }
@@ -196,10 +181,3 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   revalidatePath("/settings/users", "page");
   return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
 }
-
-// TODO: Item 5: Password Reset Functionality
-// Implement password reset functionality. This will require a mechanism for users
-// to securely verify their identity (e.g., email verification, security questions if desired,
-// or admin-initiated reset). Current system does not store emails.
-// This is a significant feature and needs careful design.
-
