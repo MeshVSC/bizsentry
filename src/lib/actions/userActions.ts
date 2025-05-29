@@ -14,18 +14,9 @@ import { revalidatePath } from "next/cache";
 
 if (typeof globalThis._usersStore === "undefined") {
   globalThis._usersStore = [
-    {
-      id: "1",
-      username: "admin",
-      password: "adminpassword", // Storing plaintext for prototype simplicity
-      role: "admin",
-    },
-    {
-      id: "2",
-      username: "viewer",
-      password: "viewerpassword", // Storing plaintext for prototype simplicity
-      role: "viewer",
-    },
+    { id: "1", username: "admin", password: "adminpassword", role: "admin" },
+    { id: "2", username: "viewer", password: "viewerpassword", role: "viewer" },
+    { id: "3", username: "manager_user", password: "managerpassword", role: "manager" },
   ];
 }
 
@@ -43,17 +34,13 @@ export async function loginUser(
     return { success: false, message: "Username and password are required." };
   }
 
-  const users: User[] = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore || [];
   const user = users.find(
-    (u) => u.username === username && u.password === password // Plaintext check for prototype
+    (u) => u.username === username && u.password === password
   );
 
   if (user) {
-    const currentUserData: CurrentUser = {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-    };
+    const currentUserData: CurrentUser = { id: user.id, username: user.username, role: user.role };
     globalThis._currentUserStore = currentUserData;
     revalidatePath("/", "layout");
     return { success: true, user: currentUserData };
@@ -73,17 +60,14 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return globalThis._currentUserStore ? { ...globalThis._currentUserStore } : null;
 }
 
-// --- User Management Actions (Admin) ---
-
 export async function getUsers(): Promise<UserView[]> {
-  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async
-  const users: User[] = globalThis._usersStore;
-  // Return users without passwords
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const users: User[] = globalThis._usersStore || [];
   return users.map(({ password, ...userView }) => userView);
 }
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  const users: User[] = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore || [];
   if (!data.username || !data.password || !data.role) {
     return { success: false, message: "Username, password, and role are required." };
   }
@@ -94,27 +78,31 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const newUser: User = {
     id: crypto.randomUUID(),
     username: data.username,
-    password: data.password, // Storing plaintext
+    password: data.password,
     role: data.role,
   };
   users.push(newUser);
   globalThis._usersStore = users;
 
-  revalidatePath("/settings/options", "page");
+  revalidatePath("/settings/users", "page"); // Corrected path
   const { password, ...userView } = newUser;
   return { success: true, message: `User "${newUser.username}" added successfully.`, user: userView };
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  const users: User[] = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore || [];
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
     return { success: false, message: "User not found." };
   }
-
-  // Basic check: don't let the last admin be demoted (simple version)
+  
   const currentUser = await getCurrentUser();
+  // Prevent non-admins from changing roles, or admin from demoting last admin
+  if (currentUser?.role !== 'admin') {
+      return { success: false, message: "Permission denied to change roles." };
+  }
+
   if (users[userIndex].role === 'admin' && newRole !== 'admin') {
     const adminCount = users.filter(u => u.role === 'admin').length;
     if (adminCount <= 1) {
@@ -125,11 +113,10 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   users[userIndex].role = newRole;
   globalThis._usersStore = users;
 
-  revalidatePath("/settings/options", "page");
-  // If the updated user is the currently logged-in user, update their session role too
-  if (currentUser && currentUser.id === userId) {
+  revalidatePath("/settings/users", "page"); // Corrected path
+  if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
     globalThis._currentUserStore = { ...currentUser, role: newRole };
-    revalidatePath("/", "layout"); // Revalidate all layouts if current user's role changed
+    revalidatePath("/", "layout"); 
   }
 
   const { password, ...userView } = users[userIndex];
@@ -137,20 +124,21 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  const users: User[] = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore || [];
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
     return { success: false, message: "User not found." };
   }
 
-  // Prevent deleting the currently logged-in user (especially if admin)
   const currentUser = await getCurrentUser();
+  if (currentUser?.role !== 'admin') {
+      return { success: false, message: "Permission denied to delete users." };
+  }
   if (currentUser && currentUser.id === userId) {
     return { success: false, message: "Cannot delete the currently logged-in user." };
   }
   
-  // Prevent deleting the last admin (simple check)
   if (users[userIndex].role === 'admin') {
     const adminCount = users.filter(u => u.role === 'admin').length;
     if (adminCount <= 1) {
@@ -162,6 +150,12 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   users.splice(userIndex, 1);
   globalThis._usersStore = users;
 
-  revalidatePath("/settings/options", "page");
+  revalidatePath("/settings/users", "page"); // Corrected path
   return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
 }
+
+// TODO: Placeholder for Item 5: Password Reset Functionality
+// Implement password reset functionality. This will require a mechanism for users
+// to securely verify their identity (e.g., email verification, security questions if desired,
+// or admin-initiated reset). Current system does not store emails.
+// This is a significant feature and needs careful design.
