@@ -2,37 +2,42 @@
 "use client";
 
 import { useState, useTransition } from "react";
-// import { useRouter } from "next/navigation"; // No longer needed for push/refresh here
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { loginUser } from "@/lib/actions/userActions";
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase/client"; // Import Supabase client
 
 export default function LoginPage() {
-  // const router = useRouter(); // No longer needed for push/refresh here
+  const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      // The loginUser action will now handle the redirect on success.
-      // It might return an error object if login fails before redirecting.
-      const result = await loginUser(formData);
-      if (result && result.success === false) { // Check if loginUser returned an error object
-        setError(result.message || "Login failed. Please try again.");
-        toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        toast({ title: "Login Failed", description: signInError.message, variant: "destructive" });
+      } else {
+        toast({ title: "Login Successful", description: "Redirecting to dashboard..." });
+        router.push("/dashboard"); // Redirect to dashboard on successful login
+        router.refresh(); // Refresh to ensure layout picks up new auth state
       }
-      // If loginUser redirects, this part of the code might not be reached,
-      // or result might be undefined. If it successfully redirects, no client-side action is needed.
     });
   };
 
@@ -41,16 +46,16 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 mt-4 mx-auto">
-             <div className="inline-block text-center">
-                <Image
-                  src="/logo.png"
-                  alt="StockSentry Logo"
-                  width={1024}
-                  height={1024}
-                  className="h-16 sm:h-24 w-auto mx-auto"
-                  priority
-                  data-ai-hint="logo company"
-                />
+            <div className="inline-block text-center">
+              <Image
+                src="/logo.png"
+                alt="StockSentry Logo"
+                width={1024}
+                height={1024}
+                className="h-16 sm:h-24 w-auto mx-auto"
+                priority
+                data-ai-hint="logo company"
+              />
             </div>
           </div>
           <CardDescription className="text-muted-foreground pt-2">
@@ -60,14 +65,16 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                name="username"
-                type="text"
-                placeholder="admin"
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
                 required
                 disabled={isPending}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -76,9 +83,11 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 type="password"
-                placeholder="adminpassword"
+                placeholder="••••••••"
                 required
                 disabled={isPending}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             {error && (

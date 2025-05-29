@@ -1,180 +1,115 @@
 
 "use server";
 
-import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
-import { redirect } from "next/navigation";
+import type { User, UserRole, UserFormInput, UserView } from "@/types/user";
 import { revalidatePath } from "next/cache";
-import { cookies } from 'next/headers';
+// Removed: redirect from 'next/navigation' (login/logout redirects are client-side or in AppLayout)
+// Removed: cookies from 'next/headers' (Supabase handles its own session/cookie management)
 
-// --- VERY IMPORTANT ---
-// THIS IS A PROTOTYPE AUTH SYSTEM AND IS NOT SECURE.
-// Passwords are in plaintext. DO NOT USE IN PRODUCTION.
-// --- VERY IMPORTANT ---
+// --- IMPORTANT ---
+// The user management functions (getUsers, addUser, updateUserRole, deleteUser)
+// now manage an IN-MEMORY list of users and roles (globalThis._usersStore)
+// which is SEPARATE from Supabase authentication.
+// Users logging in via Supabase are authenticated by Supabase.
+// Their roles for THIS APP would ideally be managed by mapping Supabase user IDs/emails
+// to roles defined in this _usersStore or a dedicated roles table in your Supabase DB.
+// For this interim step, the "User Management" page in settings will edit _usersStore,
+// but it won't directly affect Supabase-authenticated users' roles without further integration.
+// --- IMPORTANT ---
 
 const initialUsersSeed: User[] = [
-  { id: "1", username: "admin", password: "adminpassword", role: "admin" },
-  { id: "2", username: "viewer", password: "viewerpassword", role: "viewer" },
-  { id: "3", username: "manager_user", password: "managerpassword", role: "manager" },
+  { id: "1", username: "admin@example.com", password: "adminpassword", role: "admin" },
+  { id: "2", username: "viewer@example.com", password: "viewerpassword", role: "viewer" },
+  { id: "3", username: "manager@example.com", password: "managerpassword", role: "manager" },
 ];
 
 function ensureUsersStoreInitialized() {
-  if (typeof globalThis._usersStore === 'undefined') {
-    // console.log("Initializing _usersStore via ensureUsersStoreInitialized"); // For debugging
+  if (typeof globalThis._usersStore === "undefined") {
     globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
   }
 }
 
-// Ensure it's called once at module level as a baseline
-ensureUsersStoreInitialized();
-
-export async function loginUser(
-  formData: FormData
-): Promise<{ success: boolean; message?: string; user?: CurrentUser }> {
-  ensureUsersStoreInitialized();
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
-
-  if (!username || !password) {
-    return { success: false, message: "Username and password are required." };
-  }
-
-  const users: User[] = globalThis._usersStore;
-  const user = users.find(
-    (u) => u.username === username && u.password === password
-  );
-
-  if (user) {
-    const currentUserData: CurrentUser = { id: user.id, username: user.username, role: user.role };
-    cookies().set('sessionUserId', user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      sameSite: 'lax',
-    });
-    // No server-side revalidatePath here, client-side router.refresh() or redirect handles it.
-    // Forcing redirect from server action
-    redirect('/dashboard');
-    // The lines below are effectively unreachable due to redirect, but kept for structural consistency
-    // return { success: true, user: currentUserData }; 
-  } else {
-    return { success: false, message: "Invalid username or password." };
-  }
-}
-
-export async function logoutUser() {
-  cookies().set('sessionUserId', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: 0, 
-    sameSite: 'lax',
-  });
-  revalidatePath("/", "layout"); // Revalidate all after logout to ensure UI reflects logged-out state
-  redirect("/login");
-}
-
-export async function getCurrentUser(): Promise<CurrentUser | null> {
-  await new Promise(resolve => setTimeout(resolve, 10)); 
-  ensureUsersStoreInitialized();
-  
-  const userId = cookies().get('sessionUserId')?.value;
-  const users: User[] = globalThis._usersStore;
-
-  if (userId && users) { 
-    const userFromStore = users.find(u => u.id === userId);
-    if (userFromStore) {
-      return { id: userFromStore.id, username: userFromStore.username, role: userFromStore.role };
-    }
-  }
-  return null;
-}
+// No-op for login, logout, getCurrentUser as Supabase handles this client-side.
+// These functions are removed as they are replaced by Supabase auth client methods.
 
 export async function getUsers(): Promise<UserView[]> {
-  await new Promise(resolve => setTimeout(resolve, 50));
   ensureUsersStoreInitialized();
-  const users: User[] = globalThis._usersStore;
+  await new Promise(resolve => setTimeout(resolve, 50));
+  const users: User[] = globalThis._usersStore || [];
+  // Ensure password is not returned
   return users.map(({ password, ...userView }) => userView);
 }
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
   ensureUsersStoreInitialized();
-  const users: User[] = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore || [];
 
   if (!data.username || !data.password || !data.role) {
-    return { success: false, message: "Username, password, and role are required." };
+    return { success: false, message: "Username (email), password, and role are required." };
   }
   if (users.find(u => u.username.toLowerCase() === data.username.toLowerCase())) {
-    return { success: false, message: `Username "${data.username}" already exists.` };
+    return { success: false, message: `User with email "${data.username}" already exists in local store.` };
   }
 
   const newUser: User = {
     id: crypto.randomUUID(),
-    username: data.username,
-    password: data.password, 
+    username: data.username, // This should ideally be an email for Supabase
+    password: data.password, // Storing plaintext for prototype simplicity
     role: data.role,
   };
-  users.push(newUser); 
+  users.push(newUser);
+  globalThis._usersStore = users;
 
   revalidatePath("/settings/users", "page");
   const { password, ...userView } = newUser;
-  return { success: true, message: `User "${newUser.username}" added successfully.`, user: userView };
+  return { success: true, message: `User "${newUser.username}" added to local store. Note: This does NOT create a Supabase user.`, user: userView };
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
   ensureUsersStoreInitialized();
-  const users: User[] = globalThis._usersStore;
+  const users: User[] = globalThis._usersStore || [];
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
-    return { success: false, message: "User not found." };
+    return { success: false, message: "User not found in local store." };
   }
-
-  const currentUser = await getCurrentUser();
-  if (currentUser?.role !== 'admin') {
-      return { success: false, message: "Permission denied to change roles." };
-  }
+  
+  // For role updates, we'd typically check the *calling* user's permissions.
+  // This logic needs to be re-evaluated with Supabase auth.
+  // For now, assuming an admin is calling this from the UI.
 
   if (users[userIndex].role === 'admin' && newRole !== 'admin') {
     const adminCount = users.filter(u => u.role === 'admin').length;
     if (adminCount <= 1) {
-      return { success: false, message: "Cannot remove the last administrator's role." };
+      return { success: false, message: "Cannot remove the last administrator's role from local store." };
     }
   }
   
   users[userIndex].role = newRole;
+  globalThis._usersStore = users;
 
   revalidatePath("/settings/users", "page");
-  if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
-    // If current user's role changed, revalidate everything to update layout/permissions
-    revalidatePath("/", "layout"); 
-  }
 
   const { password, ...userView } = users[userIndex];
-  return { success: true, message: `User "${userView.username}" role updated to ${newRole}.`, user: userView };
+  return { success: true, message: `User "${userView.username}" role updated to ${newRole} in local store.`, user: userView };
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   ensureUsersStoreInitialized();
-  let users: User[] = globalThis._usersStore; 
+  let users: User[] = globalThis._usersStore || [];
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
-    return { success: false, message: "User not found." };
+    return { success: false, message: "User not found in local store." };
   }
 
-  const currentUser = await getCurrentUser(); 
-  if (currentUser?.role !== 'admin') {
-      return { success: false, message: "Permission denied to delete users." };
-  }
-  if (currentUser && currentUser.id === userId) {
-    return { success: false, message: "Cannot delete the currently logged-in user." };
-  }
+  // Permission check needed here based on calling Supabase user's role.
+  // For now, assuming an admin is calling.
   
   if (users[userIndex].role === 'admin') {
     const adminCount = users.filter(u => u.role === 'admin').length;
     if (adminCount <= 1) {
-        return { success: false, message: "Cannot delete the last administrator." };
+        return { success: false, message: "Cannot delete the last administrator from local store." };
     }
   }
 
@@ -182,11 +117,15 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   globalThis._usersStore = users.filter(u => u.id !== userId);
 
   revalidatePath("/settings/users", "page");
-  return { success: true, message: `User "${deletedUsername}" deleted successfully.` };
+  return { success: true, message: `User "${deletedUsername}" deleted from local store.` };
 }
 
-// TODO: Item 5: Password Reset Functionality (Placeholder from user request)
-// Implement password reset functionality. This will require a mechanism for users
-// to securely verify their identity (e.g., email verification, security questions if desired,
-// or admin-initiated reset). Current system does not store emails.
-// This is a significant feature and needs careful design.
+// Function to get app-specific role for a Supabase authenticated user
+// This is a placeholder for how you might map Supabase users to your internal roles
+export async function getRoleForSupabaseUser(supabaseEmail: string | undefined): Promise<UserRole | null> {
+  if (!supabaseEmail) return null;
+  ensureUsersStoreInitialized();
+  const users: User[] = globalThis._usersStore || [];
+  const appUser = users.find(u => u.username.toLowerCase() === supabaseEmail.toLowerCase());
+  return appUser ? appUser.role : null;
+}
