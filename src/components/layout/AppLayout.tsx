@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from '@/components/ui/separator';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -45,20 +46,20 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           collapsible="icon"
           className="flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
         >
-          <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
-            {/* Content for expanded header - can be empty if logo is below nav */}
-            <div className="w-full group-data-[state=collapsed]/sidebar-wrapper:hidden">
-              {/* Intentionally empty, main logo is in its own div below nav */}
+          <SidebarHeader className="p-4 h-16 flex items-center justify-between border-b border-sidebar-border">
+            {/* Content for expanded header */}
+            <div className="w-full group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+              {/* Intentionally empty for expanded state, main logo is placed lower */}
             </div>
-            {/* Content for collapsed header */}
-            <div className="w-full hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center">
+            {/* Content for collapsed header - Icon Logo */}
+            <div className="w-full hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png" // Assumes logo-icon.png is in /public
+                  src="/logo-icon.png"
                   alt="StockSentry Icon"
-                  width={28}
-                  height={28}
-                  className="h-7 w-7"
+                  width={500} // Updated
+                  height={500} // Updated
+                  className="h-7 w-7" // Controls display size
                   data-ai-hint="logo abstract"
                 />
               </Link>
@@ -70,24 +71,27 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           </SidebarContent>
 
           {/* Logo Section - Placed above the footer */}
-          <div className="px-4 pb-2 pt-4 text-primary uppercase font-bold">
-            {/* Expanded Logo: Image */}
-            <div className="group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
-              <Link href="/dashboard" className="block">
-                <Image
-                  src="/logo.png" // Assumes logo.png is in /public
-                  alt="StockSentry Logo"
-                  width={160}
-                  height={40}
-                  className="h-10 w-auto"
-                  data-ai-hint="logo modern"
-                />
-              </Link>
-            </div>
-            {/* Collapsed Logo is handled by SidebarHeader */}
+          {/* Expanded Logo: "STOCK" over "SENTRY" or Image, left-aligned */}
+          <div className="px-4 pb-2 pt-4 group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+            <Link href="/dashboard" className="block">
+              <Image
+                src="/logo.png"
+                alt="StockSentry Logo"
+                width={1024} // Updated
+                height={1024} // Updated
+                className="h-10 w-auto" // Controls display size, e.g., max height of 40px
+                data-ai-hint="logo modern"
+              />
+            </Link>
           </div>
 
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
+          {/* Collapsed Logo - Vertical Text (If Image for collapsed is handled in Header) */}
+          <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex flex-col items-center text-center py-4">
+            {/* This section could be used if the icon logo wasn't in the header, or for an alternative collapsed view */}
+            {/* For now, the icon logo in SidebarHeader is primary for collapsed state */}
+          </div>
+
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
@@ -117,7 +121,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 }
 
 function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
-  const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SP";
+  const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SS"; // Updated fallback
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
