@@ -55,6 +55,7 @@ export async function loginUser(
       maxAge: 60 * 60 * 24 * 7, // 7 days
       sameSite: 'lax', // Good default for security
     });
+    revalidatePath("/", "layout"); // Re-add this to try and force a full refresh
     return { success: true, user: currentUserData };
   } else {
     return { success: false, message: "Invalid username or password." };
@@ -74,7 +75,7 @@ export async function logoutUser() {
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  await new Promise(resolve => setTimeout(resolve, 10));
+  await new Promise(resolve => setTimeout(resolve, 10)); // Simulate small delay
   const userId = cookies().get('sessionUserId')?.value;
 
   // Defensive check and re-initialization for _usersStore
@@ -118,7 +119,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const newUser: User = {
     id: crypto.randomUUID(),
     username: data.username,
-    password: data.password,
+    password: data.password, // Storing plaintext password
     role: data.role,
   };
   users.push(newUser); // This modifies the array referenced by globalThis._usersStore
@@ -140,6 +141,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   }
 
   const currentUser = await getCurrentUser();
+  // Prevent non-admins from changing roles, or admin from demoting last admin
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to change roles." };
   }
@@ -150,20 +152,20 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
       return { success: false, message: "Cannot remove the last administrator's role." };
     }
   }
-
+  
   users[userIndex].role = newRole;
+  // globalThis._usersStore is already the 'users' array reference, so modification is direct.
 
   revalidatePath("/settings/users", "page");
-
+  // If the current user's role was changed, we need to update their session/cookie if that matters
+  // For this prototype, getCurrentUser will re-fetch, but a real app might need more proactive session update.
   if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
-    cookies().set('sessionUserId', currentUser.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-      sameSite: 'lax',
-    });
-    revalidatePath("/", "layout");
+    // Re-set the cookie with potentially updated info, though role isn't stored in cookie itself
+    // This is more about forcing re-evaluation if session data was cached based on role.
+    // However, our current cookie only stores userId. getCurrentUser re-fetches role.
+    // So this might not be strictly necessary unless other parts of system cache CurrentUser object.
+    // Forcing a layout revalidation is generally good.
+    revalidatePath("/", "layout"); 
   }
 
   const { password, ...userView } = users[userIndex];
@@ -174,7 +176,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   if (typeof globalThis._usersStore === "undefined") {
     globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
   }
-  let users: User[] = globalThis._usersStore;
+  let users: User[] = globalThis._usersStore; // Get a reference to the global store
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
@@ -182,14 +184,16 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   }
 
   const currentUser = await getCurrentUser();
+  // Prevent non-admins from deleting users
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to delete users." };
   }
-
+  // Prevent admin from deleting themselves
   if (currentUser && currentUser.id === userId) {
     return { success: false, message: "Cannot delete the currently logged-in user." };
   }
-
+  
+  // Prevent deleting the last admin
   if (users[userIndex].role === 'admin') {
     const adminCount = users.filter(u => u.role === 'admin').length;
     if (adminCount <= 1) {
@@ -210,3 +214,5 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 // to securely verify their identity (e.g., email verification, security questions if desired,
 // or admin-initiated reset). Current system does not store emails.
 // This is a significant feature and needs careful design.
+
+    
