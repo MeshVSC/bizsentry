@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image'; // Ensure next/image is imported
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
@@ -48,20 +48,19 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
             {/* Collapsed Logo - Icon Image */}
-            <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
+            <div className="group-data-[state=expanded]/sidebar-wrapper:hidden flex items-center justify-center w-full">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png" // Path from public folder
+                  src="/logo-icon.png"
                   alt="StockSentry Icon"
-                  width={500} // Actual width of your logo-icon.png
-                  height={500} // Actual height of your logo-icon.png
-                  className="h-7 w-7" // Display size
+                  width={500} 
+                  height={500} 
+                  className="h-14 w-14" // Doubled from h-7 w-7
                   priority
                   data-ai-hint="logo abstract"
                 />
               </Link>
             </div>
-            {/* Placeholder for expanded header content if any, or keep it for the border */}
           </SidebarHeader>
 
           <SidebarContent className="p-2 flex-grow">
@@ -72,29 +71,17 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
             <Link href="/dashboard" className="block">
               <Image
-                src="/logo.png" // Path from public folder
+                src="/logo.png" 
                 alt="StockSentry Logo"
-                width={1024} // Actual width of your logo.png
-                height={1024} // Actual height of your logo.png
-                className="h-10 w-auto" // Display size
+                width={1024} 
+                height={1024}
+                className="h-20 w-auto" // Doubled from h-10
                 priority
                 data-ai-hint="logo modern"
               />
             </Link>
           </div>
           
-          {/* Collapsed Logo: Vertical letters - This is for when image doesn't work / as alternative */}
-          <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
-            <Link href="/dashboard">
-              <div className="text-primary font-bold uppercase text-xs tracking-wider space-y-0">
-                {'STOCK'.split('').map(char => <span key={char} className="block">{char}</span>)}
-                <div className="h-2"></div> {/* Small spacer */}
-                {'SENTRY'.split('').map(char => <span key={char} className="block">{char}</span>)}
-              </div>
-            </Link>
-          </div>
-
-
           <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
