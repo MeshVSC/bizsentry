@@ -31,8 +31,6 @@ declare var _appSettingsStore: import('@/lib/actions/settingsActions').AppSettin
 // eslint-disable-next-line no-var
 declare var _usersStore: import('@/types/user').User[];
 // _currentUserStore is no longer used as sessions are cookie-based.
-// eslint-disable-next-line no-var
-// declare var _currentUserStore: import('@/types/user').CurrentUser | null;
 
 
 // TODO: Item 5: Password Reset Functionality (Placeholder from user request)
@@ -46,3 +44,4 @@ declare var _usersStore: import('@/types/user').User[];
 // TODO: Item 10: Dashboard View Refinement (Placeholder from user request)
 // Review and refine the dashboard layout and information displayed
 // based on user feedback and evolving needs.
+

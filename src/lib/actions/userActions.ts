@@ -39,8 +39,6 @@ export async function loginUser(
 
   // Ensure users store is available
   if (typeof globalThis._usersStore === "undefined") {
-      // This should ideally not be hit if the top-level initialization works,
-      // but as a fallback for extreme dev server scenarios:
       globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
   }
   const users: User[] = globalThis._usersStore;
@@ -57,7 +55,7 @@ export async function loginUser(
       maxAge: 60 * 60 * 24 * 7, // 7 days
       sameSite: 'lax', // Good default for security
     });
-    revalidatePath("/", "layout"); // Re-add this to try and force a full refresh
+    revalidatePath("/", "layout"); 
     return { success: true, user: currentUserData };
   } else {
     return { success: false, message: "Invalid username or password." };
@@ -69,7 +67,7 @@ export async function logoutUser() {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: 0,
+    maxAge: 0, // Expire the cookie
     sameSite: 'lax',
   });
   revalidatePath("/", "layout");
@@ -80,14 +78,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   await new Promise(resolve => setTimeout(resolve, 10)); // Simulate small delay
   const userId = cookies().get('sessionUserId')?.value;
 
-  // Defensive check and re-initialization for _usersStore
-  // This is a workaround for potential dev server inconsistencies with globalThis state.
   if (typeof globalThis._usersStore === "undefined") {
     globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
   }
   const users: User[] = globalThis._usersStore;
 
-  if (userId && users) { // Ensure users array exists
+  if (userId && users) { 
     const userFromStore = users.find(u => u.id === userId);
     if (userFromStore) {
       return { id: userFromStore.id, username: userFromStore.username, role: userFromStore.role };
@@ -124,7 +120,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     password: data.password, // Storing plaintext password
     role: data.role,
   };
-  users.push(newUser); // This modifies the array referenced by globalThis._usersStore
+  users.push(newUser); 
 
   revalidatePath("/settings/users", "page");
   const { password, ...userView } = newUser;
@@ -143,7 +139,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   }
 
   const currentUser = await getCurrentUser();
-  // Prevent non-admins from changing roles, or admin from demoting last admin
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to change roles." };
   }
@@ -156,13 +151,12 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   }
   
   users[userIndex].role = newRole;
-  // globalThis._usersStore is already the 'users' array reference, so modification is direct.
 
   revalidatePath("/settings/users", "page");
-  // If the current user's role was changed, we need to update their session/cookie if that matters
-  // For this prototype, getCurrentUser will re-fetch, but a real app might need more proactive session update.
-  // Forcing a layout revalidation is generally good.
   if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
+    // If admin changes their own role, the session cookie remains valid (userId)
+    // but next getCurrentUser() call will reflect the new role from _usersStore.
+    // A layout revalidation helps refresh components that might depend on role.
     revalidatePath("/", "layout"); 
   }
 
@@ -174,7 +168,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   if (typeof globalThis._usersStore === "undefined") {
     globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
   }
-  let users: User[] = globalThis._usersStore; // Get a reference to the global store
+  let users: User[] = globalThis._usersStore; 
   const userIndex = users.findIndex(u => u.id === userId);
 
   if (userIndex === -1) {
@@ -182,16 +176,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   }
 
   const currentUser = await getCurrentUser();
-  // Prevent non-admins from deleting users
   if (currentUser?.role !== 'admin') {
       return { success: false, message: "Permission denied to delete users." };
   }
-  // Prevent admin from deleting themselves
   if (currentUser && currentUser.id === userId) {
     return { success: false, message: "Cannot delete the currently logged-in user." };
   }
   
-  // Prevent deleting the last admin
   if (users[userIndex].role === 'admin') {
     const adminCount = users.filter(u => u.role === 'admin').length;
     if (adminCount <= 1) {
@@ -200,7 +191,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   }
 
   const deletedUsername = users[userIndex].username;
-  // Filter out the user and reassign to globalThis._usersStore
   globalThis._usersStore = users.filter(u => u.id !== userId);
 
   revalidatePath("/settings/users", "page");
@@ -212,3 +202,4 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 // to securely verify their identity (e.g., email verification, security questions if desired,
 // or admin-initiated reset). Current system does not store emails.
 // This is a significant feature and needs careful design.
+
