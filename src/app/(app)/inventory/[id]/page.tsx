@@ -5,7 +5,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Barcode, QrCode, Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIcon, TrendingUp, TrendingDown, ShoppingCart, Fingerprint, Link as LinkIcon, Archive, PackageOpen, Construction, Building } from 'lucide-react'; 
+import { Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIconProp, Link as LinkIcon, Archive, PackageOpen, Construction, Building, Fingerprint, QrCode as QrCodeIcon, Barcode as BarcodeIcon } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { SubmitButton } from '@/components/shared/SubmitButton';
 import { cn } from "@/lib/utils";
+import QRCodeDisplay from '@/components/shared/QRCodeDisplay';
+import BarcodeDisplay from '@/components/shared/BarcodeDisplay';
 
 async function DeleteItemAction({ itemId }: { itemId: string }) {
   const deleteItemWithId = async () => {
@@ -49,7 +51,7 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 
   let displayValue: React.ReactNode = String(value);
   if (isCurrency && typeof value === 'number') {
-    displayValue = `$${value.toFixed(2)}`; // Uses dot for decimals
+    displayValue = `$${value.toFixed(2)}`; 
   } else if (isDate && typeof value === 'string') {
     try {
       displayValue = new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -99,9 +101,9 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   }
 
   const statusColors: Record<string, string> = {
-    'in stock': 'bg-green-100 text-green-700',
-    'in use': 'bg-blue-100 text-blue-700',
-    'sold': 'bg-red-100 text-red-700',
+    'in stock': 'bg-green-700/20 text-green-400 border-green-700/50',
+    'in use': 'bg-blue-700/20 text-blue-400 border-blue-700/50',
+    'sold': 'bg-red-700/20 text-red-400 border-red-700/50',
   };
   const statusText: Record<string, string> = {
     'in stock': 'In Stock',
@@ -167,7 +169,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={Archive} label="Subcategory" value={item.subcategory} />
                 <DetailItem icon={DollarSign} label="Purchase Price" value={item.originalPrice} isCurrency />
                 <DetailItem icon={DollarSign} label="Sales Price" value={item.salesPrice} isCurrency />
-                <DetailItem icon={ShoppingCart} label="MSRP" value={item.msrp} isCurrency />
+                <DetailItem icon={DollarSign} label="MSRP" value={item.msrp} isCurrency /> {/* Changed icon for MSRP */}
                 {profitLoss !== null && (
                   <DetailItem icon={profitLossIcon} label="Est. Profit/Loss" value={profitLoss} isCurrency className={profitLossColor} />
                 )}
@@ -188,7 +190,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <DetailItem icon={CalendarDays} label="Last Updated" value={item.updatedAt} isDate />
               </div>
                <div className="mt-4">
-                <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize ${statusColors[item.status] || 'bg-gray-100 text-gray-700'}`}>
+                <span className={`px-3 py-1 text-xs font-semibold rounded-full capitalize border ${statusColors[item.status] || 'bg-card text-foreground border-border'}`}>
                   {statusText[item.status] || item.status}
                 </span>
               </div>
@@ -201,15 +203,15 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             <CardHeader><CardTitle>Codes</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium flex items-center"><Barcode className="mr-2 h-4 w-4 text-muted-foreground" /> Barcode Data</h3>
+                <h3 className="text-sm font-medium flex items-center"><BarcodeIcon className="mr-2 h-4 w-4 text-muted-foreground" /> Barcode Data</h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.barcodeData || 'N/A'}</p>
-                <Image src={`https://placehold.co/300x100.png?text=${item.barcodeData || 'BARCODE'}`} alt="Barcode placeholder" width={300} height={100} className="mt-2 rounded border w-full max-w-xs" data-ai-hint="barcode serial" />
+                {item.barcodeData && <BarcodeDisplay value={item.barcodeData} className="mt-2 mx-auto" />}
               </div>
               <Separator />
               <div>
-                <h3 className="text-sm font-medium flex items-center"><QrCode className="mr-2 h-4 w-4 text-muted-foreground" /> QR Code Data</h3>
+                <h3 className="text-sm font-medium flex items-center"><QrCodeIcon className="mr-2 h-4 w-4 text-muted-foreground" /> QR Code Data</h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.qrCodeData || 'N/A'}</p>
-                <Image src={`https://placehold.co/150x150.png?text=${item.qrCodeData || 'QRCODE'}`} alt="QR Code placeholder" width={150} height={150} className="mt-2 rounded border" data-ai-hint="qrcode link" />
+                 {item.qrCodeData && <QRCodeDisplay value={item.qrCodeData} size={150} className="mt-2" />}
               </div>
             </CardContent>
           </Card>
