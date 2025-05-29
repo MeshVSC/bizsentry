@@ -51,11 +51,11 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png" // Assumes logo-icon.png is in public folder
+                  src="/logo-icon.png" 
                   alt="StockSentry Icon"
-                  width={500} // Actual width of your icon file
-                  height={500} // Actual height of your icon file
-                  className="h-7 w-7" // Controls display size
+                  width={500} 
+                  height={500} 
+                  className="h-7 w-7" 
                   priority
                   data-ai-hint="logo abstract"
                 />
@@ -72,18 +72,18 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           <div className="px-4 pb-2 pt-4 group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden text-left">
             <Link href="/dashboard" className="block">
               <Image
-                src="/logo.png" // Assumes logo.png is in public folder
+                src="/logo.png" 
                 alt="StockSentry Logo"
-                width={1024} // Actual width of your logo file
-                height={1024} // Actual height of your logo file
-                className="h-10 w-auto" // Controls display height to 40px (h-10)
+                width={1024} 
+                height={1024} 
+                className="h-10 w-auto" 
                 priority
                 data-ai-hint="logo modern"
               />
             </Link>
           </div>
           
-          {/* Collapsed Logo: Vertical letters - This is an alternative if image doesn't work */}
+          {/* Collapsed Logo: Vertical letters - This is for when image doesn't work / as alternative */}
           <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
             <Link href="/dashboard">
               <div className="text-primary font-bold uppercase text-xs tracking-wider space-y-0">
@@ -130,6 +130,7 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8">
           <Avatar className="h-full w-full bg-card">
+            {/* Using a placeholder for user avatar for now */}
             <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
             <AvatarFallback className="bg-card text-foreground">{fallback}</AvatarFallback>
           </Avatar>
