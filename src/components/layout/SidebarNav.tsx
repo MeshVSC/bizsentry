@@ -70,7 +70,7 @@ export default function SidebarNav() {
                 isActive={isActive}
                 tooltip={{ children: item.label }}
                 className={cn(
-                  "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover",
+                  "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary",
                   isActive && "bg-primary/30 text-primary"
                 )}
               >
@@ -90,7 +90,7 @@ export default function SidebarNav() {
              asChild 
              isActive={isSettingsActive}
              className={cn(
-                "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover w-full",
+                "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full",
                 isSettingsActive && "bg-primary/30 text-primary"
               )}
               tooltip={{children: settingsAccordionItem.label}}
@@ -98,7 +98,6 @@ export default function SidebarNav() {
             <AccordionTrigger className="p-2 hover:no-underline [&[data-state=open]>svg]:text-primary [&>svg.lucide-chevron-down]:ml-auto">
                 <settingsAccordionItem.icon className="h-5 w-5" />
                 <span className={cn("ml-2", sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{settingsAccordionItem.label}</span>
-                {/* Chevron is part of AccordionTrigger */}
             </AccordionTrigger>
           </SidebarMenuButton>
           <AccordionContent className="overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
@@ -113,7 +112,7 @@ export default function SidebarNav() {
                         isActive={isSubActive}
                         tooltip={{ children: subItem.label }}
                         className={cn(
-                          "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover w-full h-8",
+                          "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full h-8",
                            isSubActive && "bg-primary/30 text-primary"
                         )}
                       >
