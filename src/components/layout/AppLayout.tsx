@@ -40,16 +40,15 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-background group/sidebar-wrapper" data-sidebar-state="expanded"> {/* Ensure group/sidebar-wrapper and initial state is present */}
+      <div className="flex min-h-screen w-full bg-background group/sidebar-wrapper" data-sidebar-state="expanded">
         <Sidebar
           variant="sidebar"
           collapsible="icon"
           className="flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-between border-b border-sidebar-border">
-            {/* Content for expanded header */}
+            {/* Content for expanded header - Intentionally empty as logo is lower */}
             <div className="w-full group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
-              {/* Intentionally empty for expanded state, main logo is placed lower */}
             </div>
             {/* Content for collapsed header - Icon Logo */}
             <div className="w-full hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center">
@@ -57,9 +56,9 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
                 <Image
                   src="/logo-icon.png"
                   alt="StockSentry Icon"
-                  width={500} // Updated
-                  height={500} // Updated
-                  className="h-7 w-7" // Controls display size
+                  width={500}
+                  height={500}
+                  className="h-7 w-7"
                   data-ai-hint="logo abstract"
                 />
               </Link>
@@ -71,25 +70,21 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           </SidebarContent>
 
           {/* Logo Section - Placed above the footer */}
-          {/* Expanded Logo: "STOCK" over "SENTRY" or Image, left-aligned */}
+          {/* Expanded Logo: Image */}
           <div className="px-4 pb-2 pt-4 group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
             <Link href="/dashboard" className="block">
               <Image
                 src="/logo.png"
                 alt="StockSentry Logo"
-                width={1024} // Updated
-                height={1024} // Updated
-                className="h-10 w-auto" // Controls display size, e.g., max height of 40px
+                width={1024}
+                height={1024}
+                className="h-10 w-auto" 
                 data-ai-hint="logo modern"
               />
             </Link>
           </div>
-
-          {/* Collapsed Logo - Vertical Text (If Image for collapsed is handled in Header) */}
-          <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex flex-col items-center text-center py-4">
-            {/* This section could be used if the icon logo wasn't in the header, or for an alternative collapsed view */}
-            {/* For now, the icon logo in SidebarHeader is primary for collapsed state */}
-          </div>
+          
+          {/* Collapsed Logo - Handled by SidebarHeader */}
 
           <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
@@ -121,7 +116,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 }
 
 function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
-  const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SS"; // Updated fallback
+  const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SS";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -141,7 +136,7 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
             <span>Settings</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled> {/* Disabled as it's not implemented */}
           <LifeBuoy className="mr-2 h-4 w-4" />
           <span>Support</span>
         </DropdownMenuItem>
