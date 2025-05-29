@@ -47,17 +47,16 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border">
             {/* Content for expanded header - can be empty if logo is below nav */}
-            <div className="w-full group-data-[state=collapsed]/sidebar:hidden">
+            <div className="w-full group-data-[state=collapsed]/sidebar-wrapper:hidden">
               {/* Intentionally empty, main logo is in its own div below nav */}
             </div>
-            {/* Content for collapsed header (e.g., a very small icon if desired) */}
-            <div className="w-full hidden group-data-[state=collapsed]/sidebar:flex items-center justify-center">
-              {/* Placeholder for collapsed icon - user needs to provide /logo-icon.png */}
+            {/* Content for collapsed header */}
+            <div className="w-full hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png"
+                  src="/logo-icon.png" // Assumes logo-icon.png is in /public
                   alt="StockSentry Icon"
-                  width={28} // Small icon size
+                  width={28}
                   height={28}
                   className="h-7 w-7"
                   data-ai-hint="logo abstract"
@@ -72,24 +71,23 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 
           {/* Logo Section - Placed above the footer */}
           <div className="px-4 pb-2 pt-4 text-primary uppercase font-bold">
-            {/* Expanded Logo: Image - user needs to provide /logo.png */}
-            <div className="group-data-[state=collapsed]/sidebar:hidden text-left">
+            {/* Expanded Logo: Image */}
+            <div className="group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
               <Link href="/dashboard" className="block">
                 <Image
-                  src="/logo.png"
+                  src="/logo.png" // Assumes logo.png is in /public
                   alt="StockSentry Logo"
-                  width={160} // Adjust as needed
-                  height={40}  // Adjust as needed
-                  className="h-10 w-auto" // Example fixed height
+                  width={160}
+                  height={40}
+                  className="h-10 w-auto"
                   data-ai-hint="logo modern"
                 />
               </Link>
             </div>
-            {/* Collapsed Logo: Handled by SidebarHeader icon or can be another small image if preferred */}
-            {/* If you want a different image for collapsed state *here*, add another conditional block */}
+            {/* Collapsed Logo is handled by SidebarHeader */}
           </div>
 
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar:hidden">
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
@@ -134,7 +132,7 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
         <DropdownMenuLabel>{currentUser?.username || "My Account"}</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem asChild>
-          <Link href="/settings/options" className="flex items-center w-full cursor-pointer">
+          <Link href="/settings/application" className="flex items-center w-full cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Link>
