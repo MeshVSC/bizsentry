@@ -13,7 +13,7 @@ import { cookies } from 'next/headers';
 // and proper password hashing (e.g., bcrypt, Argon2).
 // --- VERY IMPORTANT ---
 
-// Define initialUsers at the top level
+// Define initialUsersSeed at the top level of the module
 const initialUsersSeed: User[] = [
   { id: "1", username: "admin", password: "adminpassword", role: "admin" },
   { id: "2", username: "viewer", password: "viewerpassword", role: "viewer" },
@@ -39,6 +39,8 @@ export async function loginUser(
 
   // Ensure users store is available
   if (typeof globalThis._usersStore === "undefined") {
+      // This should ideally not be hit if the top-level initialization works,
+      // but as a fallback for extreme dev server scenarios:
       globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
   }
   const users: User[] = globalThis._usersStore;
@@ -159,12 +161,8 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   revalidatePath("/settings/users", "page");
   // If the current user's role was changed, we need to update their session/cookie if that matters
   // For this prototype, getCurrentUser will re-fetch, but a real app might need more proactive session update.
+  // Forcing a layout revalidation is generally good.
   if (currentUser && currentUser.id === userId && currentUser.role !== newRole) {
-    // Re-set the cookie with potentially updated info, though role isn't stored in cookie itself
-    // This is more about forcing re-evaluation if session data was cached based on role.
-    // However, our current cookie only stores userId. getCurrentUser re-fetches role.
-    // So this might not be strictly necessary unless other parts of system cache CurrentUser object.
-    // Forcing a layout revalidation is generally good.
     revalidatePath("/", "layout"); 
   }
 
@@ -214,5 +212,3 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 // to securely verify their identity (e.g., email verification, security questions if desired,
 // or admin-initiated reset). Current system does not store emails.
 // This is a significant feature and needs careful design.
-
-    
