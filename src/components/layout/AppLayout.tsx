@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from 'next/image'; // Ensure next/image is imported
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
@@ -48,35 +48,35 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
         >
           <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
             {/* Collapsed Logo - Icon Image */}
-            <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
+            <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png" 
+                  src="/logo-icon.png" // Path from public folder
                   alt="StockSentry Icon"
-                  width={500} 
-                  height={500} 
-                  className="h-7 w-7" 
+                  width={500} // Actual width of your logo-icon.png
+                  height={500} // Actual height of your logo-icon.png
+                  className="h-7 w-7" // Display size
                   priority
                   data-ai-hint="logo abstract"
                 />
               </Link>
             </div>
+            {/* Placeholder for expanded header content if any, or keep it for the border */}
           </SidebarHeader>
 
           <SidebarContent className="p-2 flex-grow">
             <SidebarNav />
           </SidebarContent>
 
-          {/* Logo Section - Placed above the footer */}
-          {/* Expanded Logo - Image */}
-          <div className="px-4 pb-2 pt-4 group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden text-left">
+          {/* Expanded Logo Section - Placed above the footer */}
+          <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
             <Link href="/dashboard" className="block">
               <Image
-                src="/logo.png" 
+                src="/logo.png" // Path from public folder
                 alt="StockSentry Logo"
-                width={1024} 
-                height={1024} 
-                className="h-10 w-auto" 
+                width={1024} // Actual width of your logo.png
+                height={1024} // Actual height of your logo.png
+                className="h-10 w-auto" // Display size
                 priority
                 data-ai-hint="logo modern"
               />
@@ -84,7 +84,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           </div>
           
           {/* Collapsed Logo: Vertical letters - This is for when image doesn't work / as alternative */}
-          <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
+          <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
             <Link href="/dashboard">
               <div className="text-primary font-bold uppercase text-xs tracking-wider space-y-0">
                 {'STOCK'.split('').map(char => <span key={char} className="block">{char}</span>)}
@@ -94,7 +94,8 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
             </Link>
           </div>
 
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
+
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
@@ -124,13 +125,12 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
 }
 
 function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
-  const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SS";
+  const fallback = currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "SP";
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8">
           <Avatar className="h-full w-full bg-card">
-            {/* Using a placeholder for user avatar for now */}
             <AvatarImage src="https://placehold.co/100x100.png" alt="User Avatar" data-ai-hint="user avatar" />
             <AvatarFallback className="bg-card text-foreground">{fallback}</AvatarFallback>
           </Avatar>
