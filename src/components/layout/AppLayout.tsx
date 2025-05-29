@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, LogOut } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image'; // Still needed for collapsed icon
+import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { CurrentUser } from '@/types/user';
 import { logoutUser } from '@/lib/actions/userActions';
@@ -46,22 +46,18 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           collapsible="icon"
           className="flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
         >
-          <SidebarHeader className="p-4 h-16 flex items-center justify-between border-b border-sidebar-border">
-            {/* Content for expanded header - Intentionally empty or minimal */}
-            <div className="w-full group-data-[state=collapsed]/sidebar-wrapper:hidden">
-              {/* Can be empty or hold a minimal element if needed for spacing */}
-            </div>
-            {/* Content for collapsed header - Icon Logo */}
-            <div className="w-full hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center">
+          <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
+            {/* Collapsed Logo - Icon Image */}
+            <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
               <Link href="/dashboard">
                 <Image
-                  src="/logo-icon.png"
+                  src="/logo-icon.png" // Assumes logo-icon.png is in public folder
                   alt="StockSentry Icon"
-                  width={500} 
-                  height={500}
-                  className="h-7 w-7"
-                  data-ai-hint="logo abstract"
+                  width={500} // Actual width of your icon file
+                  height={500} // Actual height of your icon file
+                  className="h-7 w-7" // Controls display size
                   priority
+                  data-ai-hint="logo abstract"
                 />
               </Link>
             </div>
@@ -72,20 +68,23 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
           </SidebarContent>
 
           {/* Logo Section - Placed above the footer */}
-          {/* Expanded Logo: Using standard img tag for diagnostics */}
-          <div className="px-4 pb-2 pt-4 group-data-[state=collapsed]/sidebar-wrapper:hidden text-left">
+          {/* Expanded Logo - Image */}
+          <div className="px-4 pb-2 pt-4 group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden text-left">
             <Link href="/dashboard" className="block">
-              <img 
-                src="/logo.png" 
-                alt="StockSentry Logo" 
-                style={{ height: '40px', width: 'auto' }} // Applied height similar to h-10
+              <Image
+                src="/logo.png" // Assumes logo.png is in public folder
+                alt="StockSentry Logo"
+                width={1024} // Actual width of your logo file
+                height={1024} // Actual height of your logo file
+                className="h-10 w-auto" // Controls display height to 40px (h-10)
+                priority
                 data-ai-hint="logo modern"
               />
             </Link>
           </div>
           
-          {/* Collapsed Logo: Vertical letters */}
-          <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
+          {/* Collapsed Logo: Vertical letters - This is an alternative if image doesn't work */}
+          <div className="hidden group-data-[sidebar-state=collapsed]/sidebar-wrapper:flex flex-col items-center justify-center text-center py-4 px-1 leading-none">
             <Link href="/dashboard">
               <div className="text-primary font-bold uppercase text-xs tracking-wider space-y-0">
                 {'STOCK'.split('').map(char => <span key={char} className="block">{char}</span>)}
@@ -94,16 +93,15 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
               </div>
             </Link>
           </div>
-          
 
-          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[state=collapsed]/sidebar-wrapper:hidden">
+          <SidebarFooter className="p-4 pt-2 border-t border-sidebar-border group-data-[sidebar-state=collapsed]/sidebar-wrapper:hidden">
             <p className="text-xs text-muted-foreground text-left w-full">
               Version {appVersion}
             </p>
           </SidebarFooter>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
+        <div className="flex flex-col flex-1 ml-[var(--sidebar-width)] group-data-[sidebar-state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-all duration-300 ease-in-out">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background px-6">
             <div>
                <SidebarTrigger className="text-foreground" />
