@@ -1,10 +1,10 @@
 
 "use server";
 
-import type { Item, ItemInput, ExtractedItemData, ItemStatus } from "@/types/item";
+import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
-import { supabase } from '@/lib/supabase/client'; // For server-side client
+import { supabase } from '@/lib/supabase/client'; // Import Supabase client
 
 // Managed options are still in-memory for this phase
 const defaultManagedCategories = ['Electronics', 'Accessories', 'Office Supplies', 'Furniture', 'Appliances', 'Software', 'Miscellaneous', 'Lighting'];
@@ -15,6 +15,7 @@ const defaultManagedRooms = ['Main Office', 'Tech Closet', 'Server Room', 'Confe
 const defaultManagedVendors = ['TechSupply Co.', 'Keychron', 'Accessory King', 'StandUp Inc.', 'Lights R Us', 'Office Essentials', 'Generic Supplier'];
 const defaultManagedProjects = ['Office Upgrade', 'Gaming Setup', 'General Stock', 'Ergonomics Improvement', 'New Office Setup', 'Client Project X', 'Internal R&D'];
 
+// Initialize global stores for managed options if they don't exist
 if (typeof globalThis._managedCategoriesStore === 'undefined') {
   globalThis._managedCategoriesStore = [...defaultManagedCategories];
 }
@@ -46,45 +47,46 @@ export interface ItemFilters {
 }
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  const { data: { user } } = await supabase.auth.getUser(); // Get current Supabase user
-  // if (!user) { // This check should ideally be handled by route protection
-  //   return { items: [], totalPages: 0, count: 0 };
-  // }
-
+  // RLS will handle filtering by user_id
   let query = supabase
     .from('items')
     .select('*', { count: 'exact' });
-    // .eq('user_id', user.id); // RLS should handle this, but explicit can be good for clarity
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
       query = query.ilike('name', `%${filters.name.trim()}%`);
     }
     if (filters.category && filters.category.trim() !== '') {
-      // Assuming category is stored as category_name for now
       query = query.eq('category', filters.category.trim());
     }
   }
 
   query = query.order('created_at', { ascending: false });
 
-  const { data: countData, error: countError, count } = await query; // Execute once to get total count
+  // Perform an initial query to get the total count matching filters
+  // This is a bit inefficient as it queries twice, but simpler for now.
+  // A more optimized way would be to construct a count query separately.
+  const { count: totalMatchingCount, error: countError } = await query;
 
   if (countError) {
     console.error("Error fetching item count:", countError);
     return { items: [], totalPages: 0, count: 0 };
   }
-
-  const totalItems = count || 0;
+  
+  const totalItems = totalMatchingCount || 0;
   let totalPages = 1;
 
-  if (filters?.page && filters?.limit) {
+  if (filters?.page && filters?.limit && totalItems > 0) {
     const page = filters.page;
     const limit = filters.limit;
     const startIndex = (page - 1) * limit;
     totalPages = Math.ceil(totalItems / limit);
     query = query.range(startIndex, startIndex + limit - 1);
+  } else if (totalItems === 0) {
+    // No items match filters, return empty
+     return { items: [], totalPages: 0, count: 0 };
   }
+
 
   const { data, error } = await query;
 
@@ -97,15 +99,11 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 }
 
 export async function getItemById(id: string): Promise<Item | undefined> {
-  const { data: { user } } = await supabase.auth.getUser();
-  // if (!user) return undefined; // RLS should handle this
-
   const { data, error } = await supabase
     .from('items')
     .select('*')
     .eq('id', id)
-    // .eq('user_id', user.id) // RLS should handle this
-    .single();
+    .single(); // RLS will ensure user can only fetch their own item if policies are set
 
   if (error) {
     console.error("Error fetching item by ID:", error);
@@ -114,30 +112,40 @@ export async function getItemById(id: string): Promise<Item | undefined> {
   return data as Item | undefined;
 }
 
-export async function addItem(data: ItemInput): Promise<Item | { error: string }> {
+export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return { error: "User not authenticated" };
   }
 
+  const now = new Date().toISOString();
   const newItemPayload = {
-    ...data,
-    user_id: user.id, // Associate item with the current user
-    // Ensure numeric fields are numbers or null, not empty strings
-    original_price: data.originalPrice === undefined || data.originalPrice === null ? null : Number(data.originalPrice),
-    sales_price: data.salesPrice === undefined || data.salesPrice === null ? null : Number(data.salesPrice),
-    msrp: data.msrp === undefined || data.msrp === null ? null : Number(data.msrp),
-    barcode_data: data.sku ? `BARCODE-${data.sku.substring(0,8).toUpperCase()}` : `BARCODE-${crypto.randomUUID().substring(0,8).toUpperCase()}`, // Simplified barcode/QR generation
-    qr_code_data: data.sku ? `QR-${data.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
+    ...itemData, // Assumes itemData keys are already camelCase
+    // Map to snake_case for Supabase columns
+    user_id: user.id,
+    original_price: itemData.originalPrice,
+    sales_price: itemData.salesPrice,
+    receipt_image_url: itemData.receiptImageUrl,
+    product_image_url: itemData.productImageUrl,
+    product_url: itemData.productUrl,
+    purchase_date: itemData.purchaseDate,
+    sold_date: itemData.status === 'sold' ? (itemData.soldDate || now) : undefined,
+    in_use_date: itemData.status === 'in use' ? (itemData.inUseDate || now) : undefined,
+    storage_location: itemData.storageLocation,
+    bin_location: itemData.binLocation,
+    // Default barcode/QR data if SKU is not provided
+    barcode_data: itemData.sku ? `BARCODE-${itemData.sku.substring(0,8).toUpperCase()}` : `BARCODE-${crypto.randomUUID().substring(0,8).toUpperCase()}`,
+    qr_code_data: itemData.sku ? `QR-${itemData.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
   };
-  // Remove undefined optional fields before insert, or Supabase might error
+
+  // Remove undefined optional fields from the payload that Supabase might reject
   Object.keys(newItemPayload).forEach(key => {
-    if (newItemPayload[key as keyof typeof newItemPayload] === undefined) {
-      delete newItemPayload[key as keyof typeof newItemPayload];
+    const tsKey = key as keyof typeof newItemPayload;
+    if (newItemPayload[tsKey] === undefined) {
+      delete newItemPayload[tsKey];
     }
   });
-
-
+  
   const { data: insertedItem, error } = await supabase
     .from('items')
     .insert([newItemPayload])
@@ -153,78 +161,90 @@ export async function addItem(data: ItemInput): Promise<Item | { error: string }
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
-    revalidatePath("/inventory/add", "layout");
     return insertedItem as Item;
   }
   return { error: "Failed to add item for an unknown reason." };
 }
 
-export async function updateItem(id: string, data: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "User not authenticated" };
-  }
-  
-  const currentItem = await getItemById(id);
-  if (!currentItem || ('error' in currentItem)) return { error: "Item not found or not accessible." };
+export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
+   const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return { error: "User not authenticated." };
+    }
 
-  const updatePayload: Partial<Item> = { ...data };
-   // Ensure numeric fields are numbers or null
-  if (data.originalPrice !== undefined) updatePayload.originalPrice = data.originalPrice === null ? null : Number(data.originalPrice);
-  if (data.salesPrice !== undefined) updatePayload.salesPrice = data.salesPrice === null ? null : Number(data.salesPrice);
-  if (data.msrp !== undefined) updatePayload.msrp = data.msrp === null ? null : Number(data.msrp);
+    const currentItemData = await getItemById(id);
+    if (!currentItemData || ('error' in currentItemData)) {
+        return { error: "Item not found or not accessible for update." };
+    }
 
-
-  if (data.status && data.status !== currentItem.status) {
+    const updatePayload: { [key: string]: any } = { ...itemData };
     const now = new Date().toISOString();
-    updatePayload.sold_date = data.status === 'sold' ? (data.soldDate || now) : null;
-    updatePayload.in_use_date = data.status === 'in use' ? (data.inUseDate || now) : null;
-    if (data.status === 'in stock') {
-        updatePayload.sold_date = null;
-        updatePayload.in_use_date = null;
+
+    // Map camelCase to snake_case for specific fields if necessary for Supabase update
+    if (itemData.originalPrice !== undefined) updatePayload.original_price = itemData.originalPrice;
+    if (itemData.salesPrice !== undefined) updatePayload.sales_price = itemData.salesPrice;
+    if (itemData.receiptImageUrl !== undefined) updatePayload.receipt_image_url = itemData.receiptImageUrl;
+    if (itemData.productImageUrl !== undefined) updatePayload.product_image_url = itemData.productImageUrl;
+    if (itemData.productUrl !== undefined) updatePayload.product_url = itemData.productUrl;
+    if (itemData.purchaseDate !== undefined) updatePayload.purchase_date = itemData.purchaseDate;
+    if (itemData.storageLocation !== undefined) updatePayload.storage_location = itemData.storageLocation;
+    if (itemData.binLocation !== undefined) updatePayload.bin_location = itemData.binLocation;
+
+
+    if (itemData.status && itemData.status !== currentItemData.status) {
+        updatePayload.status = itemData.status;
+        updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
+        updatePayload.in_use_date = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
+        if (itemData.status === 'in stock') {
+            updatePayload.sold_date = null;
+            updatePayload.in_use_date = null;
+        }
+    } else if (itemData.status === currentItemData.status) { // status unchanged but dates might be
+        if (itemData.status === 'sold' && itemData.soldDate !== undefined) updatePayload.sold_date = itemData.soldDate;
+        if (itemData.status === 'in use' && itemData.inUseDate !== undefined) updatePayload.in_use_date = itemData.inUseDate;
     }
-  }
-  // Remove undefined optional fields
-   Object.keys(updatePayload).forEach(key => {
-    if (updatePayload[key as keyof typeof updatePayload] === undefined) {
-      delete updatePayload[key as keyof typeof updatePayload];
+    
+    // Remove original camelCase keys if they were mapped to snake_case and itemData included them
+    const keysToRemove = ['originalPrice', 'salesPrice', 'receiptImageUrl', 'productImageUrl', 'productUrl', 'purchaseDate', 'storageLocation', 'binLocation'];
+    keysToRemove.forEach(key => {
+        if (key in updatePayload && `${key.replace(/([A-Z])/g, "_$1").toLowerCase()}` in updatePayload) {
+            delete updatePayload[key];
+        }
+    });
+
+    Object.keys(updatePayload).forEach(key => {
+        if (updatePayload[key] === undefined) {
+          delete updatePayload[key];
+        }
+    });
+    
+    const { data: updatedItem, error } = await supabase
+        .from('items')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error("Error updating item:", error);
+        return { error: error.message };
     }
-  });
-
-
-  const { data: updatedItem, error } = await supabase
-    .from('items')
-    .update(updatePayload)
-    .eq('id', id)
-    // .eq('user_id', user.id) // RLS should handle this
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating item:", error);
-    return { error: error.message };
-  }
-  if (updatedItem) {
-    revalidatePath("/inventory", "layout");
-    revalidatePath(`/inventory/${id}`, "layout");
-    revalidatePath(`/inventory/${id}/edit`, "layout");
-    revalidatePath("/dashboard", "layout");
-    revalidatePath("/analytics", "layout");
-    return updatedItem as Item;
-  }
-  return undefined;
+    if (updatedItem) {
+        revalidatePath("/inventory", "layout");
+        revalidatePath(`/inventory/${id}`, "layout");
+        revalidatePath(`/inventory/${id}/edit`, "layout");
+        revalidatePath("/dashboard", "layout");
+        revalidatePath("/analytics", "layout");
+        return updatedItem as Item;
+    }
+    return undefined;
 }
 
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
-   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "User not authenticated" };
-  }
   const { error } = await supabase
     .from('items')
     .delete()
-    .eq('id', id);
-    // .eq('user_id', user.id); // RLS should handle this
+    .eq('id', id); // RLS handles user-specific deletion
 
   if (error) {
     console.error("Error deleting item:", error);
@@ -251,64 +271,55 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "User not authenticated."};
-
-  const currentItemResult = await getItemById(id);
-  if (!currentItemResult || 'error' in currentItemResult) {
-    return { error: "Item not found or access denied." };
-  }
-  const currentItem = currentItemResult;
-
-
-  const updatePayload: Partial<Item> = { status: newStatus };
-  const now = new Date().toISOString();
-
-  if (newStatus === 'sold') {
-    updatePayload.sold_date = currentItem.sold_date || now;
-    updatePayload.in_use_date = null;
-  } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = currentItem.in_use_date || now;
-    updatePayload.sold_date = null;
-  } else { // 'in stock'
-    updatePayload.sold_date = null;
-    updatePayload.in_use_date = null;
-  }
-
-  const { data: updatedItem, error } = await supabase
-    .from('items')
-    .update(updatePayload)
-    .eq('id', id)
-    // .eq('user_id', user.id) // RLS
-    .select()
-    .single();
+    const currentItemResult = await getItemById(id);
+    if (!currentItemResult || 'error' in currentItemResult) {
+      return { error: "Item not found or access denied for status update." };
+    }
+    const currentItem = currentItemResult;
   
-  if (error) {
-    console.error("Error updating item status:", error);
-    return { error: error.message };
-  }
-
-  if (updatedItem) {
-    revalidatePath("/inventory", "layout");
-    revalidatePath(`/inventory/${id}`, "layout");
-    revalidatePath("/dashboard", "layout");
-    revalidatePath("/analytics", "layout");
-    return updatedItem as Item;
-  }
-  return undefined;
+    const updatePayload: { [key: string]: any } = { status: newStatus };
+    const now = new Date().toISOString();
+  
+    if (newStatus === 'sold') {
+      updatePayload.sold_date = currentItem.sold_date || now;
+      updatePayload.in_use_date = null;
+    } else if (newStatus === 'in use') {
+      updatePayload.in_use_date = currentItem.in_use_date || now;
+      updatePayload.sold_date = null;
+    } else { // 'in stock'
+      updatePayload.sold_date = null;
+      updatePayload.in_use_date = null;
+    }
+  
+    const { data: updatedItem, error } = await supabase
+      .from('items')
+      .update(updatePayload)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating item status:", error);
+      return { error: error.message };
+    }
+  
+    if (updatedItem) {
+      revalidatePath("/inventory", "layout");
+      revalidatePath(`/inventory/${id}`, "layout");
+      revalidatePath("/dashboard", "layout");
+      revalidatePath("/analytics", "layout");
+      return updatedItem as Item;
+    }
+    return undefined;
 }
-
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "User not authenticated."};
 
   const { error, count } = await supabase
     .from('items')
     .delete({ count: 'exact' })
-    .in('id', itemIds);
-    // .eq('user_id', user.id); // RLS should handle this
+    .in('id', itemIds); // RLS should ensure users can only delete their own items
 
   if (error) {
     console.error("Error bulk deleting items:", error);
@@ -325,30 +336,26 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "User not authenticated."};
 
-  const updatePayload: Partial<Omit<Item, 'id' | 'created_at' | 'user_id' | 'updated_at'>> = { status: newStatus };
+  const updatePayload: { [key: string]: any } = { status: newStatus };
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now; // For bulk, we assume it's a new sale date for all
+    updatePayload.sold_date = now;
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now; // Assume new in-use date
+    updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
   } else { // 'in stock'
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
   
-  const { data, error, count } = await supabase
+  const { error, count } = await supabase
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    // .eq('user_id', user.id) // RLS
-    .select({count: 'exact'});
-
+    .select({count: 'exact'}); // RLS should ensure users can only update their own items
 
   if (error) {
     console.error("Error bulk updating item status:", error);
@@ -365,12 +372,11 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   return { success: false, message: itemIds.length > 0 ? "No items updated. They may already have target status or were not found." : "No items selected." };
 }
 
-
 export async function getUniqueCategories(): Promise<string[]> {
-  // This should now fetch distinct categories from the items table in Supabase
+  // RLS should apply here if user_id is part of the items table and policies are set
   const { data, error } = await supabase
     .from('items')
-    .select('category', { count: 'exact', head: false });
+    .select('category');
 
   if (error) {
     console.error("Error fetching unique categories:", error);
@@ -406,7 +412,6 @@ export async function getManagedRoomOptions(): Promise<string[]> { return getMan
 export async function getManagedVendorOptions(): Promise<string[]> { return getManagedOptions('_managedVendorsStore'); }
 export async function getManagedProjectOptions(): Promise<string[]> { return getManagedOptions('_managedProjectsStore'); }
 
-
 // --- Managed Options Adders/Deleters (Still to globalThis for now) ---
 async function addManagedOption(
   name: string,
@@ -422,7 +427,7 @@ async function addManagedOption(
   }
   store.push(name);
   globalThis[storeKey] = store;
-  // Revalidate relevant settings pages
+  
   const settingsPagePath = `/settings/${optionType.toLowerCase().replace(/\s+/g, '-') + 's'}`;
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
@@ -463,9 +468,7 @@ export async function deleteManagedVendorOption(name: string) { return deleteMan
 export async function addManagedProjectOption(name: string) { return addManagedOption(name, "Project", '_managedProjectsStore'); }
 export async function deleteManagedProjectOption(name: string) { return deleteManagedOption(name, "Project", '_managedProjectsStore'); }
 
-
 // --- Bulk Import ---
-// THIS FUNCTION IS NOT YET MIGRATED TO SUPABASE AND WILL NOT WORK CORRECTLY.
 export interface BulkImportResult {
   successCount: number;
   errorCount: number;
@@ -473,12 +476,18 @@ export interface BulkImportResult {
 }
 
 export async function bulkImportItems(csvFileContent: string): Promise<BulkImportResult> {
-  console.warn("bulkImportItems is not yet migrated to Supabase and will not work correctly.");
-  // For now, return a dummy result indicating failure or that it's non-functional
+  // This feature is temporarily disabled until it's migrated to use Supabase.
+  console.warn("Bulk import feature is temporarily disabled and needs migration to Supabase.");
+  const lineCount = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '').length;
+  const errorCount = lineCount > 1 ? lineCount -1 : (lineCount === 1 ? 1: 0);
+
   return {
     successCount: 0,
-    errorCount: csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '').length -1 || 0, // approximate row count
-    errors: [{ rowNumber: 0, message: "Bulk import is temporarily unavailable. This feature needs to be updated to work with the new database.", rowData: "" }]
+    errorCount: errorCount,
+    errors: [{ 
+        rowNumber: 0, 
+        message: "Bulk import is temporarily unavailable pending migration to the new database system. Please add items individually.", 
+        rowData: "" 
+    }]
   };
 }
-
