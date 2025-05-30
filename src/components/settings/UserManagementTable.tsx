@@ -2,7 +2,7 @@
 "use client";
 
 import type { UserRole, UserView } from "@/types/user";
-import { updateUserRole, deleteUser } from "@/lib/actions/userActions";
+import { updateUserRole, deleteUser } from "@/lib/actions/userActions"; // Custom actions
 import { useToast } from "@/hooks/use-toast";
 import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,7 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
   const { toast } = useToast();
   const [users, setUsers] = useState<UserView[]>(initialUsers);
   const [isPendingMap, setIsPendingMap] = useState<Record<string, boolean>>({});
-  const [_, startTransition] = useTransition(); // Renamed to avoid conflict if startTransition is used elsewhere
-
+  const [_, startTransition] = useTransition();
 
   useEffect(() => {
     setUsers(initialUsers);
@@ -110,6 +109,7 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
                           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete the user "{user.username}".
+                            This will also delete their login credentials.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

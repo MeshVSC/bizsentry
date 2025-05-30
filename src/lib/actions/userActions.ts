@@ -1,226 +1,265 @@
 
 "use server";
 
-import type { User, UserRole, UserFormInput, UserView } from "@/types/user";
+import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
+import { supabase } from '@/lib/supabase/client'; // For interacting with the custom table
 
-// --- IMPORTANT ---
-// Supabase handles actual user authentication (login/password).
-// This _usersStore is an IN-MEMORY list used to map Supabase authenticated user emails
-// to application-specific roles (admin, manager, viewer).
-// The "User Management" settings page interacts with this _usersStore.
-// Passwords in initialUsersSeed are for conceptual seeding only and are NOT used for Supabase login.
-// --- IMPORTANT ---
+const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
-const initialUsersSeed: User[] = [
-  { id: "1", username: "admin@example.com", password: "adminpassword_seed_only", role: "admin" },
-  { id: "2", username: "viewer@example.com", password: "viewerpassword_seed_only", role: "viewer" },
-  { id: "3", username: "manager@example.com", password: "managerpassword_seed_only", role: "manager" },
-];
+// --- Custom User Authentication and Management Actions ---
 
-function ensureUsersStoreInitialized() {
-  if (typeof globalThis._usersStore === "undefined") {
-    globalThis._usersStore = JSON.parse(JSON.stringify(initialUsersSeed));
-  }
-}
-
-// Supabase handles login; this server action is effectively a no-op now
-// but kept for potential future use or if a non-Supabase path was re-enabled.
 export async function loginUser(
   formData: FormData
 ): Promise<{ success: boolean; message?: string }> {
-  // Actual login is handled client-side by Supabase
-  // This server action might be called if form action points here,
-  // but Supabase login on client should precede.
-  // For safety, we can assume this is a fallback and check internal store,
-  // but primary auth is Supabase.
-  ensureUsersStoreInitialized();
-  const email = formData.get("email") as string; 
-  const password = formData.get("password") as string;
+  const username = formData.get("email") as string; // Form field is 'email' but maps to 'username'
+  const passwordInput = formData.get("password") as string;
 
-  if (!email || !password) {
+  if (!username || !passwordInput) {
     return { success: false, message: "Email and password are required." };
   }
-  
-  // This part is somewhat disconnected from Supabase login.
-  // If Supabase login succeeded, this might not even be hit directly.
-  // If it IS hit, it means the client-side Supabase login form might be submitting here,
-  // which is not the primary Supabase auth flow.
-  // The redirect('/dashboard') is now better handled client-side after Supabase successful login.
-  // For now, let's keep the cookie logic just in case, but acknowledge it's secondary.
 
-  const users: User[] = globalThis._usersStore || [];
-  const user = users.find(
-    (u) => u.username.toLowerCase() === email.toLowerCase() && u.password === password
-  );
+  const { data: user, error } = await supabase
+    .from('stock_sentry_users')
+    .select('*')
+    .eq('username', username.toLowerCase())
+    .single();
 
-  if (user) {
-    // This cookie setting is now largely superseded by Supabase session management
-    // but can be kept for symmetry with getCurrentUser if it were to use cookies primarily.
-    cookies().set('stocksentry_session_userId', user.id, {
+  if (error || !user) {
+    return { success: false, message: "Invalid email or password." };
+  }
+
+  // DIRECT PASSWORD COMPARISON - NOT SECURE FOR PRODUCTION
+  if (user.password_text === passwordInput) {
+    cookies().set(SESSION_COOKIE_NAME, user.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: '/',
       sameSite: 'lax',
     });
-    redirect('/dashboard');
+    // Revalidate layout to ensure currentUser is picked up
+    revalidatePath("/", "layout");
+    redirect('/dashboard'); // Redirect from server action
+    // Explicit return for type consistency, though redirect will prevent it from being used.
+    // return { success: true }; 
   } else {
-    return { success: false, message: "Invalid email or password (from local store check)." };
+    return { success: false, message: "Invalid email or password." };
   }
 }
 
-// Supabase handles logout client-side. This is a server-side clear for our cookie.
 export async function logoutUser() {
-  cookies().set('stocksentry_session_userId', '', {
+  cookies().set(SESSION_COOKIE_NAME, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 0,
+    maxAge: -1, // Expire immediately
     path: '/',
     sameSite: 'lax',
   });
-  // Client-side Supabase logout will also handle redirect.
-  // This server-side redirect is a fallback.
+  revalidatePath("/", "layout");
   redirect("/login");
 }
 
-// This function remains to map a Supabase authenticated user (via their email from session)
-// to an application-specific role stored in _usersStore.
-export async function getCurrentUser(): Promise<UserView | null> {
-  // This function is less critical now as AppLayout uses Supabase session directly.
-  // It's used by settings pages to check app-specific role.
-  ensureUsersStoreInitialized();
-  const userIdFromCookie = cookies().get('stocksentry_session_userId')?.value;
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const userId = cookies().get(SESSION_COOKIE_NAME)?.value;
 
-  if (!userIdFromCookie) {
+  if (!userId) {
     return null;
   }
 
-  const users: User[] = globalThis._usersStore || [];
-  const user = users.find((u) => u.id === userIdFromCookie);
+  const { data: user, error } = await supabase
+    .from('stock_sentry_users')
+    .select('id, username, role')
+    .eq('id', userId)
+    .single();
 
-  if (user) {
-    const { password, ...userView } = user;
-    return userView;
+  if (error || !user) {
+    // Clear cookie if user not found in DB for this ID
+    cookies().set(SESSION_COOKIE_NAME, '', { maxAge: -1, path: '/' });
+    return null;
   }
-  return null;
+
+  return user as CurrentUser;
 }
 
-
-// --- User Role Management (for _usersStore) ---
+// --- User Role Management (for stock_sentry_users table) ---
 
 export async function getUsers(): Promise<UserView[]> {
-  ensureUsersStoreInitialized();
-  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async
-  const users: User[] = globalThis._usersStore || [];
-  return users.map(({ password, ...userView }) => userView);
+  const currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.role !== 'admin') {
+    console.warn("Attempt to fetch users by non-admin or unauthenticated user.");
+    return []; // Or throw an error
+  }
+
+  const { data, error } = await supabase
+    .from('stock_sentry_users')
+    .select('id, username, role, created_at, updated_at')
+    .order('username', { ascending: true });
+
+  if (error) {
+    console.error("Error fetching users:", error);
+    return [];
+  }
+  return (data as UserView[]) || [];
 }
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  ensureUsersStoreInitialized();
-  const users: User[] = globalThis._usersStore || [];
-
-  if (!data.username || !data.role) { // Password is now optional for this form
-    return { success: false, message: "Email and role are required." };
-  }
-  if (users.find(u => u.username.toLowerCase() === data.username.toLowerCase())) {
-    return { success: false, message: `User role assignment for email "${data.username}" already exists.` };
+  const performingUser = await getCurrentUser();
+  if (!performingUser || performingUser.role !== 'admin') {
+    return { success: false, message: "Permission denied: Only admins can add users." };
   }
 
-  const newUser: User = {
-    id: crypto.randomUUID(),
-    username: data.username, // This is the email
-    // Password from form is now optional and not critical for role assignment
-    // We store undefined if not provided, or the dummy password if it was part of the input.
-    password: data.password || undefined, 
-    role: data.role,
-  };
-  users.push(newUser);
-  globalThis._usersStore = users;
+  if (!data.username || !data.password || !data.role) {
+    return { success: false, message: "Email, password, and role are required." };
+  }
+  // Basic password validation (can be enhanced)
+  if (data.password.length < 5) {
+       return { success: false, message: "Password must be at least 5 characters." };
+  }
 
-  revalidatePath("/settings/users", "page");
-  const { password, ...userView } = newUser;
-  return { success: true, message: `User role for "${newUser.username}" assigned. This does NOT create a Supabase login.`, user: userView };
+
+  // Check if username (email) already exists
+  const { data: existingUser, error: selectError } = await supabase
+    .from('stock_sentry_users')
+    .select('id')
+    .eq('username', data.username.toLowerCase())
+    .single();
+
+  if (selectError && selectError.code !== 'PGRST116') { // PGRST116: 0 rows
+      console.error("Error checking existing user:", selectError);
+      return { success: false, message: `Error checking existing user: ${selectError.message}` };
+  }
+  if (existingUser) {
+    return { success: false, message: `User with email "${data.username}" already exists.` };
+  }
+
+  const { data: newUser, error: insertError } = await supabase
+    .from('stock_sentry_users')
+    .insert({
+      username: data.username.toLowerCase(),
+      password_text: data.password, // Storing plaintext password - NOT SECURE
+      role: data.role,
+    })
+    .select('id, username, role, created_at, updated_at')
+    .single();
+
+  if (insertError) {
+    console.error("Error adding user:", insertError);
+    return { success: false, message: `Failed to add user: ${insertError.message}` };
+  }
+
+  if (newUser) {
+    revalidatePath("/settings/users", "page");
+    return { success: true, message: `User "${newUser.username}" added successfully.`, user: newUser as UserView };
+  }
+  return { success: false, message: "Failed to add user for an unknown reason."};
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  ensureUsersStoreInitialized();
-  const users: User[] = globalThis._usersStore || [];
-  const userIndex = users.findIndex(u => u.id === userId);
-
-  if (userIndex === -1) {
-    return { success: false, message: "User role assignment not found." };
-  }
-  
-  // For role updates, we rely on the Supabase session in AppLayout for the current user's permissions.
-  // The check here could be simplified or rely on a passed current Supabase user context if needed.
-  // For now, this simple check remains for the prototype context.
-  const currentUserFromCookie = await getCurrentUser(); 
-  if (!currentUserFromCookie || currentUserFromCookie.role !== 'admin') {
-      return { success: false, message: "Permission denied to change roles." };
+  const performingUser = await getCurrentUser();
+  if (!performingUser || performingUser.role !== 'admin') {
+    return { success: false, message: "Permission denied: Only admins can update roles." };
   }
 
-  if (users[userIndex].role === 'admin' && newRole !== 'admin') {
-    const adminCount = users.filter(u => u.role === 'admin').length;
-    if (adminCount <= 1) {
-      return { success: false, message: "Cannot remove the last administrator's role." };
+  // Prevent admin from demoting the last admin (or themselves if last admin)
+  if (newRole !== 'admin') {
+    const { data: targetUser, error: targetUserError } = await supabase
+      .from('stock_sentry_users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (targetUserError || !targetUser) {
+      return { success: false, message: "Target user not found." };
+    }
+
+    if (targetUser.role === 'admin') {
+      const { count, error: adminCountError } = await supabase
+        .from('stock_sentry_users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'admin');
+      
+      if (adminCountError) {
+        return { success: false, message: "Could not verify admin count."};
+      }
+      if (count !== null && count <= 1) {
+        return { success: false, message: "Cannot remove the last administrator's role." };
+      }
     }
   }
   
-  users[userIndex].role = newRole;
-  globalThis._usersStore = users;
+  const { data: updatedUser, error } = await supabase
+    .from('stock_sentry_users')
+    .update({ role: newRole, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select('id, username, role, created_at, updated_at')
+    .single();
 
-  revalidatePath("/settings/users", "page");
-  
-  const { password, ...userView } = users[userIndex];
-  return { success: true, message: `User "${userView.username}" role updated to ${newRole}.`, user: userView };
+  if (error) {
+    console.error("Error updating user role:", error);
+    return { success: false, message: `Failed to update role: ${error.message}` };
+  }
+
+  if (updatedUser) {
+    revalidatePath("/settings/users", "page");
+    // If admin updates their own role to non-admin, this won't auto-logout them
+    // until next page load where getCurrentUser re-evaluates.
+    return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
+  }
+   return { success: false, message: "Failed to update role for an unknown reason."};
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  ensureUsersStoreInitialized();
-  let users: User[] = globalThis._usersStore || [];
-  const userIndex = users.findIndex(u => u.id === userId);
-
-  if (userIndex === -1) {
-    return { success: false, message: "User role assignment not found." };
+  const performingUser = await getCurrentUser();
+  if (!performingUser || performingUser.role !== 'admin') {
+    return { success: false, message: "Permission denied: Only admins can delete users." };
+  }
+  if (performingUser.id === userId) {
+    return { success: false, message: "Cannot delete your own account." };
   }
 
-  const currentUserFromCookie = await getCurrentUser();
-  if (!currentUserFromCookie || currentUserFromCookie.role !== 'admin') {
-      return { success: false, message: "Permission denied to delete user role assignments." };
+  const { data: targetUser, error: targetUserError } = await supabase
+    .from('stock_sentry_users')
+    .select('username, role')
+    .eq('id', userId)
+    .single();
+
+  if (targetUserError || !targetUser) {
+    return { success: false, message: "User not found." };
   }
-  // Cannot delete self from this list if you are currently identified via this cookie method
-  if (currentUserFromCookie && currentUserFromCookie.id === userId) {
-    return { success: false, message: "Cannot delete your own role assignment." };
-  }
-  
-  if (users[userIndex].role === 'admin') {
-    const adminCount = users.filter(u => u.role === 'admin').length;
-    if (adminCount <= 1 && users[userIndex].id === currentUserFromCookie?.id) {
-        // This logic is tricky: if deleting the last admin who is also the current user.
-        // Better to just prevent deleting self if admin.
-        return { success: false, message: "Cannot delete the last administrator if it's yourself." };
-    } else if (adminCount <=1) {
+
+  if (targetUser.role === 'admin') {
+    const { count, error: adminCountError } = await supabase
+        .from('stock_sentry_users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'admin');
+    if (adminCountError) {
+        return { success: false, message: "Could not verify admin count."};
+    }
+    if (count !== null && count <= 1) {
         return { success: false, message: "Cannot delete the last administrator." };
     }
   }
 
-  const deletedUsername = users[userIndex].username;
-  globalThis._usersStore = users.filter(u => u.id !== userId);
+  const { error: deleteError } = await supabase
+    .from('stock_sentry_users')
+    .delete()
+    .eq('id', userId);
+
+  if (deleteError) {
+    console.error("Error deleting user:", deleteError);
+    return { success: false, message: `Failed to delete user: ${deleteError.message}` };
+  }
 
   revalidatePath("/settings/users", "page");
-  return { success: true, message: `User role assignment for "${deletedUsername}" deleted.` };
+  return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
 
-// Function to get app-specific role for a Supabase authenticated user by their email
-export async function getRoleForSupabaseUser(supabaseEmail: string | undefined): Promise<UserRole | null> {
-  if (!supabaseEmail) return null;
-  ensureUsersStoreInitialized();
-  const users: User[] = globalThis._usersStore || [];
-  // This assumes `username` in _usersStore is the email.
-  const appUser = users.find(u => u.username.toLowerCase() === supabaseEmail.toLowerCase());
-  return appUser ? appUser.role : null; 
+// Function to get app-specific role for a logged-in user (using custom table)
+export async function getRoleForCurrentUser(): Promise<UserRole | null> {
+  const currentUser = await getCurrentUser();
+  return currentUser ? currentUser.role : null;
 }

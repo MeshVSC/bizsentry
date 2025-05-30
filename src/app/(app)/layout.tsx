@@ -2,12 +2,19 @@
 import type { ReactNode } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
-// Removed: getCurrentUser and redirect from 'next/navigation' as auth is handled client-side in AppLayout
+import { getCurrentUser } from '@/lib/actions/userActions'; // Custom getCurrentUser
+import { redirect } from 'next/navigation';
+import type { CurrentUser } from '@/types/user';
 
-export default function GroupedAppLayout({ children }: { children: ReactNode }) {
-  // Authentication check is now primarily handled client-side within AppLayout using Supabase
+export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
+  const currentUser: CurrentUser | null = await getCurrentUser();
+
+  if (!currentUser) {
+    redirect('/login');
+  }
+
   return (
-    <AppLayout>
+    <AppLayout currentUser={currentUser}> {/* Pass currentUser to AppLayout */}
       {children}
       <Toaster />
     </AppLayout>

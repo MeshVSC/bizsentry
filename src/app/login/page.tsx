@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+// useRouter is removed as redirect is handled by server action
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,35 +10,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase/client";
+import { loginUser } from "@/lib/actions/userActions"; // Import custom login action
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Email and password state are still needed for the form
+  // const [email, setEmail] = useState(''); // Not needed if using FormData directly
+  // const [password, setPassword] = useState(''); // Not needed if using FormData directly
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
+      const result = await loginUser(formData); // Call custom login action
 
-      if (signInError) {
-        setError(signInError.message);
-        toast({ title: "Login Failed", description: signInError.message, variant: "destructive" });
-      } else {
-        toast({ title: "Login Successful", description: "Redirecting to dashboard..." });
-        // Server action userActions.loginUser now handles the redirect
-        // router.push("/dashboard");
-        // router.refresh(); // Refresh to ensure layout picks up new auth state
+      if (!result.success) {
+        setError(result.message || "Login failed.");
+        toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
       }
+      // Success case: redirect is handled by the server action, so no client-side redirect needed here.
     });
   };
 
@@ -47,13 +41,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 mt-4 mx-auto">
-            <div className="inline-block text-center">
-              <Image
-                src="/logo.png"
+            <div className="inline-block text-center"> {/* Wrapper for centering */}
+               <Image
+                src="/logo.png" // Using the main logo
                 alt="StockSentry Logo"
                 width={1024}
                 height={1024}
-                className="h-16 sm:h-24 w-auto mx-auto"
+                className="h-16 sm:h-24 w-auto mx-auto" // Adjusted size
                 priority
                 data-ai-hint="logo company"
               />
@@ -66,29 +60,29 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email</Label> {/* Changed from Username */}
               <Input
                 id="email"
-                name="email"
+                name="email" // Important for FormData
                 type="email"
                 placeholder="you@example.com"
                 required
                 disabled={isPending}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                // value={email} // Uncontrolled component with FormData
+                // onChange={(e) => setEmail(e.target.value)} // Uncontrolled
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
-                name="password"
+                name="password" // Important for FormData
                 type="password"
                 placeholder="••••••••"
                 required
                 disabled={isPending}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                // value={password} // Uncontrolled component with FormData
+                // onChange={(e) => setPassword(e.target.value)} // Uncontrolled
               />
             </div>
             {error && (
