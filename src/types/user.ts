@@ -6,17 +6,17 @@ export type UserRole = 'admin' | 'manager' | 'viewer';
 export interface User {
   id: string;
   username: string; // Represents the email for Supabase compatibility and local store
-  password?: string; // For the in-memory store, not for Supabase auth
+  password?: string; // For the in-memory store, primarily for seed data. Not used for Supabase auth.
   role: UserRole;
 }
 
 // View model for displaying users (omits password)
 export interface UserView extends Omit<User, 'password'> {}
 
-// Input for the "Add User" form (for the in-memory store)
+// Input for the "Add User Role Assignment" form (for the in-memory store)
 export interface UserFormInput {
   username: string; // Represents the email
-  password?: string; 
+  password?: string; // No longer strictly required by the form, can be omitted.
   role: UserRole;
 }
 

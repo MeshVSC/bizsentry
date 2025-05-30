@@ -18,46 +18,46 @@ import { useTransition } from "react";
 
 const userRoles: UserRole[] = ["admin", "manager", "viewer"];
 
-const addUserSchema = z.object({
+// Password is no longer required in this form, as Supabase handles actual auth.
+// This form is for mapping a Supabase user's email to an app-specific role.
+const addUserRoleSchema = z.object({
   username: z.string().min(3, "Email must be at least 3 characters.").max(50).email("Invalid email address."), // Changed to validate as email
-  password: z.string()
-    .min(5, "Password must be at least 5 characters.")
-    .max(100)
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
-    .regex(/[0-9]/, "Password must contain at least one number."),
   role: z.enum(userRoles, { required_error: "Role is required." }),
 });
 
-type AddUserFormValues = z.infer<typeof addUserSchema>;
+type AddUserRoleFormValues = z.infer<typeof addUserRoleSchema>;
 
 export default function AddUserForm() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  const form = useForm<AddUserFormValues>({
-    resolver: zodResolver(addUserSchema),
+  const form = useForm<AddUserRoleFormValues>({
+    resolver: zodResolver(addUserRoleSchema),
     defaultValues: {
       username: "",
-      password: "",
       role: "viewer",
     },
   });
 
-  const onSubmit = async (data: AddUserFormValues) => {
+  const onSubmit = async (data: AddUserRoleFormValues) => {
     startTransition(async () => {
-      const result = await addUser(data as UserFormInput); // username is now email
+      // Pass data as UserFormInput, password will be undefined
+      const result = await addUser(data as UserFormInput); 
       if (result.success) {
         toast({ title: "Success", description: result.message });
         form.reset();
       } else {
-        toast({ title: "Error", description: result.message || "Failed to add user.", variant: "destructive" });
+        toast({ title: "Error", description: result.message || "Failed to add user role assignment.", variant: "destructive" });
       }
     });
   };
 
   return (
     <div>
-      <h3 className="text-lg font-medium mb-2">Add New User</h3>
+      <h3 className="text-lg font-medium mb-2">Add User Role Assignment</h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        Enter the email of a user (who logs in via Supabase) to assign them a role in this application.
+      </p>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
           <FormField
@@ -65,21 +65,10 @@ export default function AddUserForm() {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl><Input placeholder="e.g., newuser@example.com" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl><Input type="password" placeholder="Enter password" {...field} /></FormControl>
+                <FormLabel>User's Email</FormLabel>
+                <FormControl><Input placeholder="e.g., user@example.com" {...field} /></FormControl>
                 <FormDescription className="text-xs">
-                  Min 5 chars, 1 uppercase, 1 number. E.g., Pass123
+                  This email must match their Supabase login email.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -110,7 +99,7 @@ export default function AddUserForm() {
             )}
           />
           <SubmitButton isPending={isPending}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add User
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Role Assignment
           </SubmitButton>
         </form>
       </Form>
