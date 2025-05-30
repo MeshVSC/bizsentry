@@ -16,13 +16,13 @@ interface UserManagementTableProps {
   initialUsers: UserView[];
 }
 
-const userRoles: UserRole[] = ["admin", "manager", "viewer"]; // Added 'manager'
+const userRoles: UserRole[] = ["admin", "manager", "viewer"]; 
 
 export default function UserManagementTable({ initialUsers }: UserManagementTableProps) {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserView[]>(initialUsers);
   const [isPendingMap, setIsPendingMap] = useState<Record<string, boolean>>({});
-  const [_, startTransition] = useTransition();
+  const [_, startTransition] = useTransition(); // Renamed to avoid conflict if startTransition is used elsewhere
 
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -76,7 +76,7 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.username}</TableCell>
+                <TableCell className="font-medium">{user.username}</TableCell> 
                 <TableCell>
                   <Select
                     value={user.role}

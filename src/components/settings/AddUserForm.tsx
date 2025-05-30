@@ -16,10 +16,10 @@ import { SubmitButton } from "@/components/shared/SubmitButton";
 import { PlusCircle } from "lucide-react";
 import { useTransition } from "react";
 
-const userRoles: UserRole[] = ["admin", "manager", "viewer"]; // Added 'manager'
+const userRoles: UserRole[] = ["admin", "manager", "viewer"];
 
 const addUserSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters.").max(50),
+  username: z.string().min(3, "Email must be at least 3 characters.").max(50).email("Invalid email address."), // Changed to validate as email
   password: z.string()
     .min(5, "Password must be at least 5 characters.")
     .max(100)
@@ -45,7 +45,7 @@ export default function AddUserForm() {
 
   const onSubmit = async (data: AddUserFormValues) => {
     startTransition(async () => {
-      const result = await addUser(data as UserFormInput);
+      const result = await addUser(data as UserFormInput); // username is now email
       if (result.success) {
         toast({ title: "Success", description: result.message });
         form.reset();
@@ -65,8 +65,8 @@ export default function AddUserForm() {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Username</FormLabel>
-                <FormControl><Input placeholder="e.g., newuser" {...field} /></FormControl>
+                <FormLabel>Email</FormLabel>
+                <FormControl><Input placeholder="e.g., newuser@example.com" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}

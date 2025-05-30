@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase/client"; // Import Supabase client
+import { supabase } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,8 +35,9 @@ export default function LoginPage() {
         toast({ title: "Login Failed", description: signInError.message, variant: "destructive" });
       } else {
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." });
-        router.push("/dashboard"); // Redirect to dashboard on successful login
-        router.refresh(); // Refresh to ensure layout picks up new auth state
+        // Server action userActions.loginUser now handles the redirect
+        // router.push("/dashboard");
+        // router.refresh(); // Refresh to ensure layout picks up new auth state
       }
     });
   };
