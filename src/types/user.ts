@@ -4,7 +4,7 @@ export type UserRole = 'admin' | 'manager' | 'viewer';
 // Represents a user in our custom stock_sentry_users Supabase table
 export interface User {
   id: string; // UUID from Supabase
-  username: string; // Used as email/login ID, should be unique
+  username: string; // Used as login ID
   password_text: string; // Plaintext password - NOT SECURE FOR PRODUCTION
   role: UserRole;
   created_at: string;
@@ -16,8 +16,8 @@ export interface UserView extends Omit<User, 'password_text'> {}
 
 // Input for the "Add User" form (for the custom table)
 export interface UserFormInput {
-  username: string; // Email format
-  password?: string; // Password is now required for custom table
+  username: string;
+  password?: string; // Password required for adding users
   role: UserRole;
 }
 

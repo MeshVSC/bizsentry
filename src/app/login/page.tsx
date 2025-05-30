@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-// useRouter is removed as redirect is handled by server action
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,15 +10,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/hooks/use-toast";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import Image from "next/image";
-import { loginUser } from "@/lib/actions/userActions"; // Import custom login action
+import { loginUser } from "@/lib/actions/userActions";
 
 export default function LoginPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  // Email and password state are still needed for the form
-  // const [email, setEmail] = useState(''); // Not needed if using FormData directly
-  // const [password, setPassword] = useState(''); // Not needed if using FormData directly
+  const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -26,13 +24,16 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
-      const result = await loginUser(formData); // Call custom login action
+      const result = await loginUser(formData);
 
       if (!result.success) {
         setError(result.message || "Login failed.");
         toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
+      } else {
+        // Redirect is now handled by the server action
+        // For client-side refresh if needed after server redirect (though usually not necessary)
+        // router.refresh(); 
       }
-      // Success case: redirect is handled by the server action, so no client-side redirect needed here.
     });
   };
 
@@ -41,13 +42,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="mb-4 mt-4 mx-auto">
-            <div className="inline-block text-center"> {/* Wrapper for centering */}
+            <div className="inline-block text-center">
                <Image
-                src="/logo.png" // Using the main logo
+                src="/logo.png"
                 alt="StockSentry Logo"
                 width={1024}
                 height={1024}
-                className="h-16 sm:h-24 w-auto mx-auto" // Adjusted size
+                className="h-16 sm:h-24 w-auto mx-auto"
                 priority
                 data-ai-hint="logo company"
               />
@@ -60,29 +61,25 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label> {/* Changed from Username */}
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                name="email" // Important for FormData
-                type="email"
-                placeholder="you@example.com"
+                id="username"
+                name="username"
+                type="text"
+                placeholder="Enter your username"
                 required
                 disabled={isPending}
-                // value={email} // Uncontrolled component with FormData
-                // onChange={(e) => setEmail(e.target.value)} // Uncontrolled
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
-                name="password" // Important for FormData
+                name="password"
                 type="password"
                 placeholder="••••••••"
                 required
                 disabled={isPending}
-                // value={password} // Uncontrolled component with FormData
-                // onChange={(e) => setPassword(e.target.value)} // Uncontrolled
               />
             </div>
             {error && (

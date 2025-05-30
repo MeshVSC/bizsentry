@@ -2,7 +2,7 @@
 "use client";
 
 import type { UserRole, UserView } from "@/types/user";
-import { updateUserRole, deleteUser } from "@/lib/actions/userActions"; // Custom actions
+import { updateUserRole, deleteUser } from "@/lib/actions/userActions";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Email</TableHead>
+              <TableHead>Username</TableHead>
               <TableHead>Role</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -109,7 +109,6 @@ export default function UserManagementTable({ initialUsers }: UserManagementTabl
                           <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This action cannot be undone. This will permanently delete the user "{user.username}".
-                            This will also delete their login credentials.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

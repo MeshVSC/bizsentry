@@ -6,11 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label"; // Not explicitly used, but FormLabel is
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { addUser } from "@/lib/actions/userActions"; // Custom addUser
+import { addUser } from "@/lib/actions/userActions";
 import type { UserFormInput, UserRole } from "@/types/user";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import { PlusCircle } from "lucide-react";
@@ -18,9 +17,8 @@ import { useTransition } from "react";
 
 const userRoles: UserRole[] = ["admin", "manager", "viewer"];
 
-// Schema now includes password, matching custom table requirements
 const addUserSchema = z.object({
-  username: z.string().min(3, "Email must be at least 3 characters.").max(50).email("Invalid email address."),
+  username: z.string().min(3, "Username must be at least 3 characters.").max(50, "Username cannot exceed 50 characters."),
   password: z.string().min(5, "Password must be at least 5 characters.")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
     .regex(/[0-9]/, "Password must contain at least one number."),
@@ -44,10 +42,10 @@ export default function AddUserForm() {
 
   const onSubmit = async (data: AddUserFormValues) => {
     startTransition(async () => {
-      const result = await addUser(data); 
+      const result = await addUser(data);
       if (result.success) {
         toast({ title: "Success", description: result.message });
-        form.reset(); // Clear form on success
+        form.reset();
       } else {
         toast({ title: "Error", description: result.message || "Failed to add user.", variant: "destructive" });
       }
@@ -67,8 +65,8 @@ export default function AddUserForm() {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>User's Email</FormLabel>
-                <FormControl><Input placeholder="e.g., user@example.com" {...field} /></FormControl>
+                <FormLabel>Username</FormLabel>
+                <FormControl><Input placeholder="e.g., janesmith" {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )}
