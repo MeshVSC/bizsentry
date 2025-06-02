@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-// import { cache } from 'react'; // React.cache temporarily removed for this specific test
+import { cache } from 'react'; // Import React.cache
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
@@ -22,7 +22,6 @@ export async function loginUser(
 
   const normalizedUsername = usernameInput.trim().toLowerCase();
 
-  // console.log(`[LoginUser] Attempting to fetch user: ${normalizedUsername}`);
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('*')
@@ -30,38 +29,29 @@ export async function loginUser(
     .single();
 
   if (error || !user) {
-    // console.error("[LoginUser] Supabase error or user not found:", error);
     return { success: false, message: "Invalid username or password." };
   }
 
   if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") {
-    // console.error("[LoginUser] User found but ID is invalid:", user.id);
     return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
 
-  // console.log(`[LoginUser] User fetched: ${user.id}, role: ${user.role}`);
-
   if (user.password_text === passwordInput) {
     try {
-      // console.log(`[LoginUser] Credentials valid for user ID: ${user.id}. Attempting to set cookie.`);
       cookies().set(SESSION_COOKIE_NAME, user.id, {
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 1 week
         sameSite: 'lax',
         secure: true, 
-        httpOnly: true, // Ensure httpOnly is true for security
+        httpOnly: true, 
       });
-      // console.log(`[LoginUser] Cookie for user ID ${user.id} should be set with httpOnly: true.`);
     } catch (cookieError: any) {
-      // console.error("[LoginUser] Cookie setting error:", cookieError);
       return { success: false, message: "Login succeeded but failed to set session. Please try again." };
     }
 
     revalidatePath('/', 'layout'); 
-    // console.log("[LoginUser] Redirecting to /dashboard.");
     redirect('/dashboard'); 
   } else {
-    // console.warn("[LoginUser] Password mismatch for user:", normalizedUsername);
     return { success: false, message: "Invalid username or password." };
   }
 }
@@ -72,34 +62,27 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
     revalidatePath("/", "layout");
     return { success: true, redirectPath: "/login" };
   } catch (e: any) {
-    // console.error("[LogoutUser] Error during logout:", e);
     return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
-// getCurrentUser WITHOUT React.cache for this test
-export const getCurrentUser = async (): Promise<CurrentUser | null> => {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   let userId: string | undefined;
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
     userId = rawCookie?.value;
-    // console.log("[GetCurrentUser NO-CACHE] Attempting to read cookie. Raw cookie:", rawCookie, "User ID from cookie:", userId);
   } catch (cookieError: any) {
-    // console.error("[GetCurrentUser NO-CACHE] Error reading cookie:", cookieError);
     throw new Error(`SESSION_COOKIE_READ_ERROR: ${cookieError.message}`);
   }
 
   if (!rawCookie) {
-    // console.log("[GetCurrentUser NO-CACHE] Session cookie object not found.");
     throw new Error("SESSION_COOKIE_NOT_FOUND_OBJECT");
   }
   if (!userId || userId.trim() === "") {
-    // console.log("[GetCurrentUser NO-CACHE] Session cookie found, but its value (userId) is empty.");
     throw new Error("SESSION_COOKIE_VALUE_EMPTY");
   }
 
-  // console.log(`[GetCurrentUser NO-CACHE] Found userId in cookie: ${userId}. Querying Supabase.`);
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -107,7 +90,6 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
     .single();
 
   if (error) {
-    // console.error(`[GetCurrentUser NO-CACHE] Supabase error fetching user ID ${userId}:`, error);
     if (error.code === 'PGRST116') { 
       throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
@@ -115,12 +97,10 @@ export const getCurrentUser = async (): Promise<CurrentUser | null> => {
   }
 
   if (!user) {
-    // console.warn(`[GetCurrentUser NO-CACHE] Supabase query for ID ${userId} returned no error, but no user object.`);
     throw new Error(`SUPABASE_USER_NOT_FOUND_DESPITE_NO_ERROR_FOR_ID: ${userId}`);
   }
-  // console.log("[GetCurrentUser NO-CACHE] Successfully fetched user:", user);
   return user as CurrentUser;
-};
+});
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -130,7 +110,6 @@ export async function getUsers(): Promise<UserView[]> {
     .order('username', { ascending: true });
 
   if (error) {
-    // console.error("[GetUsers] Error fetching users:", error);
     return [];
   }
   return (data as UserView[]) || [];
@@ -152,7 +131,6 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') {
-      // console.error("[AddUser] Error checking existing user:", selectError);
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
   }
   if (existingUser) {
@@ -170,7 +148,6 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .single();
 
   if (insertError) {
-    // console.error("[AddUser] Error inserting new user:", insertError);
     return { success: false, message: `Failed to add user: ${insertError.message}` };
   }
 
@@ -189,7 +166,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     .single();
 
   if (targetUserError || !targetUserForRoleCheck) {
-    // console.error(`[UpdateUserRole] Target user ${userId} not found:`, targetUserError);
     return { success: false, message: "Target user not found." };
   }
 
@@ -200,7 +176,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
       .eq('role', 'admin');
 
     if (adminCountError) {
-      // console.error("[UpdateUserRole] Could not verify admin count:", adminCountError);
       return { success: false, message: "Could not verify admin count."};
     }
     if (count !== null && count <= 1) {
@@ -216,7 +191,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     .single();
 
   if (error) {
-    // console.error(`[UpdateUserRole] Error updating role for user ${userId}:`, error);
     return { success: false, message: `Failed to update role: ${error.message}` };
   }
 
@@ -230,9 +204,9 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   let performingUser: CurrentUser | null = null;
   try {
+    // This call will now use the cached version if available for this request
     performingUser = await getCurrentUser();
   } catch (e) {
-     // console.error("[DeleteUser] Error getting performing user for delete check:", e);
      return { success: false, message: "Could not verify performing user's permissions." };
   }
 
@@ -251,7 +225,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     .single();
 
   if (targetUserError || !targetUser) {
-    // console.error(`[DeleteUser] Target user ${userId} not found:`, targetUserError);
     return { success: false, message: "User not found." };
   }
 
@@ -261,7 +234,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
         .select('id', { count: 'exact', head: true })
         .eq('role', 'admin');
     if (adminCountError) {
-        // console.error("[DeleteUser] Could not verify admin count:", adminCountError);
         return { success: false, message: "Could not verify admin count."};
     }
     if (count !== null && count <= 1) {
@@ -275,7 +247,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     .eq('id', userId);
 
   if (deleteError) {
-    // console.error(`[DeleteUser] Error deleting user ${userId}:`, deleteError);
     return { success: false, message: `Failed to delete user: ${deleteError.message}` };
   }
 
@@ -285,11 +256,10 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   try {
+    // This call will now use the cached version if available for this request
     const currentUser = await getCurrentUser(); 
     return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   } catch (error) {
-    // console.warn("[GetRoleForCurrentUser] Could not get current user role, likely not logged in:", error);
     return null;
   }
 }
-
