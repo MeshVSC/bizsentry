@@ -35,7 +35,7 @@ import {
 import NextImage from "next/image";
 import { DatePicker } from "@/components/shared/DatePicker";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useAuth } from "@/contexts/AuthContext"; 
+import { useAuth } from '@/contexts/AuthContext'; 
 
 const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
@@ -100,7 +100,7 @@ export default function ItemForm({
   const { currentUser } = useAuth(); 
 
   useEffect(() => {
-    // console.log(`[ItemForm useEffect] currentUser from useAuth():`, currentUser);
+    console.log(`[ItemForm useEffect] currentUser from useAuth():`, JSON.parse(JSON.stringify(currentUser || null)));
   }, [currentUser]);
 
 
@@ -181,9 +181,9 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    // console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, currentUser);
+    console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, JSON.parse(JSON.stringify(currentUser || null)));
     if (!currentUser?.id) { 
-      // console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
+      console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
       toast({
         title: "Authentication Error",
         description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
@@ -606,4 +606,3 @@ export default function ItemForm({
     </Form>
   );
 }
-

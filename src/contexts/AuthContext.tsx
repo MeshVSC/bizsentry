@@ -32,4 +32,3 @@ export function useAuth() {
   // console.log('[useAuth] Context value:', context);
   return context;
 }
-
