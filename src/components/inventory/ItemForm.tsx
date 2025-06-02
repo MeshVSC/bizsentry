@@ -35,7 +35,7 @@ import {
 import NextImage from "next/image";
 import { DatePicker } from "@/components/shared/DatePicker";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
+import { useAuth } from "@/contexts/AuthContext"; 
 
 const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
@@ -97,11 +97,10 @@ export default function ItemForm({
   const [isPending, startTransition] = useTransition();
   const [isReceiptProcessing, setIsReceiptProcessing] = useState(false);
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
-  const { currentUser } = useAuth(); // Get currentUser from AuthContext
+  const { currentUser } = useAuth(); 
 
   useEffect(() => {
-    // Log currentUser when the form mounts or currentUser changes
-    console.log(`[ItemForm useEffect] currentUser from useAuth():`, JSON.parse(JSON.stringify(currentUser || null)));
+    // console.log(`[ItemForm useEffect] currentUser from useAuth():`, currentUser);
   }, [currentUser]);
 
 
@@ -118,9 +117,9 @@ export default function ItemForm({
       room: item?.room || "",
       vendor: item?.vendor || "",
       project: item?.project || "",
-      originalPrice: item?.originalPrice ?? "",
-      salesPrice: item?.salesPrice ?? "",
-      msrp: item?.msrp ?? "",
+      originalPrice: item?.originalPrice ?? undefined, // Ensure undefined for empty, not ""
+      salesPrice: item?.salesPrice ?? undefined,   // Ensure undefined for empty, not ""
+      msrp: item?.msrp ?? undefined,               // Ensure undefined for empty, not ""
       sku: item?.sku || "",
       status: item?.status || "in stock",
       receiptImageUrl: item?.receiptImageUrl || "",
@@ -182,22 +181,22 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, JSON.parse(JSON.stringify(currentUser || null)));
-    if (!currentUser?.id) { // Check for currentUser.id
-      console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser:`, JSON.parse(JSON.stringify(currentUser || null)));
+    // console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, currentUser);
+    if (!currentUser?.id) { 
+      // console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
       toast({
         title: "Authentication Error",
         description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
         variant: "destructive",
       });
-      return; // Prevent submission
+      return; 
     }
 
     const payload: ItemInput = {
         ...data,
-        originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
-        salesPrice: data.salesPrice === "" ? undefined : Number(data.salesPrice),
-        msrp: data.msrp === "" ? undefined : Number(data.msrp),
+        originalPrice: data.originalPrice === "" || data.originalPrice === null ? undefined : Number(data.originalPrice),
+        salesPrice: data.salesPrice === "" || data.salesPrice === null ? undefined : Number(data.salesPrice),
+        msrp: data.msrp === "" || data.msrp === null ? undefined : Number(data.msrp),
         sku: data.sku || undefined,
         description: data.description || undefined,
         category: data.category || undefined,
@@ -214,7 +213,7 @@ export default function ItemForm({
         purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined,
         soldDate: data.soldDate ? data.soldDate.toISOString() : undefined,
         inUseDate: data.inUseDate ? data.inUseDate.toISOString() : undefined,
-        invokedByUserId: currentUser.id, // Add invokedByUserId from context
+        invokedByUserId: currentUser.id, 
     };
 
     startTransition(async () => {
@@ -226,12 +225,13 @@ export default function ItemForm({
             description: `${data.name} has been successfully ${isEditing ? 'updated' : 'added'}.`,
           });
           router.push('/inventory');
+          router.refresh(); // Added to ensure data consistency after navigation
         } else {
           const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input.`;
           toast({ title: "Operation Failed", description: errorMsg, variant: "destructive" });
         }
       } catch (error) {
-        console.error("Failed to submit item form:", error);
+        // console.error("Failed to submit item form:", error);
         toast({ title: "Submission Error", description: `An unexpected error occurred: ${(error as Error).message}. Please try again.`, variant: "destructive" });
       }
     });
@@ -606,3 +606,4 @@ export default function ItemForm({
     </Form>
   );
 }
+

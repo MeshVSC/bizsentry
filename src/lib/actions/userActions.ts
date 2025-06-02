@@ -1,26 +1,21 @@
 
 "use server";
 
-import type { UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
+import type { UserRole, CurrentUser, UserFormInput, UserView, GetCurrentUserResult } from "@/types/user";
 import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-import { cache } from 'react'; // Import React.cache
+import { cache } from 'react';
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
-
-export interface GetCurrentUserResult {
-  user: CurrentUser | null;
-  debugMessage?: string;
-}
 
 export async function loginUser(
   formData: FormData
 ): Promise<{ success: boolean; message?: string } | void> {
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
-  // const timestamp = new Date().toISOString();
+  const timestamp = new Date().toISOString();
   // console.log(`[LoginUser (${timestamp})] Attempting login for username: ${usernameInput}`);
 
   if (!usernameInput || !passwordInput) {
@@ -72,7 +67,7 @@ export async function loginUser(
 }
 
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
-  // const timestamp = new Date().toISOString();
+  const timestamp = new Date().toISOString();
   try {
     // console.log(`[LogoutUser (${timestamp})] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
     cookies().delete(SESSION_COOKIE_NAME);
@@ -86,38 +81,36 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
 }
 
 export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
-  // const timestamp = new Date().toISOString();
-  // let debugMessage = `[GetCurrentUser (${timestamp})] Initializing (cached function).`;
-
+  const timestamp = new Date().toISOString();
+  let finalDebugMessage = `[GetCurrentUser (${timestamp})]`;
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
-  let userId: string | undefined;
 
   try {
-    // debugMessage += ` Attempting to read cookie: ${SESSION_COOKIE_NAME}.`;
-    const cookieStore = cookies(); // Get the cookie store
-    rawCookie = cookieStore.get(SESSION_COOKIE_NAME); // Use the store to get the cookie
+    const cookieStore = cookies();
+    rawCookie = cookieStore.get(SESSION_COOKIE_NAME);
+    // finalDebugMessage += ` Cookie read attempt finished.`;
   } catch (cookieAccessError: any) {
-    // debugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
-    // console.error(debugMessage);
-    return { user: null, debugMessage: `Failed to access cookie store: ${cookieAccessError.message}` };
+    finalDebugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
+    // console.error(finalDebugMessage);
+    return { user: null, debugMessage: finalDebugMessage };
   }
 
   if (!rawCookie) {
-    // debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" not found.`;
-    // console.warn(debugMessage);
-    return { user: null, debugMessage: `Session cookie "${SESSION_COOKIE_NAME}" not found.` };
+    finalDebugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" not found by cookies().get().`;
+    // console.warn(finalDebugMessage);
+    return { user: null, debugMessage: finalDebugMessage };
   }
   
-  userId = rawCookie.value;
-  // debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
+  const userId = rawCookie.value;
+  // finalDebugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
 
   if (!userId || userId.trim() === "") {
-    // debugMessage += ` Cookie value (userId) is empty/whitespace.`;
-    // console.warn(debugMessage);
-    return { user: null, debugMessage: "Session cookie found, but user ID is empty." };
+    finalDebugMessage += ` Cookie value (userId) is empty/whitespace.`;
+    // console.warn(finalDebugMessage);
+    return { user: null, debugMessage: finalDebugMessage };
   }
 
-  // debugMessage += ` Fetching from Supabase with userId: "${userId}".`;
+  // finalDebugMessage += ` Fetching from Supabase with userId: "${userId}".`;
   const { data: dbUser, error: dbError } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -125,20 +118,27 @@ export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
     .single();
 
   if (dbError) {
-    // debugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
-    // console.error(debugMessage);
-    return { user: null, debugMessage: `Database error fetching user: ${dbError.message}` };
+    finalDebugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
+    // console.error(finalDebugMessage);
+    return { user: null, debugMessage: finalDebugMessage };
   }
 
-  if (!dbUser) {
-    // debugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
-    // console.warn(debugMessage);
-    return { user: null, debugMessage: "User ID from cookie not found in database." };
+  if (!dbUser) { // This covers if Supabase returns null for dbUser
+    finalDebugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
+    // console.warn(finalDebugMessage);
+    return { user: null, debugMessage: finalDebugMessage };
+  }
+
+  // Defensive check: Ensure dbUser has an id and other essential fields
+  if (typeof dbUser.id !== 'string' || !dbUser.id.trim() || typeof dbUser.username !== 'string' || typeof dbUser.role !== 'string') {
+    finalDebugMessage += ` Retrieved dbUser object from Supabase is malformed or missing essential fields (id, username, role). dbUser: ${JSON.stringify(dbUser)}. Treating as no user found.`;
+    // console.warn(finalDebugMessage);
+    return { user: null, debugMessage: finalDebugMessage };
   }
   
-  // debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
-  // console.log(debugMessage);
-  return { user: dbUser as CurrentUser, debugMessage: "User successfully retrieved." };
+  // finalDebugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
+  // console.log(finalDebugMessage);
+  return { user: dbUser as CurrentUser, debugMessage: finalDebugMessage + " User retrieved." };
 });
 
 
@@ -203,6 +203,11 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
   if (!authResult.user) {
       return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
   }
+  const performingUser = authResult.user;
+
+  if (performingUser.role?.trim().toLowerCase() !== 'admin') {
+      return { success: false, message: "Permission denied: Only admins can update roles." };
+  }
 
   const { data: targetUserForRoleCheck, error: targetUserError } = await supabase
     .from('stock_sentry_users')
@@ -241,6 +246,9 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
+    // If the performing user updated their own role, update their session info if possible (complex with HttpOnly cookies server-side)
+    // For now, this might require a re-login for the change to be fully reflected for the self-updater.
+    // However, if the updatedUser is the current user from context, their context role won't auto-update here.
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
@@ -303,3 +311,4 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   const { user } = await getCurrentUser(); 
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }
+
