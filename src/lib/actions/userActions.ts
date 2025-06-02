@@ -37,8 +37,8 @@ export async function loginUser(
 
   console.log(`[LoginAttempt] User found in DB: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
 
-  if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") { // Enhanced check
-    console.error("[LoginFailed] Critical: User object fetched from database is missing a valid ID string. User data:", user);
+  if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") { 
+    console.error("[LoginFailed] Critical: User object fetched from database is missing a valid ID string. User data:", JSON.stringify(user));
     return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
   console.log(`[LoginSuccess] User ID for cookie: ${user.id}`);
@@ -89,17 +89,17 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
     userId = rawCookie?.value;
-    console.log(`[GetCurrentUser] Raw cookie object for ${SESSION_COOKIE_NAME}:`, rawCookie);
+    console.log(`[GetCurrentUser] Raw cookie object for ${SESSION_COOKIE_NAME}:`, JSON.stringify(rawCookie || null));
   } catch (cookieError: any) {
     console.error(`[GetCurrentUser] Error reading cookie: ${cookieError.message}`);
-    return null;
+    throw new Error(`COOKIE_READ_ERROR: ${cookieError.message}`);
   }
   
   console.log(`[GetCurrentUser] Attempting to get user. Cookie UserID: ${userId || 'Not set/found'}`);
 
   if (!userId) {
     console.log("[GetCurrentUser] No userId found in cookie or cookie itself not found.");
-    return null;
+    throw new Error("SESSION_COOKIE_NOT_FOUND_OR_EMPTY");
   }
 
   const { data: user, error } = await supabase
@@ -108,16 +108,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .eq('id', userId)
     .single();
   
-  console.log(`[GetCurrentUser] Supabase query result for ID ${userId}:`, { data: JSON.stringify(user), error: error ? JSON.stringify(error) : null });
+  console.log(`[GetCurrentUser] Supabase query result for ID ${userId}:`, { data: JSON.stringify(user || null), error: error ? JSON.stringify(error) : null });
 
-  if (error || !user) {
-    if (error && error.code !== 'PGRST116') { 
-      console.error(`[GetCurrentUser] Error fetching user for ID "${userId}" from Supabase:`, error.message);
-    } else if (!user) {
-      console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale or RLS policy issue.`);
+  if (error) {
+    console.error(`[GetCurrentUser] Error fetching user for ID "${userId}" from Supabase:`, error.message);
+    if (error.code === 'PGRST116') { // PGRST116: "Searched for a single row, but 0 rows were found"
+      throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
-    return null;
+    throw new Error(`SUPABASE_QUERY_ERROR: ${error.message} (Code: ${error.code})`);
   }
+  
+  if (!user) {
+    console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale or RLS policy issue.`);
+    throw new Error(`SUPABASE_USER_NOT_FOUND_DESPITE_NO_ERROR_FOR_ID: ${userId}`);
+  }
+
   console.log(`[GetCurrentUser] User found: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
   return user as CurrentUser;
 }
@@ -324,7 +329,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   console.log("[GetRoleForCurrentUser] Fetching current user to determine role.");
-  const currentUser = await getCurrentUser();  
+  const currentUser = await getCurrentUser();  // This might throw, which is fine for this function's purpose if the caller handles it
   const role = currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   console.log(`[GetRoleForCurrentUser] Role determined: ${role}`);
   return role;
