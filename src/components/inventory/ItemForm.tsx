@@ -99,7 +99,6 @@ export default function ItemForm({
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
   const { currentUser } = useAuth(); 
 
-  // Removed useEffect log to reduce client-side noise
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -114,9 +113,9 @@ export default function ItemForm({
       room: item?.room || "",
       vendor: item?.vendor || "",
       project: item?.project || "",
-      originalPrice: item?.originalPrice ?? undefined, 
-      salesPrice: item?.salesPrice ?? undefined,   
-      msrp: item?.msrp ?? undefined,               
+      originalPrice: item?.originalPrice ?? '', // Changed from ?? undefined
+      salesPrice: item?.salesPrice ?? '',   // Changed from ?? undefined
+      msrp: item?.msrp ?? '',               // Changed from ?? undefined
       sku: item?.sku || "",
       status: item?.status || "in stock",
       receiptImageUrl: item?.receiptImageUrl || "",
@@ -178,9 +177,8 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    // console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, JSON.parse(JSON.stringify(currentUser || null)));
     if (!currentUser?.id) { 
-      console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
+      // console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
       toast({
         title: "Authentication Error",
         description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
@@ -191,9 +189,9 @@ export default function ItemForm({
 
     const payload: ItemInput = {
         ...data,
-        originalPrice: data.originalPrice === "" || data.originalPrice === null ? undefined : Number(data.originalPrice),
-        salesPrice: data.salesPrice === "" || data.salesPrice === null ? undefined : Number(data.salesPrice),
-        msrp: data.msrp === "" || data.msrp === null ? undefined : Number(data.msrp),
+        originalPrice: data.originalPrice === "" || data.originalPrice === null || data.originalPrice === undefined ? undefined : Number(data.originalPrice),
+        salesPrice: data.salesPrice === "" || data.salesPrice === null || data.salesPrice === undefined ? undefined : Number(data.salesPrice),
+        msrp: data.msrp === "" || data.msrp === null || data.msrp === undefined ? undefined : Number(data.msrp),
         sku: data.sku || undefined,
         description: data.description || undefined,
         category: data.category || undefined,
@@ -602,3 +600,4 @@ export default function ItemForm({
     </Form>
   );
 }
+
