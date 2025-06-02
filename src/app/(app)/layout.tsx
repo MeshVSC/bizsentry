@@ -1,6 +1,5 @@
 
 import type { ReactNode } from 'react';
-// Removed React.cloneElement as it's no longer used for prop drilling to pages
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
 import { getCurrentUser } from '@/lib/actions/userActions';
@@ -17,17 +16,14 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
       debugMessage = `Layout: User is VALID. User: ${JSON.stringify(currentUser, null, 2)}`;
     } else {
       // This case should ideally not be reached if getCurrentUser throws on "not found"
-      debugMessage = "Layout: getCurrentUser() returned null (unexpected). Redirecting.";
-      redirect('/login');
+      // but if it somehow returns null without throwing:
+      debugMessage = "Layout: getCurrentUser() returned null (UNEXPECTED, SHOULD THROW). Would redirect to /login.";
+      // redirect('/login'); // TEMPORARILY DISABLED
     }
   } catch (error: any) {
-    debugMessage = `Layout: Error from getCurrentUser(): ${error.message}. Redirecting.`;
-    // console.error('[GroupedAppLayout] Error in getCurrentUser, redirecting:', error.message);
-    redirect('/login');
+    debugMessage = `Layout: Error from getCurrentUser(): ${error.message}. Would redirect to /login.`;
+    // redirect('/login'); // TEMPORARILY DISABLED
   }
-
-  // If we reach here, currentUser MUST be populated due to the redirect logic above.
-  // No longer cloning children with props; pages will call getCurrentUser() themselves.
 
   return (
     <>
@@ -35,7 +31,7 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
         DEBUG (GroupedAppLayout): {debugMessage}
       </div>
       <AppLayout currentUser={currentUser}> {/* Pass object to client component AppLayout */}
-        {children} {/* Render children directly */}
+        {children}
         <Toaster />
       </AppLayout>
     </>
