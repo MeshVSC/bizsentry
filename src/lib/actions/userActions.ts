@@ -2,7 +2,6 @@
 "use server";
 
 import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
@@ -10,14 +9,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Module-level Supabase client - still useful for actions not in critical auth path if preferred
-const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
+// Module-level Supabase client for actions not in critical auth path or where consistent client is preferred
+const supabaseModuleClient = createClient(supabaseUrl || "", supabaseAnonKey || "");
 
-const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
 export async function loginUser(
   formData: FormData
-): Promise<{ success: boolean; message?: string }> {
+): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
 
@@ -25,15 +23,15 @@ export async function loginUser(
     return { success: false, message: "Username and password are required." };
   }
   if (!supabaseUrl || !supabaseAnonKey) {
-     return { success: false, message: "Supabase client not configured on server." };
+     console.error("loginUser: Supabase URL or Anon Key is missing from environment variables.");
+     return { success: false, message: "Server configuration error. Please contact support." };
   }
 
-  // Use module-level client for login or a local one
   const loginSupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
   const { data: user, error } = await loginSupabaseClient
     .from('stock_sentry_users')
     .select('*')
-    .ilike('username', usernameInput) // Case-insensitive username check
+    .ilike('username', usernameInput.toLowerCase()) // Ensure consistent case for query
     .single();
 
   if (error || !user) {
@@ -41,7 +39,6 @@ export async function loginUser(
     return { success: false, message: "Invalid username or password." };
   }
 
-  // IMPORTANT SECURITY WARNING: Plaintext password comparison. Not for production.
   if (user.password_text === passwordInput) {
     cookies().set(SESSION_COOKIE_NAME, user.id, {
       httpOnly: true,
@@ -51,19 +48,23 @@ export async function loginUser(
       sameSite: 'lax',
     });
     revalidatePath("/", "layout"); 
-    redirect('/dashboard'); 
-    // The redirect means the { success: true } part is technically unreachable client-side
-    // but good to have for completeness if redirect was conditional.
-    // return { success: true }; 
+    return { success: true, redirectPath: '/dashboard' };
   } else {
     return { success: false, message: "Invalid username or password." };
   }
 }
 
-export async function logoutUser() {
-  cookies().delete(SESSION_COOKIE_NAME);
-  revalidatePath("/", "layout");
-  redirect("/login");
+const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
+
+export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
+  try {
+    cookies().delete(SESSION_COOKIE_NAME);
+    revalidatePath("/", "layout");
+    return { success: true, redirectPath: "/login" };
+  } catch (e) {
+    console.error("Logout error:", e);
+    return { success: false, message: "Logout failed due to a server error." };
+  }
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -77,7 +78,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
      return null;
   }
 
-  // Create a new Supabase client instance specifically for this function call
   const localSupabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 
   const { data: user, error } = await localSupabaseClient
@@ -87,10 +87,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (error || !user) {
-    if (error) {
+    if (error && error.code !== 'PGRST116') { // PGRST116: "Searched for a single row, but 0 rows were found"
       console.error(`getCurrentUser: Error fetching user for ID ${userId} from Supabase:`, error.message);
     }
-    // If user not found or error, clear the potentially stale cookie
     cookies().delete(SESSION_COOKIE_NAME);
     return null;
   }
@@ -100,8 +99,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
 export async function getUsers(): Promise<UserView[]> {
   const performingUser = await getCurrentUser();
-  if (!performingUser || performingUser.role !== 'admin') {
-    // console.warn("Attempt to fetch users by non-admin or unauthenticated user.");
+  if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     return [];
   }
    if (!supabaseUrl || !supabaseAnonKey) {
@@ -109,7 +107,7 @@ export async function getUsers(): Promise<UserView[]> {
      return [];
   }
 
-  const { data, error } = await supabase // Can use module-level client here
+  const { data, error } = await supabaseModuleClient
     .from('stock_sentry_users')
     .select('id, username, role, created_at, updated_at')
     .order('username', { ascending: true });
@@ -123,14 +121,13 @@ export async function getUsers(): Promise<UserView[]> {
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
   const performingUser = await getCurrentUser();
-  if (!performingUser || performingUser.role !== 'admin') {
+  if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     return { success: false, message: "Permission denied: Only admins can add users." };
   }
 
   if (!data.username || !data.password || !data.role) {
     return { success: false, message: "Username, password, and role are required." };
   }
-  // Password requirements check (moved from AddUserForm for server-side validation)
   if (data.password.length < 5 || !/[A-Z]/.test(data.password) || !/[0-9]/.test(data.password) ) {
        return { success: false, message: "Password does not meet requirements (min 5 chars, 1 uppercase, 1 number)." };
   }
@@ -138,14 +135,13 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
      return { success: false, message: "Supabase client not configured on server." };
   }
 
-  const normalizedUsername = data.username.toLowerCase(); // Store usernames in lowercase
-  const { data: existingUser, error: selectError } = await supabase
+  const normalizedUsername = data.username.toLowerCase(); 
+  const { data: existingUser, error: selectError } = await supabaseModuleClient
     .from('stock_sentry_users')
     .select('id')
-    .eq('username', normalizedUsername) // Check against lowercase username
+    .eq('username', normalizedUsername) 
     .single();
 
-  // PGRST116 means "Searched for a single row, but 0 rows were found" which is what we want (user doesn't exist)
   if (selectError && selectError.code !== 'PGRST116') { 
       console.error("Error checking existing user:", selectError);
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
@@ -154,11 +150,11 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     return { success: false, message: `User with username "${data.username}" already exists.` };
   }
 
-  const { data: newUser, error: insertError } = await supabase
+  const { data: newUser, error: insertError } = await supabaseModuleClient
     .from('stock_sentry_users')
     .insert({
-      username: normalizedUsername, // Save lowercase username
-      password_text: data.password, // Storing plaintext password - NOT SECURE
+      username: normalizedUsername, 
+      password_text: data.password, 
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -178,14 +174,14 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
   const performingUser = await getCurrentUser();
-  if (!performingUser || performingUser.role !== 'admin') {
+  if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     return { success: false, message: "Permission denied: Only admins can update roles." };
   }
    if (!supabaseUrl || !supabaseAnonKey) {
      return { success: false, message: "Supabase client not configured on server." };
   }
 
-  const { data: targetUserForRoleCheck, error: targetUserError } = await supabase
+  const { data: targetUserForRoleCheck, error: targetUserError } = await supabaseModuleClient
     .from('stock_sentry_users')
     .select('role, username') 
     .eq('id', userId)
@@ -195,11 +191,10 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     return { success: false, message: "Target user not found." };
   }
 
-  // Prevent admin from demoting the last admin
   if (targetUserForRoleCheck.role === 'admin' && newRole !== 'admin') {
-    const { count, error: adminCountError } = await supabase
+    const { count, error: adminCountError } = await supabaseModuleClient
       .from('stock_sentry_users')
-      .select('id', { count: 'exact', head: true }) // Efficiently count
+      .select('id', { count: 'exact', head: true }) 
       .eq('role', 'admin');
     
     if (adminCountError) {
@@ -211,7 +206,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     }
   }
   
-  const { data: updatedUser, error } = await supabase
+  const { data: updatedUser, error } = await supabaseModuleClient
     .from('stock_sentry_users')
     .update({ role: newRole, updated_at: new Date().toISOString() })
     .eq('id', userId)
@@ -225,9 +220,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
-    // If the admin updates their own role, update the session cookie role?
-    // Current `getCurrentUser` re-fetches, so maybe not strictly needed unless for immediate UI post-action.
-    // For now, we rely on revalidation and subsequent `getCurrentUser` calls.
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
@@ -235,7 +227,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   const performingUser = await getCurrentUser();
-  if (!performingUser || performingUser.role !== 'admin') {
+  if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     return { success: false, message: "Permission denied: Only admins can delete users." };
   }
   if (performingUser.id === userId) {
@@ -245,8 +237,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
      return { success: false, message: "Supabase client not configured on server." };
   }
 
-  // Fetch the user to be deleted to check their role (e.g., if last admin)
-  const { data: targetUser, error: targetUserError } = await supabase
+  const { data: targetUser, error: targetUserError } = await supabaseModuleClient
     .from('stock_sentry_users')
     .select('username, role')
     .eq('id', userId)
@@ -256,9 +247,8 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     return { success: false, message: "User not found." };
   }
 
-  // Prevent deletion of the last admin
   if (targetUser.role === 'admin') {
-    const { count, error: adminCountError } = await supabase
+    const { count, error: adminCountError } = await supabaseModuleClient
         .from('stock_sentry_users')
         .select('id', { count: 'exact', head: true })
         .eq('role', 'admin');
@@ -271,7 +261,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     }
   }
 
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await supabaseModuleClient
     .from('stock_sentry_users')
     .delete()
     .eq('id', userId);
@@ -285,15 +275,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
-// Helper to get just the role for quick checks, not currently used by settings pages directly
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   const currentUser = await getCurrentUser(); 
-  return currentUser ? currentUser.role : null;
+  return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
 }
 
-// Initial seed data for the stock_sentry_users table.
-// This should ideally be run once via Supabase SQL editor or a seeding script.
-// Keeping it here for reference, but userActions.ts doesn't automatically seed.
+
+// Initial seed data - For reference, typically run manually in Supabase SQL editor or via a seeding script
 const initialUsersSeed: Omit<User, 'id' | 'created_at' | 'updated_at'>[] = [
   { username: "admin", password_text: "adminpassword", role: "admin" },
   { username: "manager", password_text: "managerpassword", role: "manager" },

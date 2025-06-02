@@ -30,9 +30,10 @@ export default function LoginPage() {
         setError(result.message || "Login failed.");
         toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
       } else {
-        // Redirect is now handled by the server action
-        // For client-side refresh if needed after server redirect (though usually not necessary)
-        // router.refresh(); 
+        // Login successful, server action returns redirectPath
+        toast({ title: "Login Successful", description: "Redirecting to dashboard..." });
+        router.push(result.redirectPath || '/dashboard'); 
+        router.refresh(); // Ensures layout re-fetches current user state
       }
     });
   };
