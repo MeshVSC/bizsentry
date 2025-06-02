@@ -10,32 +10,33 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
   const currentUser: CurrentUser | null = await getCurrentUser();
 
   // TEMPORARY DEBUGGING: Display currentUser value
-  let debugCurrentUserDisplay = "Current User (Debug): Not available or error in stringification.";
+  let debugCurrentUserDisplay = "Current User (Debug): Error in stringification or currentUser not yet resolved.";
   try {
-    if (currentUser === null) {
+    if (currentUser === undefined) { // Should not happen with await, but as a safeguard
+        debugCurrentUserDisplay = "Current User (Debug): undefined (unexpected)";
+    } else if (currentUser === null) {
       debugCurrentUserDisplay = "Current User (Debug): null";
     } else {
       debugCurrentUserDisplay = `Current User (Debug): ${JSON.stringify(currentUser)}`;
     }
-  } catch (e) {
-    // Error during stringification, keep default message
+  } catch (e: any) {
+    debugCurrentUserDisplay = `Current User (Debug): Error stringifying - ${e.message}`;
   }
 
-  if (!currentUser) {
-    // If redirecting, we might not see the debug output easily,
-    // but if it *doesn't* redirect, this debug output will be key.
-    // Forcing a display before redirect might require more complex changes,
-    // but if getCurrentUser() *does* return something, we'll see it.
-    console.log('[AppLayout Debug] currentUser is null, redirecting to /login. Value was:', currentUser); // Server-side log
-    redirect('/login');
-  }
+  // TEMPORARILY COMMENTED OUT FOR DEBUGGING
+  // if (!currentUser) {
+  //   // If redirecting, we might not see the debug output easily,
+  //   // but if it *doesn't* redirect, this debug output will be key.
+  //   console.log('[AppLayout Debug] currentUser is null, redirecting to /login. Value was:', currentUser); // Server-side log
+  //   redirect('/login');
+  // }
 
   return (
     <AppLayout currentUser={currentUser}>
-      {/* TEMPORARY DEBUGGING DISPLAY - REMOVE AFTER FIX */}
-      <div style={{ position: 'fixed', top: 0, left: 0, background: 'rgba(0,0,0,0.7)', color: 'white', padding: '10px', zIndex: 9999, fontSize: '12px', width: '100%' }}>
+      {/* TEMPORARY DEBUGGING DISPLAY */}
+      <div style={{ position: 'fixed', top: 0, left: 0, background: 'rgba(0,0,0,0.85)', color: 'white', padding: '10px', zIndex: 9999, fontSize: '12px', width: '100%', borderBottom: '1px solid red' }}>
         {debugCurrentUserDisplay}
-        {currentUser === null && " (Redirecting to /login because currentUser is null)"}
+        {!currentUser && " (Redirect to /login was TEMPORARILY DISABLED for debugging)"}
       </div>
       {children}
       <Toaster />
