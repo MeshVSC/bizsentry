@@ -5,6 +5,7 @@ import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client'; 
+import { getCurrentUser } from '@/lib/actions/userActions'; // Import the modified getCurrentUser
 
 async function seedUserOptions(userId: string, optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
@@ -14,7 +15,7 @@ async function seedUserOptions(userId: string, optionType: string, defaultOption
     .eq('type', optionType);
 
   if (fetchError) {
-    console.error(`Error fetching existing ${optionType} for user ${userId}:`, fetchError);
+    // console.error(`Error fetching existing ${optionType} for user ${userId}:`, fetchError);
     return; 
   }
 
@@ -30,9 +31,9 @@ async function seedUserOptions(userId: string, optionType: string, defaultOption
       .insert(optionsToInsert);
 
     if (insertError) {
-      console.error(`Error seeding ${optionType} for user ${userId}:`, insertError);
+      // console.error(`Error seeding ${optionType} for user ${userId}:`, insertError);
     } else {
-      console.log(`Successfully seeded ${optionType} for user ${userId}`);
+      // console.log(`Successfully seeded ${optionType} for user ${userId}`);
     }
   }
 }
@@ -46,15 +47,18 @@ export interface ItemFilters {
 }
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  const { data: { user } } = await supabase.auth.getUser(); 
-  if (!user && process.env.NEXT_PUBLIC_USE_SUPABASE_AUTH === 'false') { 
-      console.warn("getItems: Custom auth in use, RLS based on auth.uid() may not apply. Ensure items are fetched correctly for the custom user.");
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    // console.warn("getItems: User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message."));
+    return { items: [], totalPages: 0, count: 0 };
   }
+  const userId = authResult.user.id;
 
 
   let query = supabase
     .from('items')
-    .select('*', { count: 'exact' });
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId);
 
 
   if (filters) {
@@ -71,7 +75,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   const { count: totalMatchingCount, error: countError } = await query;
 
   if (countError) {
-    console.error("Error fetching item count:", countError);
+    // console.error("Error fetching item count:", countError);
     return { items: [], totalPages: 0, count: 0 };
   }
   
@@ -91,48 +95,49 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   const { data, error } = await query;
 
   if (error) {
-    console.error("Error fetching items:", error);
+    // console.error("Error fetching items:", error);
     return { items: [], totalPages: 0, count: 0 };
   }
 
   return { items: (data as Item[]) || [], totalPages, count: totalItems };
 }
 
-export async function getItemById(id: string): Promise<Item | undefined> {
+export async function getItemById(id: string): Promise<Item | undefined | { error: string }> {
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
+  }
+  const userId = authResult.user.id;
+
   const { data, error } = await supabase
     .from('items')
     .select('*')
     .eq('id', id)
+    .eq('user_id', userId)
     .single(); 
 
   if (error) {
-    console.error("Error fetching item by ID:", error);
-    return undefined;
+    // console.error("Error fetching item by ID:", error);
+    if (error.code === 'PGRST116') { // Not found or not authorized
+        return { error: "Item not found or you don't have permission to view it." };
+    }
+    return { error: error.message };
   }
   return data as Item | undefined;
 }
 
 export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
   const timestamp = new Date().toISOString();
-  console.log(`[AddItem (${timestamp})] Server action called with data:`, JSON.stringify(itemData));
+  // console.log(`[AddItem (${timestamp})] Server action called with data:`, JSON.stringify(itemData));
   
-  let userIdToAdd: string | undefined;
-  const customUserModule = await import('@/lib/actions/userActions');
-  console.log(`[AddItem (${timestamp})] Attempting to get current user...`);
-  const customCurrentUser = await customUserModule.getCurrentUser();
+  const authResult = await getCurrentUser();
+  // console.log(`[AddItem (${timestamp})] Attempting to get current user... AuthResult:`, JSON.stringify(authResult));
   
-  if (customCurrentUser) {
-    userIdToAdd = customCurrentUser.id;
-    console.log(`[AddItem (${timestamp})] User authenticated: ${customCurrentUser.username}, ID: ${userIdToAdd}`);
-  } else {
-    console.error(`[AddItem (${timestamp})] User not authenticated. getCurrentUser() returned null.`);
-    return { error: "User not authenticated" };
+  if (!authResult.user) {
+    // console.error(`[AddItem (${timestamp})] User not authenticated. Debug: ${authResult.debugMessage}`);
+    return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug info from getCurrentUser.") };
   }
-
-  if (!userIdToAdd) {
-    console.error(`[AddItem (${timestamp})] userIdToAdd is still undefined after authentication check. This should not happen.`);
-    return { error: "User not authenticated or user ID could not be determined." };
-  }
+  const userIdToAdd = authResult.user.id;
 
   const now = new Date().toISOString();
   const newItemPayload: any = {
@@ -162,7 +167,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     }
   });
   
-  console.log(`[AddItem (${timestamp})] Inserting item payload into Supabase:`, JSON.stringify(newItemPayload));
+  // console.log(`[AddItem (${timestamp})] Inserting item payload into Supabase:`, JSON.stringify(newItemPayload));
   const { data: insertedItem, error } = await supabase
     .from('items')
     .insert([newItemPayload])
@@ -170,35 +175,33 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     .single();
 
   if (error) {
-    console.error(`[AddItem (${timestamp})] Error adding item to Supabase:`, error);
+    // console.error(`[AddItem (${timestamp})] Error adding item to Supabase:`, error);
     return { error: error.message };
   }
 
   if (insertedItem) {
-    console.log(`[AddItem (${timestamp})] Item added successfully to Supabase. ID: ${insertedItem.id}`);
+    // console.log(`[AddItem (${timestamp})] Item added successfully to Supabase. ID: ${insertedItem.id}`);
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     return insertedItem as Item;
   }
-  console.error(`[AddItem (${timestamp})] Failed to add item to Supabase for an unknown reason. insertedItem is null/undefined.`);
+  // console.error(`[AddItem (${timestamp})] Failed to add item to Supabase for an unknown reason. insertedItem is null/undefined.`);
   return { error: "Failed to add item for an unknown reason." };
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    const customUserModule = await import('@/lib/actions/userActions');
-    const customCurrentUser = await customUserModule.getCurrentUser();
-    if (!customCurrentUser) {
-      return { error: "User not authenticated." };
+    const authResult = await getCurrentUser();
+    if (!authResult.user) {
+      return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
     }
+    const userId = authResult.user.id;
 
-    const currentItemData = await getItemById(id);
-    if (!currentItemData || ('error' in currentItemData)) {
-        return { error: "Item not found or not accessible for update." };
+    const currentItemResult = await getItemById(id); // This already checks ownership via user_id in its query
+    if (!currentItemResult || 'error' in currentItemResult) {
+        return { error: (currentItemResult as { error: string })?.error || "Item not found or not accessible for update." };
     }
-    if (currentItemData.user_id !== customCurrentUser.id) {
-        return { error: "Permission denied: You can only update your own items." };
-    }
+    // No need for currentItemData.user_id !== userId check as getItemById already scopes to user
 
     const updatePayload: { [key: string]: any } = { ...itemData };
     const now = new Date().toISOString();
@@ -213,7 +216,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if (itemData.storageLocation !== undefined) updatePayload.storage_location = itemData.storageLocation; else if (itemData.hasOwnProperty('storageLocation')) updatePayload.storage_location = null;
     if (itemData.binLocation !== undefined) updatePayload.bin_location = itemData.binLocation; else if (itemData.hasOwnProperty('binLocation')) updatePayload.bin_location = null;
 
-    if (itemData.status && itemData.status !== currentItemData.status) {
+    if (itemData.status && itemData.status !== currentItemResult.status) {
         updatePayload.status = itemData.status;
         updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
         updatePayload.in_use_date = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
@@ -221,9 +224,9 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload.sold_date = null;
             updatePayload.in_use_date = null;
         }
-    } else if (itemData.status === currentItemData.status) { 
-        if (itemData.status === 'sold') updatePayload.sold_date = itemData.soldDate !== undefined ? itemData.soldDate : currentItemData.sold_date; else if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = null;
-        if (itemData.status === 'in use') updatePayload.in_use_date = itemData.inUseDate !== undefined ? itemData.inUseDate : currentItemData.in_use_date; else if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = null;
+    } else if (itemData.status === currentItemResult.status) { 
+        if (itemData.status === 'sold') updatePayload.sold_date = itemData.soldDate !== undefined ? itemData.soldDate : currentItemResult.sold_date; else if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = null;
+        if (itemData.status === 'in use') updatePayload.in_use_date = itemData.inUseDate !== undefined ? itemData.inUseDate : currentItemResult.in_use_date; else if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = null;
     } else { 
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate;
@@ -255,12 +258,12 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', customCurrentUser.id) 
+        .eq('user_id', userId) 
         .select()
         .single();
 
     if (error) {
-        console.error("Error updating item:", error);
+        // console.error("Error updating item:", error);
         return { error: error.message };
     }
     if (updatedItem) {
@@ -275,20 +278,20 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
 }
 
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    return { error: "User not authenticated." };
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
   }
+  const userId = authResult.user.id;
 
   const { error } = await supabase
     .from('items')
     .delete()
     .eq('id', id)
-    .eq('user_id', customCurrentUser.id); 
+    .eq('user_id', userId); 
 
   if (error) {
-    console.error("Error deleting item:", error);
+    // console.error("Error deleting item:", error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -306,26 +309,24 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     }
     return extractedData;
   } catch (error) {
-    console.error("Error processing receipt:", error);
+    // console.error("Error processing receipt:", error);
     return { error: "Failed to extract data from receipt. Please try again or enter manually." };
   }
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const customUserModule = await import('@/lib/actions/userActions');
-    const customCurrentUser = await customUserModule.getCurrentUser();
-    if (!customCurrentUser) {
-        return { error: "User not authenticated." };
+    const authResult = await getCurrentUser();
+    if (!authResult.user) {
+        return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
     }
+    const userId = authResult.user.id;
     
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
-      return { error: "Item not found." };
+      return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
-    if (currentItemResult.user_id !== customCurrentUser.id) {
-      return { error: "Permission denied to update status for this item." };
-    }
-    const currentItem = currentItemResult;
+    // No need for currentItemResult.user_id !== userId check here because getItemById now scopes to user
+    const currentItem = currentItemResult as Item; // Cast because we've checked for error
   
     const updatePayload: { [key: string]: any } = { status: newStatus };
     const now = new Date().toISOString();
@@ -346,12 +347,12 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', customCurrentUser.id) 
+      .eq('user_id', userId) 
       .select()
       .single();
     
     if (error) {
-      console.error("Error updating item status:", error);
+      // console.error("Error updating item status:", error);
       return { error: error.message };
     }
   
@@ -366,21 +367,22 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    return { success: false, message: "User not authenticated." };
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
   }
+  const userId = authResult.user.id;
+
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
 
   const { error, count } = await supabase
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .eq('user_id', customCurrentUser.id); 
+    .eq('user_id', userId); 
 
   if (error) {
-    console.error("Error bulk deleting items:", error);
+    // console.error("Error bulk deleting items:", error);
     return { success: false, message: error.message };
   }
   if (count && count > 0) {
@@ -393,11 +395,11 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 }
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    return { success: false, message: "User not authenticated." };
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
   }
+  const userId = authResult.user.id;
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
 
   const updatePayload: { [key: string]: any } = { status: newStatus };
@@ -419,11 +421,11 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .eq('user_id', customCurrentUser.id) 
+    .eq('user_id', userId) 
     .select({count: 'exact'}); 
 
   if (error) {
-    console.error("Error bulk updating item status:", error);
+    // console.error("Error bulk updating item status:", error);
     return { success: false, message: error.message };
   }
 
@@ -438,20 +440,20 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    console.warn("getUniqueCategories: No custom user found. Returning empty categories.");
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    // console.warn("getUniqueCategories: No user found. Returning empty categories. Debug: " + (authResult.debugMessage || ""));
     return [];
   }
+  const userId = authResult.user.id;
 
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .eq('user_id', customCurrentUser.id); 
+    .eq('user_id', userId); 
 
   if (error) {
-    console.error("Error fetching unique categories:", error);
+    // console.error("Error fetching unique categories:", error);
     return [];
   }
   if (!data) return [];
@@ -492,24 +494,24 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    console.warn(`getManagedOptions (${optionType}): No custom user found. Returning empty options.`);
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    // console.warn(`getManagedOptions (${optionType}): No user found. Returning empty options. Debug: ` + (authResult.debugMessage || ""));
     return [];
   }
+  const userId = authResult.user.id;
 
-  await seedUserOptions(customCurrentUser.id, optionType, optionTypeToDefaultsMap[optionType]);
+  await seedUserOptions(userId, optionType, optionTypeToDefaultsMap[optionType]);
 
   const { data, error } = await supabase
     .from('managed_options')
     .select('name')
-    .eq('user_id', customCurrentUser.id)
+    .eq('user_id', userId)
     .eq('type', optionType)
     .order('name', { ascending: true });
 
   if (error) {
-    console.error(`Error fetching managed options for type ${optionType}:`, error);
+    // console.error(`Error fetching managed options for type ${optionType}:`, error);
     return [];
   }
   return data ? data.map(opt => opt.name) : [];
@@ -525,11 +527,11 @@ export async function getManagedProjectOptions(): Promise<string[]> { return get
 
 
 async function addManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    return { success: false, message: "User not authenticated." };
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
   }
+  const userId = authResult.user.id;
   const singularName = optionTypeToSingularName[optionType];
 
   if (!name || name.trim() === "") {
@@ -539,13 +541,13 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
   const { data: existing, error: selectError } = await supabase
     .from('managed_options')
     .select('id')
-    .eq('user_id', customCurrentUser.id)
+    .eq('user_id', userId)
     .eq('type', optionType)
     .ilike('name', name.trim()) 
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
-      console.error(`Error checking existing ${singularName}:`, selectError);
+      // console.error(`Error checking existing ${singularName}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
@@ -557,11 +559,11 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: customCurrentUser.id,
+      user_id: userId,
     });
 
   if (insertError) {
-    console.error(`Error adding ${singularName}:`, insertError);
+    // console.error(`Error adding ${singularName}:`, insertError);
     return { success: false, message: `Failed to add ${singularName}: ${insertError.message}` };
   }
 
@@ -574,22 +576,22 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 }
 
 async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
-  const customUserModule = await import('@/lib/actions/userActions');
-  const customCurrentUser = await customUserModule.getCurrentUser();
-  if (!customCurrentUser) {
-    return { success: false, message: "User not authenticated." };
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
   }
+  const userId = authResult.user.id;
   const singularName = optionTypeToSingularName[optionType];
 
   const { error } = await supabase
     .from('managed_options')
     .delete()
-    .eq('user_id', customCurrentUser.id)
+    .eq('user_id', userId)
     .eq('type', optionType)
     .eq('name', name); 
 
   if (error) {
-    console.error(`Error deleting ${singularName}:`, error);
+    // console.error(`Error deleting ${singularName}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
@@ -624,7 +626,7 @@ export interface BulkImportResult {
 }
 
 export async function bulkImportItems(csvFileContent: string): Promise<BulkImportResult> {
-  console.warn("Bulk import feature is temporarily disabled until it's migrated to use Supabase.");
+  // console.warn("Bulk import feature is temporarily disabled until it's migrated to use Supabase.");
   const lineCount = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '').length;
   const errorCount = lineCount > 1 ? lineCount -1 : (lineCount === 1 ? 1: 0);
 

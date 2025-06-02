@@ -6,12 +6,13 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
+// import { cache } from 'react'; // React.cache temporarily removed for this specific test
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
 export interface GetCurrentUserResult {
   user: CurrentUser | null;
-  debugMessage?: string; 
+  debugMessage?: string;
 }
 
 export async function loginUser(
@@ -56,7 +57,7 @@ export async function loginUser(
     };
     try {
       cookies().set(SESSION_COOKIE_NAME, user.id, cookieOptions);
-      console.log(`[LoginUser (${timestamp})] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
+      // console.log(`[LoginUser (${timestamp})] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
     } catch (cookieError: any) {
       console.error(`[LoginUser (${timestamp})] Login succeeded for ${normalizedUsername} but failed to set session cookie: ${cookieError.message}`);
       return { success: false, message: "Login succeeded but failed to set session. Please try again." };
@@ -73,45 +74,48 @@ export async function loginUser(
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
   const timestamp = new Date().toISOString();
   try {
-    console.log(`[LogoutUser (${timestamp})] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
+    // console.log(`[LogoutUser (${timestamp})] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
     cookies().delete(SESSION_COOKIE_NAME);
-    console.log(`[LogoutUser (${timestamp})] Cookie deleted. Revalidating path and preparing redirect.`);
+    // console.log(`[LogoutUser (${timestamp})] Cookie deleted. Revalidating path and preparing redirect.`);
     revalidatePath("/", "layout");
     return { success: true, redirectPath: "/login" };
   } catch (e: any) {
-    console.error(`[LogoutUser (${timestamp})] Logout failed: ${e.message}`);
+    // console.error(`[LogoutUser (${timestamp})] Logout failed: ${e.message}`);
     return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// React.cache temporarily removed for this specific test
+export async function getCurrentUser(): Promise<GetCurrentUserResult> {
   const timestamp = new Date().toISOString();
-  console.log(`[GetCurrentUser (${timestamp})] Function called.`);
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
   let userId: string | undefined;
+  let debugMessage = `[GetCurrentUser (${timestamp})] Initializing.`;
 
   try {
-    console.log(`[GetCurrentUser (${timestamp})] Attempting to read cookie: ${SESSION_COOKIE_NAME}`);
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
   } catch (cookieAccessError: any) {
-    console.error(`[GetCurrentUser (${timestamp})] CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}`);
-    return null;
+    debugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
+    // console.error(debugMessage);
+    return { user: null, debugMessage };
   }
 
   if (!rawCookie) {
-    console.warn(`[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`);
-    return null;
+    debugMessage += ` Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`;
+    // console.warn(debugMessage);
+    return { user: null, debugMessage };
   }
-  console.log(`[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" found by cookies().get(): ${JSON.stringify(rawCookie)}`);
-
+  
   userId = rawCookie.value;
+  debugMessage += ` Session cookie object "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
 
   if (!userId || userId.trim() === "") {
-    console.warn(`[GetCurrentUser (${timestamp})] Session cookie "${SESSION_COOKIE_NAME}" found, but value (userId) is empty/whitespace. Cookie: ${JSON.stringify(rawCookie)}`);
-    return null;
+    debugMessage += ` Cookie value (userId) is empty/whitespace.`;
+    // console.warn(debugMessage);
+    return { user: null, debugMessage };
   }
 
-  console.log(`[GetCurrentUser (${timestamp})] Found cookie with userId: "${userId}". Fetching from Supabase.`);
+  debugMessage += ` Fetching from Supabase with userId: "${userId}".`;
   const { data: dbUser, error: dbError } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -119,17 +123,20 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (dbError) {
-    console.error(`[GetCurrentUser (${timestamp})] Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code})`);
-    return null;
+    debugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
+    // console.error(debugMessage);
+    return { user: null, debugMessage };
   }
 
   if (!dbUser) {
-    console.warn(`[GetCurrentUser (${timestamp})] No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`);
-    return null;
+    debugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
+    // console.warn(debugMessage);
+    return { user: null, debugMessage };
   }
   
-  console.log(`[GetCurrentUser (${timestamp})] Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id})`);
-  return dbUser as CurrentUser;
+  debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
+  // console.log(debugMessage);
+  return { user: dbUser as CurrentUser, debugMessage };
 }
 
 
@@ -140,7 +147,7 @@ export async function getUsers(): Promise<UserView[]> {
     .order('username', { ascending: true });
 
   if (error) {
-    console.error("[GetUsers] Error fetching users from Supabase:", error.message);
+    // console.error("[GetUsers] Error fetching users from Supabase:", error.message);
     return [];
   }
   return (data as UserView[]) || [];
@@ -190,6 +197,11 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
+  const authResult = await getCurrentUser();
+  if (!authResult.user) {
+      return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
+  }
+
   const { data: targetUserForRoleCheck, error: targetUserError } = await supabase
     .from('stock_sentry_users')
     .select('role, username')
@@ -227,16 +239,19 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
+    // If the current user is the one being updated, we might need to update their session/context.
+    // For now, focusing on the admin panel case. Re-login might be required for self-update to take full effect.
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  const performingUser = await getCurrentUser();
+  const authResult = await getCurrentUser();
+  const performingUser = authResult.user;
 
   if (!performingUser) {
-    return { success: false, message: "Action requires authentication." };
+    return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
   }
 
   if (performingUser.role?.trim().toLowerCase() !== 'admin') {
@@ -283,7 +298,8 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
+// Helper, not directly exported for client use unless necessary
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
-  const user = await getCurrentUser();
+  const { user } = await getCurrentUser(); // Call the modified version
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }
