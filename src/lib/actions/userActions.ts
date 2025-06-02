@@ -6,13 +6,13 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-import { cache } from 'react'; // Import cache
+// import { cache } from 'react'; // React.cache temporarily removed for this specific test
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
 export async function loginUser(
   formData: FormData
-): Promise<{ success: boolean; message?: string } | void> { // void if redirect happens
+): Promise<{ success: boolean; message?: string } | void> { 
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
 
@@ -77,25 +77,29 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-// Wrap getCurrentUser with React.cache
-export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
-  let userId;
-  let rawCookie;
+// getCurrentUser WITHOUT React.cache for this test
+export const getCurrentUser = async (): Promise<CurrentUser | null> => {
+  let userId: string | undefined;
+  let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
     userId = rawCookie?.value;
-    // console.log("[GetCurrentUser CACHED] Attempting to read cookie. Raw cookie:", rawCookie, "User ID from cookie:", userId);
+    // console.log("[GetCurrentUser NO-CACHE] Attempting to read cookie. Raw cookie:", rawCookie, "User ID from cookie:", userId);
   } catch (cookieError: any) {
-    // console.error("[GetCurrentUser CACHED] Error reading cookie:", cookieError);
+    // console.error("[GetCurrentUser NO-CACHE] Error reading cookie:", cookieError);
     throw new Error(`SESSION_COOKIE_READ_ERROR: ${cookieError.message}`);
   }
 
+  if (!rawCookie) {
+    // console.log("[GetCurrentUser NO-CACHE] Session cookie object not found.");
+    throw new Error("SESSION_COOKIE_NOT_FOUND_OBJECT");
+  }
   if (!userId || userId.trim() === "") {
-    // console.log("[GetCurrentUser CACHED] No userId found in cookie or cookie itself not found/empty.");
-    throw new Error("SESSION_COOKIE_NOT_FOUND_OR_EMPTY");
+    // console.log("[GetCurrentUser NO-CACHE] Session cookie found, but its value (userId) is empty.");
+    throw new Error("SESSION_COOKIE_VALUE_EMPTY");
   }
 
-  // console.log(`[GetCurrentUser CACHED] Found userId in cookie: ${userId}. Querying Supabase.`);
+  // console.log(`[GetCurrentUser NO-CACHE] Found userId in cookie: ${userId}. Querying Supabase.`);
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -103,7 +107,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .single();
 
   if (error) {
-    // console.error(`[GetCurrentUser CACHED] Supabase error fetching user ID ${userId}:`, error);
+    // console.error(`[GetCurrentUser NO-CACHE] Supabase error fetching user ID ${userId}:`, error);
     if (error.code === 'PGRST116') { 
       throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
@@ -111,12 +115,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   }
 
   if (!user) {
-    // console.warn(`[GetCurrentUser CACHED] Supabase query for ID ${userId} returned no error, but no user object.`);
+    // console.warn(`[GetCurrentUser NO-CACHE] Supabase query for ID ${userId} returned no error, but no user object.`);
     throw new Error(`SUPABASE_USER_NOT_FOUND_DESPITE_NO_ERROR_FOR_ID: ${userId}`);
   }
-  // console.log("[GetCurrentUser CACHED] Successfully fetched user:", user);
+  // console.log("[GetCurrentUser NO-CACHE] Successfully fetched user:", user);
   return user as CurrentUser;
-});
+};
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -226,7 +230,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   let performingUser: CurrentUser | null = null;
   try {
-    // getCurrentUser() here will use the cached version if AppLayout already called it in the same request
     performingUser = await getCurrentUser();
   } catch (e) {
      // console.error("[DeleteUser] Error getting performing user for delete check:", e);
@@ -282,10 +285,11 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   try {
-    const currentUser = await getCurrentUser(); // Will use cached version
+    const currentUser = await getCurrentUser(); 
     return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   } catch (error) {
     // console.warn("[GetRoleForCurrentUser] Could not get current user role, likely not logged in:", error);
     return null;
   }
 }
+

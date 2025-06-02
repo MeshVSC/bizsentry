@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
 import { getCurrentUser } from '@/lib/actions/userActions';
-import { redirect } from 'next/navigation';
+// import { redirect } from 'next/navigation'; // Redirect temporarily disabled
 import type { CurrentUser } from '@/types/user';
 
 export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
@@ -11,16 +11,17 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
   let debugMessage = "Layout: Initializing...";
 
   try {
-    currentUser = await getCurrentUser(); // This call should be cached by React.cache
+    currentUser = await getCurrentUser(); // getCurrentUser might throw, or return null if cookie exists but user deleted
     if (currentUser) {
-      debugMessage = `Layout: User is VALID. User: ${JSON.stringify(currentUser, null, 2)}`;
+      debugMessage = `Layout: User is VALID, passing to children. User: ${JSON.stringify(currentUser, null, 2)}`;
     } else {
-      // This case should ideally not be reached if getCurrentUser throws on "not found"
-      // but if it somehow returns null without throwing:
+      // This case implies cookie might exist, userId extracted, but Supabase found no user (e.g., deleted user)
+      // OR getCurrentUser itself returned null for a reason other than an exception (should be rare with current error throwing)
       debugMessage = "Layout: getCurrentUser() returned null (UNEXPECTED, SHOULD THROW). Would redirect to /login.";
       // redirect('/login'); // TEMPORARILY DISABLED
     }
   } catch (error: any) {
+    // This catches errors thrown by getCurrentUser (e.g., cookie not found, Supabase query error)
     debugMessage = `Layout: Error from getCurrentUser(): ${error.message}. Would redirect to /login.`;
     // redirect('/login'); // TEMPORARILY DISABLED
   }
@@ -37,3 +38,4 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
     </>
   );
 }
+
