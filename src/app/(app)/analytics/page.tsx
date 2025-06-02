@@ -9,7 +9,7 @@ import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart'
 import StockValueOverTimeChart from '@/components/analytics/StockValueOverTimeChart';
 import SalesTrendsChart from '@/components/analytics/SalesTrendsChart';
 import ProfitByCategoryChart from '@/components/analytics/ProfitByCategoryChart';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 
 export default async function AnalyticsPage() {
   const { items } = await getItems(); 
@@ -43,9 +43,14 @@ export default async function AnalyticsPage() {
   let currentTotalValue = 0;
   const itemsGroupedByDayForStockValue = new Map<string, number>();
   items.forEach(item => {
-    const day = format(parseISO(item.createdAt), 'yyyy-MM-dd');
-    const value = (item.originalPrice || 0) * item.quantity;
-    itemsGroupedByDayForStockValue.set(day, (itemsGroupedByDayForStockValue.get(day) || 0) + value);
+    if (item.createdAt && typeof item.createdAt === 'string') {
+      const parsedDate = parseISO(item.createdAt);
+      if (isValid(parsedDate)) {
+        const day = format(parsedDate, 'yyyy-MM-dd');
+        const value = (item.originalPrice || 0) * item.quantity;
+        itemsGroupedByDayForStockValue.set(day, (itemsGroupedByDayForStockValue.get(day) || 0) + value);
+      }
+    }
   });
   Array.from(itemsGroupedByDayForStockValue.keys())
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
@@ -57,11 +62,14 @@ export default async function AnalyticsPage() {
 
 
   const salesByDay: { [key: string]: number } = {};
-  items.filter(item => item.status === 'sold' && item.salesPrice && item.soldDate).forEach(item => {
-    const saleDate = format(parseISO(item.soldDate!), 'yyyy-MM-dd');
-    const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1; 
-    const saleAmount = (item.salesPrice || 0) * quantitySoldApproximation;
-    salesByDay[saleDate] = (salesByDay[saleDate] || 0) + saleAmount;
+  items.filter(item => item.status === 'sold' && item.salesPrice && item.soldDate && typeof item.soldDate === 'string').forEach(item => {
+    const parsedDate = parseISO(item.soldDate!);
+    if (isValid(parsedDate)) {
+      const saleDate = format(parsedDate, 'yyyy-MM-dd');
+      const quantitySoldApproximation = item.quantity > 0 ? item.quantity : 1; 
+      const saleAmount = (item.salesPrice || 0) * quantitySoldApproximation;
+      salesByDay[saleDate] = (salesByDay[saleDate] || 0) + saleAmount;
+    }
   });
   const salesTrendsChartData = Object.entries(salesByDay)
     .map(([date, totalSales]) => ({ date: format(parseISO(date), 'MMM dd'), totalSales }))
