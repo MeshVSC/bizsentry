@@ -3,15 +3,12 @@
 
 import type { UserRole, CurrentUser, UserFormInput, UserView, GetCurrentUserResult } from "@/types/user";
 import { revalidatePath } from "next/cache";
-// import { cookies } from 'next/headers'; // No longer needed for getCurrentUser with mock
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-// import { cache } from 'react'; // No longer needed for getCurrentUser
 
-const SESSION_COOKIE_NAME = 'stocksentry_custom_session'; // Kept for reference if loginUser/logoutUser are used
-
-// Define a mock admin user that will be returned when auth is "disabled"
-const MOCK_ADMIN_USER: CurrentUser = {
+// This MOCK_ADMIN_USER is now only for reference if we re-enable auth with a mock.
+// It's NOT actively returned by getCurrentUser when auth is "fully paused".
+const MOCK_ADMIN_USER_FOR_REFERENCE_ONLY: CurrentUser = {
   id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // VALID UUID
   username: 'MockAdmin',
   role: 'admin',
@@ -20,19 +17,10 @@ const MOCK_ADMIN_USER: CurrentUser = {
 export async function loginUser(
   formData: FormData
 ): Promise<{ success: boolean; message?: string } | void> {
-  // In "auth disabled" mode, this function might not be hit if /login redirects.
-  // If it is, we can just simulate success and redirect.
-  // For now, let's assume it won't be called due to /login page redirect.
-  // If direct access to this action happens, it would try to work with Supabase.
-  // To fully disable, we could make it return { success: true } and redirect,
-  // but the /login page redirect should cover most cases.
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
-  // const timestamp = new Date().toISOString();
-  // console.log(`[LoginUser (${timestamp})] Attempting login for username: ${usernameInput}`);
 
   if (!usernameInput || !passwordInput) {
-    // console.warn(`[LoginUser (${timestamp})] Login failed: Username or password not provided.`);
     return { success: false, message: "Username and password are required." };
   }
 
@@ -45,60 +33,40 @@ export async function loginUser(
     .single();
 
   if (error || !user) {
-    // console.warn(`[LoginUser (${timestamp})] Login failed for username: ${normalizedUsername}. User not found or Supabase error: ${error?.message}`);
     return { success: false, message: "Invalid username or password." };
   }
   
   if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") {
-    //  console.error(`[LoginUser (${timestamp})] Login failed for ${normalizedUsername}: User object fetched but ID is invalid or missing.`);
      return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
 
   if (user.password_text === passwordInput) {
-    // console.log(`[LoginUser (${timestamp})] Password match for ${normalizedUsername}. Setting cookie.`);
-    const cookieOptions = {
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      sameSite: 'lax' as const,
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-    };
-    try {
-      // const cookieStore = cookies(); // cookies() might not be available if not in a route handler/server component directly using it.
-      // For now, this part will be bypassed if /login redirects.
-      // cookieStore.set(SESSION_COOKIE_NAME, user.id, cookieOptions);
-      // console.log(`[LoginUser (${timestamp})] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
-    } catch (cookieError: any) {
-      // console.error(`[LoginUser (${timestamp})] Login succeeded for ${normalizedUsername} but failed to set session cookie: ${cookieError.message}`);
-      return { success: false, message: "Login succeeded but failed to set session. Please try again." };
-    }
-
+    // Cookies are HttpOnly, so client-side JS can't access them directly.
+    // Server actions and route handlers can use cookies().set(...)
+    // For now, redirect happens, actual cookie setting logic might need to be in API route if not server action.
+    // This part is less critical while auth is paused.
     revalidatePath('/', 'layout');
     redirect('/dashboard'); 
   } else {
-    // console.warn(`[LoginUser (${timestamp})] Login attempt failed for username: ${normalizedUsername}. Password mismatch.`);
     return { success: false, message: "Invalid username or password." };
   }
 }
 
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
-  // const timestamp = new Date().toISOString();
   try {
-    // console.log(`[LogoutUser (${timestamp})] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
-    // cookies().delete(SESSION_COOKIE_NAME); // cookies() might not be available.
-    // console.log(`[LogoutUser (${timestamp})] Cookie deleted. Revalidating path and preparing redirect.`);
+    // Logic to clear HttpOnly cookie would typically go here if set by server action/route
     revalidatePath("/", "layout");
-    return { success: true, redirectPath: "/login" }; // Login will redirect to dashboard in "auth disabled" mode.
+    return { success: true, redirectPath: "/login" };
   } catch (e: any) {
-    // console.error(`[LogoutUser (${timestamp})] Logout failed: ${e.message}`);
     return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
 export const getCurrentUser = async (): Promise<GetCurrentUserResult> => {
-  // In "auth disabled" mode, always return the mock admin user.
-  // console.log("[GetCurrentUser DEBUG] Auth disabled - returning mock admin user.");
-  return { user: MOCK_ADMIN_USER, debugMessage: "Auth disabled: Returning mock admin user." };
+  // AUTH IS PAUSED: Always return null user.
+  // This ensures dependent actions (like itemActions) operate without a user context.
+  // console.log("[GetCurrentUser DEBUG] Auth fully paused by admin request - returning { user: null }.");
+  return { user: null, debugMessage: "Authentication is currently paused by administrative request." };
 };
 
 
@@ -109,13 +77,13 @@ export async function getUsers(): Promise<UserView[]> {
     .order('username', { ascending: true });
 
   if (error) {
-    // console.error("[GetUsers] Error fetching users from Supabase:", error.message);
     return [];
   }
   return (data as UserView[]) || [];
 }
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
+  // Adding users is still possible but items created won't be linked if auth is paused for items.
   if (!data.username || !data.password || !data.role) {
     return { success: false, message: "Username, password, and role are required." };
   }
@@ -159,15 +127,15 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
+  // Role updates still make sense in terms of managing user data, even if item linking is paused.
   const authResult = await getCurrentUser(); 
-  // With auth disabled, authResult.user will be MOCK_ADMIN_USER
-  if (!authResult.user) {
-      // This case should not be hit if getCurrentUser always returns mock admin
-      return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
-  }
-  const performingUser = authResult.user;
+  // In "paused auth", authResult.user will be null.
+  // This means role updates by a "non-existent" admin might not be meaningful,
+  // but we'll keep the admin check for if/when auth is re-enabled.
+  // For now, to allow user management page to function without breaking if it checks admin role:
+  const performingUserRole = 'admin'; // Assume admin for this action if auth is paused.
 
-  if (performingUser.role?.trim().toLowerCase() !== 'admin') {
+  if (performingUserRole !== 'admin') {
       return { success: false, message: "Permission denied: Only admins can update roles." };
   }
 
@@ -215,24 +183,21 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   const authResult = await getCurrentUser(); 
-  const performingUser = authResult.user; // Will be MOCK_ADMIN_USER
+  const performingUser = authResult.user;
+  const performingUserRole = 'admin'; // Assume admin for this action if auth is paused.
 
-  if (!performingUser) {
-     // This case should not be hit
-    return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
-  }
-
-  if (performingUser.role?.trim().toLowerCase() !== 'admin') {
+  if (performingUserRole !== 'admin') {
     return { success: false, message: "Permission denied: Only admins can delete users." };
   }
 
-  if (performingUser.id === userId) {
-    // This check will now compare against 'mock-admin-user-id'
-    if (userId === MOCK_ADMIN_USER.id) {
-        return { success: false, message: "Cannot delete the mock admin user account." };
-    }
-    return { success: false, message: "Cannot delete your own account." };
+  // if (performingUser && performingUser.id === userId) { // This check is complex if performingUser is null
+  //   return { success: false, message: "Cannot delete your own account." };
+  // }
+  // If deleting the MOCK_ADMIN_USER_FOR_REFERENCE_ONLY id, prevent it.
+  if (userId === MOCK_ADMIN_USER_FOR_REFERENCE_ONLY.id) {
+      return { success: false, message: "Cannot delete this protected system user account." };
   }
+
 
   const { data: targetUser, error: targetUserError } = await supabase
     .from('stock_sentry_users')
@@ -271,7 +236,8 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 }
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
-  const { user } = await getCurrentUser(); // Will be MOCK_ADMIN_USER
-  return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
+  // Since auth is paused, there's no "current user role" in the traditional sense.
+  // Components relying on this might need to adapt or be aware auth is paused.
+  // Returning null reflects that no specific user is authenticated.
+  return null;
 }
-

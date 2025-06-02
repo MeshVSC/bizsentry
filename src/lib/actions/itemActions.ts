@@ -5,9 +5,16 @@ import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client'; 
-import { getCurrentUser } from '@/lib/actions/userActions'; // Import the modified getCurrentUser
+import { getCurrentUser } from '@/lib/actions/userActions'; 
 
-async function seedUserOptions(userId: string, optionType: string, defaultOptions: string[]) {
+async function seedUserOptions(userId: string | null, optionType: string, defaultOptions: string[]) {
+  if (!userId) { // If auth is paused and no user ID, don't try to seed user-specific options.
+    // console.log(`[SeedUserOptions] Auth paused for ${optionType}, skipping user-specific seeding.`);
+    // Optionally, you could seed global options here if your schema supports options without a user_id.
+    // For now, we just skip.
+    return;
+  }
+
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
     .select('name')
@@ -15,7 +22,6 @@ async function seedUserOptions(userId: string, optionType: string, defaultOption
     .eq('type', optionType);
 
   if (fetchError) {
-    // console.error(`Error fetching existing ${optionType} for user ${userId}:`, fetchError);
     return; 
   }
 
@@ -32,8 +38,6 @@ async function seedUserOptions(userId: string, optionType: string, defaultOption
 
     if (insertError) {
       // console.error(`Error seeding ${optionType} for user ${userId}:`, insertError);
-    } else {
-      // console.log(`Successfully seeded ${optionType} for user ${userId}`);
     }
   }
 }
@@ -48,17 +52,20 @@ export interface ItemFilters {
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    // console.warn("getItems: User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message."));
-    return { items: [], totalPages: 0, count: 0 };
-  }
-  const userId = authResult.user.id;
-
+  // When auth is paused, authResult.user will be null.
+  const userId = authResult.user?.id; // Will be null if auth is paused.
 
   let query = supabase
     .from('items')
-    .select('*', { count: 'exact' })
-    .eq('user_id', userId);
+    .select('*', { count: 'exact' });
+
+  // If userId is available (auth not paused), filter by user_id.
+  // If userId is null (auth paused), DO NOT filter by user_id, effectively fetching all items.
+  if (userId) {
+    query = query.eq('user_id', userId);
+  } else {
+    // console.log("[GetItems] Auth paused, fetching items without user_id filter.");
+  }
 
 
   if (filters) {
@@ -75,7 +82,6 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   const { count: totalMatchingCount, error: countError } = await query;
 
   if (countError) {
-    // console.error("Error fetching item count:", countError);
     return { items: [], totalPages: 0, count: 0 };
   }
   
@@ -95,7 +101,6 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   const { data, error } = await query;
 
   if (error) {
-    // console.error("Error fetching items:", error);
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -104,22 +109,24 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
 export async function getItemById(id: string): Promise<Item | undefined | { error: string }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth is paused
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('items')
     .select('*')
-    .eq('id', id)
-    .eq('user_id', userId)
-    .single(); 
+    .eq('id', id);
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  } else {
+    // console.log(`[GetItemById] Auth paused, fetching item ${id} without user_id filter.`);
+  }
+  
+  const { data, error } = await query.single(); 
 
   if (error) {
-    // console.error("Error fetching item by ID:", error);
-    if (error.code === 'PGRST116') { // Not found or not authorized
-        return { error: "Item not found or you don't have permission to view it." };
+    if (error.code === 'PGRST116') { 
+        return { error: "Item not found." }; // Simpler message if auth is paused
     }
     return { error: error.message };
   }
@@ -128,18 +135,14 @@ export async function getItemById(id: string): Promise<Item | undefined | { erro
 
 export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
   const authDetails = await getCurrentUser();
-  const trustedUserId = authDetails.user?.id;
-  // const clientReportedUserId = itemData.invokedByUserId; // Available for logging if needed
-
-  if (!trustedUserId) {
-    return { error: "User not authenticated on server. Your session may have expired. Please log out and log back in. Debug: " + (authDetails.debugMessage || "No trusted user ID from session.") };
-  }
+  // When auth is paused, authDetails.user is null.
+  // We will set user_id to null in the database if items.user_id is nullable.
+  const finalUserIdForOperation = authDetails.user?.id || null; 
   
-  const finalUserIdForOperation = trustedUserId;
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: finalUserIdForOperation,
+    user_id: finalUserIdForOperation, // This will be NULL if auth is paused
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -151,7 +154,6 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     msrp: itemData.msrp,
     sku: itemData.sku,
     status: itemData.status,
-
     original_price: itemData.originalPrice,
     sales_price: itemData.salesPrice,
     receipt_image_url: itemData.receiptImageUrl,
@@ -160,16 +162,12 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     purchase_date: itemData.purchaseDate,
     storage_location: itemData.storageLocation,
     bin_location: itemData.binLocation,
-    
     sold_date: itemData.status === 'sold' ? (itemData.soldDate || now) : null,
     in_use_date: itemData.status === 'in use' ? (itemData.inUseDate || now) : null,
-    
     barcode_data: itemData.sku ? `BARCODE-${itemData.sku.substring(0,8).toUpperCase()}` : `BARCODE-${crypto.randomUUID().substring(0,8).toUpperCase()}`,
     qr_code_data: itemData.sku ? `QR-${itemData.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
-    // created_at and updated_at are handled by Supabase DB defaults (DEFAULT now())
   };
   
-  // Convert undefined to null for all optional fields, as Supabase prefers null.
   for (const key in newItemPayload) {
     if (newItemPayload[key] === undefined) {
       newItemPayload[key] = null;
@@ -178,17 +176,15 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   
   const { data: insertedItem, error } = await supabase
     .from('items')
-    .insert([newItemPayload]) // Insert expects an array of objects
+    .insert([newItemPayload]) 
     .select()
     .single();
 
   if (error) {
-    // console.error(`[AddItem] Error adding item to Supabase:`, error);
-    return { error: `Failed to add item: ${error.message}. Details: ${error.details}` };
+    return { error: `Failed to add item: ${error.message}. Details: ${error.details}. Note: If auth is paused, items.user_id must be nullable in your database.` };
   }
 
   if (insertedItem) {
-    // console.log(`[AddItem] Item added successfully to Supabase. ID: ${insertedItem.id}`);
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
@@ -199,14 +195,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
     const authDetails = await getCurrentUser();
-    const trustedUserId = authDetails.user?.id;
-    // const clientReportedUserId = itemData.invokedByUserId; // Available for logging
-
-    if (!trustedUserId) {
-      return { error: "User not authenticated on server for update. Session may have expired. Please log out and log in. Debug: " + (authDetails.debugMessage || "No trusted user ID from session.") };
-    }
-    
-    const userId = trustedUserId;
+    const userId = authDetails.user?.id; // Will be null if auth paused
 
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
@@ -218,7 +207,6 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
 
-    // Directly assign fields that don't need transformation or special handling
     const directFields: (keyof ItemInput)[] = ['name', 'description', 'quantity', 'category', 'subcategory', 'room', 'vendor', 'project', 'msrp', 'sku'];
     directFields.forEach(field => {
         if (itemData.hasOwnProperty(field)) {
@@ -226,7 +214,6 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         }
     });
     
-    // Handle transformed or conditional fields
     if (itemData.hasOwnProperty('originalPrice')) updatePayload.original_price = itemData.originalPrice === undefined ? null : itemData.originalPrice;
     if (itemData.hasOwnProperty('salesPrice')) updatePayload.sales_price = itemData.salesPrice === undefined ? null : itemData.salesPrice;
     if (itemData.hasOwnProperty('receiptImageUrl')) updatePayload.receipt_image_url = itemData.receiptImageUrl === undefined ? null : itemData.receiptImageUrl;
@@ -253,25 +240,26 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
     }
     
-    updatePayload.updated_at = now; // Always set updated_at
+    updatePayload.updated_at = now;
 
-    // Ensure no undefined values are sent, convert to null
     for (const key in updatePayload) {
       if (updatePayload[key] === undefined) {
         updatePayload[key] = null;
       }
     }
 
-    const { data: updatedItem, error } = await supabase
+    let query = supabase
         .from('items')
         .update(updatePayload)
-        .eq('id', id)
-        .eq('user_id', userId)
-        .select()
-        .single();
+        .eq('id', id);
+
+    if (userId) { // Only filter by user_id if auth is not paused
+        query = query.eq('user_id', userId);
+    }
+    
+    const { data: updatedItem, error } = await query.select().single();
 
     if (error) {
-        // console.error("Error updating item:", error);
         return { error: `Failed to update item: ${error.message}. Details: ${error.details}` };
     }
     if (updatedItem) {
@@ -282,24 +270,25 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         revalidatePath("/analytics", "layout");
         return updatedItem as Item;
     }
-    return { error: "Failed to update item or item not found for user."};
+    return { error: "Failed to update item or item not found."};
 }
 
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth is paused
 
-  const { error } = await supabase
+  let query = supabase
     .from('items')
     .delete()
-    .eq('id', id)
-    .eq('user_id', userId); 
+    .eq('id', id);
+
+  if (userId) {
+    query = query.eq('user_id', userId); 
+  }
+  
+  const { error } = await query;
 
   if (error) {
-    // console.error("Error deleting item:", error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -317,17 +306,13 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     }
     return extractedData;
   } catch (error) {
-    // console.error("Error processing receipt:", error);
     return { error: "Failed to extract data from receipt. Please try again or enter manually." };
   }
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
     const authResult = await getCurrentUser();
-    if (!authResult.user) {
-        return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-    }
-    const userId = authResult.user.id;
+    const userId = authResult.user?.id; // Will be null if auth is paused
     
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
@@ -351,16 +336,18 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     }
     updatePayload.updated_at = now;
   
-    const { data: updatedItem, error } = await supabase
+    let query = supabase
       .from('items')
       .update(updatePayload)
-      .eq('id', id)
-      .eq('user_id', userId) 
-      .select()
-      .single();
+      .eq('id', id);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+      
+    const { data: updatedItem, error } = await query.select().single();
     
     if (error) {
-      // console.error("Error updating item status:", error);
       return { error: error.message };
     }
   
@@ -371,26 +358,27 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    return { error: "Failed to update item status or item not found for user." };
+    return { error: "Failed to update item status or item not found." };
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth is paused
 
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
 
-  const { error, count } = await supabase
+  let query = supabase
     .from('items')
     .delete({ count: 'exact' })
-    .in('id', itemIds)
-    .eq('user_id', userId); 
+    .in('id', itemIds);
+
+  if (userId) {
+    query = query.eq('user_id', userId); 
+  }
+
+  const { error, count } = await query;
 
   if (error) {
-    // console.error("Error bulk deleting items:", error);
     return { success: false, message: error.message };
   }
   if (count && count > 0) {
@@ -399,15 +387,12 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     revalidatePath("/analytics", "layout");
     return { success: true, message: `${count} item(s) deleted successfully.` };
   }
-  return { success: false, message: itemIds.length > 0 ? `No items deleted. Ensure you own the selected items.` : "No items selected." };
+  return { success: false, message: itemIds.length > 0 ? `No items deleted.` : "No items selected." };
 }
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth is paused
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
 
   const updatePayload: { [key: string]: any } = { status: newStatus };
@@ -425,15 +410,18 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   }
   updatePayload.updated_at = now;
   
-  const { error, count } = await supabase
+  let query = supabase
     .from('items')
     .update(updatePayload)
-    .in('id', itemIds)
-    .eq('user_id', userId) 
-    .select({count: 'exact'}); 
+    .in('id', itemIds);
+
+  if (userId) {
+    query = query.eq('user_id', userId); 
+  }
+  
+  const { error, count } = await query.select({count: 'exact'}); 
 
   if (error) {
-    // console.error("Error bulk updating item status:", error);
     return { success: false, message: error.message };
   }
 
@@ -444,24 +432,24 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout"));
     return { success: true, message: `${count} item(s) status updated to ${newStatus}.` };
   }
-  return { success: false, message: itemIds.length > 0 ? "No items updated. Ensure you own the selected items." : "No items selected." };
+  return { success: false, message: itemIds.length > 0 ? "No items updated." : "No items selected." };
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    // console.warn("getUniqueCategories: No user found. Returning empty categories. Debug: " + (authResult.debugMessage || ""));
-    return [];
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth is paused
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('items')
-    .select('category')
-    .eq('user_id', userId); 
+    .select('category');
+
+  if (userId) {
+    query = query.eq('user_id', userId); 
+  }
+
+  const { data, error } = await query;
 
   if (error) {
-    // console.error("Error fetching unique categories:", error);
     return [];
   }
   if (!data) return [];
@@ -503,23 +491,31 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    // console.warn(`getManagedOptions (${optionType}): No user found. Returning empty options. Debug: ` + (authResult.debugMessage || ""));
-    return [];
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth paused
 
+  // If auth is paused (userId is null), seeding user-specific options is skipped by seedUserOptions.
+  // We also need to decide if managed options should be global or empty in this state.
+  // For now, let's assume if auth is paused, we fetch options without a user_id filter,
+  // effectively making them global, or reliant on how seedUserOptions handles null userId.
   await seedUserOptions(userId, optionType, optionTypeToDefaultsMap[optionType]);
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('managed_options')
     .select('name')
-    .eq('user_id', userId)
-    .eq('type', optionType)
-    .order('name', { ascending: true });
+    .eq('type', optionType);
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  } else {
+    // console.log(`[GetManagedOptions - ${optionType}] Auth paused. Fetching without user_id. Requires options to be global or seeded without user_id if schema allows.`);
+    // If your 'managed_options' table requires user_id, this might return nothing or error.
+    // For full "paused auth", schema might need user_id on managed_options to be nullable.
+    // Assuming for now it might fetch options where user_id IS NULL, or just returns all if no user_id filter applied.
+  }
+  
+  const { data, error } = await query.order('name', { ascending: true });
 
   if (error) {
-    // console.error(`Error fetching managed options for type ${optionType}:`, error);
     return [];
   }
   return data ? data.map(opt => opt.name) : [];
@@ -536,30 +532,34 @@ export async function getManagedProjectOptions(): Promise<string[]> { return get
 
 async function addManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth paused
   const singularName = optionTypeToSingularName[optionType];
 
   if (!name || name.trim() === "") {
     return { success: false, message: `${singularName} name cannot be empty.` };
   }
 
-  const { data: existing, error: selectError } = await supabase
+  let selectQuery = supabase
     .from('managed_options')
     .select('id')
-    .eq('user_id', userId)
     .eq('type', optionType)
-    .ilike('name', name.trim()) 
-    .single();
+    .ilike('name', name.trim());
+  
+  if (userId) {
+    selectQuery = selectQuery.eq('user_id', userId);
+  } else {
+    // If auth is paused, we might be adding a "global" option (user_id is NULL).
+    // The check for existing should also consider options where user_id IS NULL.
+    selectQuery = selectQuery.is('user_id', null);
+  }
+
+  const { data: existing, error: selectError } = await selectQuery.single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
-      // console.error(`Error checking existing ${singularName}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
-    return { success: false, message: `${singularName} "${name.trim()}" already exists.` };
+    return { success: false, message: `${singularName} "${name.trim()}" already exists${userId ? ' for this user' : ' as a global option'}.` };
   }
 
   const { error: insertError } = await supabase
@@ -567,12 +567,11 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: userId,
+      user_id: userId, // This will be NULL if auth is paused. Requires managed_options.user_id to be nullable.
     });
 
   if (insertError) {
-    // console.error(`Error adding ${singularName}:`, insertError);
-    return { success: false, message: `Failed to add ${singularName}: ${insertError.message}` };
+    return { success: false, message: `Failed to add ${singularName}: ${insertError.message}. (Note: If auth paused, managed_options.user_id must be nullable)` };
   }
 
   const updatedOptions = await getManagedOptions(optionType);
@@ -585,21 +584,25 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 
 async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
   const authResult = await getCurrentUser();
-  if (!authResult.user) {
-    return { success: false, message: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-  }
-  const userId = authResult.user.id;
+  const userId = authResult.user?.id; // Will be null if auth paused
   const singularName = optionTypeToSingularName[optionType];
 
-  const { error } = await supabase
+  let deleteQuery = supabase
     .from('managed_options')
     .delete()
-    .eq('user_id', userId)
     .eq('type', optionType)
     .eq('name', name); 
 
+  if (userId) {
+    deleteQuery = deleteQuery.eq('user_id', userId);
+  } else {
+    // If auth paused, attempting to delete an option where user_id IS NULL (global option)
+    deleteQuery = deleteQuery.is('user_id', null);
+  }
+
+  const { error } = await deleteQuery;
+
   if (error) {
-    // console.error(`Error deleting ${singularName}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
@@ -634,18 +637,119 @@ export interface BulkImportResult {
 }
 
 export async function bulkImportItems(csvFileContent: string): Promise<BulkImportResult> {
-  // console.warn("Bulk import feature is temporarily disabled until it's migrated to use Supabase.");
-  const lineCount = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '').length;
-  const errorCount = lineCount > 1 ? lineCount -1 : (lineCount === 1 ? 1: 0);
+  const lines = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '');
+  if (lines.length <= 1) {
+    return { successCount: 0, errorCount: 0, errors: [{ rowNumber: 0, message: "CSV file is empty or contains only a header.", rowData: "" }] };
+  }
 
-  return {
-    successCount: 0,
-    errorCount: errorCount,
-    errors: [{ 
-        rowNumber: 0, 
-        message: "Bulk import is temporarily unavailable pending full migration to the new database system. Please add items individually.", 
-        rowData: "" 
-    }]
-  };
+  const headerLine = lines[0];
+  const expectedHeaders = [
+    "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku", 
+    "category", "subcategory", "description", "vendor", "storageLocation", "binLocation", "room", "project",
+    "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl", "status"
+  ];
+  const actualHeaders = headerLine.split(',').map(h => h.trim().toLowerCase());
+  const headerMap: { [key: string]: number } = {};
+  expectedHeaders.forEach(expectedHeader => {
+    const index = actualHeaders.indexOf(expectedHeader.toLowerCase());
+    if (index !== -1) {
+      headerMap[expectedHeader] = index;
+    }
+  });
+  
+  if (headerMap["name"] === undefined || headerMap["quantity"] === undefined) {
+      return { 
+          successCount: 0, 
+          errorCount: lines.length -1, 
+          errors: [{ rowNumber: 1, message: "CSV must contain 'name' and 'quantity' columns.", rowData: headerLine }] 
+      };
+  }
+
+  const results: BulkImportResult = { successCount: 0, errorCount: 0, errors: [] };
+  const authDetails = await getCurrentUser(); // Get user context for items (will be null if paused)
+  const userIdForImport = authDetails.user?.id || null;
+
+
+  for (let i = 1; i < lines.length; i++) {
+    const rowNumber = i + 1;
+    const line = lines[i];
+    const values = line.split(',').map(v => v.trim());
+
+    const getValue = (headerName: string): string | undefined => {
+        const index = headerMap[headerName];
+        return (index !== undefined && index < values.length) ? values[index] : undefined;
+    }
+    
+    try {
+      const name = getValue("name");
+      if (!name) {
+        results.errors.push({ rowNumber, message: "Item name is required.", rowData: line });
+        results.errorCount++;
+        continue;
+      }
+
+      const quantityStr = getValue("quantity");
+      const quantity = parseInt(quantityStr || "", 10);
+      if (isNaN(quantity) || quantity < 0) {
+        results.errors.push({ rowNumber, message: "Invalid quantity. Must be a non-negative number.", rowData: line });
+        results.errorCount++;
+        continue;
+      }
+      
+      const originalPriceStr = getValue("purchasePrice");
+      const salesPriceStr = getValue("salesPrice");
+      const msrpStr = getValue("msrp");
+      const purchaseDateStr = getValue("purchaseDate");
+      const statusStr = getValue("status")?.toLowerCase() as ItemStatus | undefined;
+
+      const itemInput: ItemInput = {
+        name,
+        quantity,
+        originalPrice: originalPriceStr && originalPriceStr !== "" ? parseFloat(originalPriceStr) : undefined,
+        salesPrice: salesPriceStr && salesPriceStr !== "" ? parseFloat(salesPriceStr) : undefined,
+        msrp: msrpStr && msrpStr !== "" ? parseFloat(msrpStr) : undefined,
+        sku: getValue("sku") || undefined,
+        category: getValue("category") || undefined,
+        subcategory: getValue("subcategory") || undefined,
+        description: getValue("description") || undefined,
+        vendor: getValue("vendor") || undefined,
+        storageLocation: getValue("storageLocation") || undefined,
+        binLocation: getValue("binLocation") || undefined,
+        room: getValue("room") || undefined,
+        project: getValue("project") || undefined,
+        purchaseDate: purchaseDateStr && purchaseDateStr !== "" ? new Date(purchaseDateStr).toISOString() : undefined,
+        productImageUrl: getValue("productImageUrl") || undefined,
+        receiptImageUrl: getValue("receiptImageUrl") || undefined,
+        productUrl: getValue("productUrl") || undefined,
+        status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
+        // invokedByUserId is not part of CSV, addItem will use its own getCurrentUser logic
+      };
+      
+      if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
+      if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) itemInput.salesPrice = undefined;
+      if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) itemInput.msrp = undefined;
+      if (itemInput.purchaseDate && (itemInput.purchaseDate.includes("Invalid Date") || !purchaseDateStr)) {
+        itemInput.purchaseDate = undefined;
+      }
+
+      // The addItem function will now handle setting user_id to null if auth is paused.
+      const addResult = await addItem(itemInput);
+      if ('error' in addResult) {
+        results.errorCount++;
+        results.errors.push({ rowNumber, message: addResult.error, rowData: line });
+      } else {
+        results.successCount++;
+      }
+    } catch (error: any) {
+      results.errorCount++;
+      results.errors.push({ rowNumber, message: error.message || "Failed to add item.", rowData: line });
+    }
+  }
+
+  if (results.successCount > 0) {
+    revalidatePath("/inventory", "layout");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/analytics", "layout");
+  }
+  return results;
 }
-

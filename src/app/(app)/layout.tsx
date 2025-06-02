@@ -2,45 +2,40 @@
 import type { ReactNode } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
-// import { getCurrentUser } from '@/lib/actions/userActions'; // No longer calling this here
-import type { CurrentUser } from '@/types/user'; // GetCurrentUserResult no longer needed here
-// import { redirect } from 'next/navigation'; // No longer redirecting from here
+import { getCurrentUser } from '@/lib/actions/userActions'; 
+import type { CurrentUser, GetCurrentUserResult } from '@/types/user'; 
+// import { redirect } from 'next/navigation'; // No longer redirecting when auth is paused
 import { AuthProvider } from '@/contexts/AuthContext';
 
-// Define the mock user directly in the layout or import from a shared constant if preferred
-const MOCK_USER_FOR_LAYOUT: CurrentUser = {
-  id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // VALID UUID
-  username: 'MockAdmin',
-  role: 'admin',
-};
-
 export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
-  // const authResult: GetCurrentUserResult = await getCurrentUser(); // REMOVED
-  // console.log("[GroupedAppLayout] authResult from getCurrentUser():", JSON.parse(JSON.stringify(authResult || null)));
-  
-  // const currentUserFromAuthResult: CurrentUser | null = authResult.user; // REMOVED
-  // console.log("[GroupedAppLayout] currentUser derived from authResult:", JSON.parse(JSON.stringify(currentUserFromAuthResult || null)));
+  const authResult: GetCurrentUserResult = await getCurrentUser();
+  // When auth is paused, authResult.user will be null.
+  const currentUserFromAuthResult: CurrentUser | null = authResult.user;
 
-  // Use the mock user directly
-  const finalCurrentUserForProvider: CurrentUser | null = MOCK_USER_FOR_LAYOUT;
-
-  // console.log("[GroupedAppLayout] finalCurrentUserForProvider (after rigorous check):", JSON.parse(JSON.stringify(finalCurrentUserForProvider || null)));
+  // This explicit check ensures `finalCurrentUserForProvider` is truly null if `currentUserFromAuthResult` is null or invalid.
+  const finalCurrentUserForProvider: CurrentUser | null = 
+    (currentUserFromAuthResult && 
+     typeof currentUserFromAuthResult === 'object' && 
+     currentUserFromAuthResult.id && 
+     typeof currentUserFromAuthResult.id === 'string' && 
+     currentUserFromAuthResult.id.trim() !== "") 
+    ? currentUserFromAuthResult 
+    : null;
   
-  // REMOVED: Redirect logic, as auth is disabled and we always have a mock user
-  // if (!finalCurrentUserForProvider || !finalCurrentUserForProvider.id || typeof finalCurrentUserForProvider.id !== 'string' || finalCurrentUserForProvider.id.trim() === "") {
-  //   console.warn(`[GroupedAppLayout] No valid current user found (finalCurrentUserForProvider is null or invalid). Redirecting to login. Debug from getCurrentUser: ${authResult.debugMessage || "No debug message."}`);
+  // Redirect logic is REMOVED when authentication is paused.
+  // if (!finalCurrentUserForProvider) {
+  //   console.warn(`[GroupedAppLayout] No valid current user (finalCurrentUserForProvider is null). Redirecting to login. Debug from getCurrentUser: ${authResult.debugMessage || "No debug message."}`);
   //   redirect('/login');
   // }
 
-  // console.log("[GroupedAppLayout] User IS authenticated (or mocked). Value being passed to AuthProvider:", JSON.parse(JSON.stringify(finalCurrentUserForProvider)));
+  // console.log("[GroupedAppLayout] Value being passed to AuthProvider (will be null if auth paused):", JSON.parse(JSON.stringify(finalCurrentUserForProvider || null)));
 
   return (
-    <AuthProvider currentUser={finalCurrentUserForProvider}>
-      <AppLayout currentUser={finalCurrentUserForProvider}>
+    <AuthProvider currentUser={finalCurrentUserForProvider}> {/* Will pass null when auth is paused */}
+      <AppLayout currentUser={finalCurrentUserForProvider}> {/* AppLayout needs to handle currentUser being null */}
         {children}
         <Toaster />
       </AppLayout>
     </AuthProvider>
   );
 }
-

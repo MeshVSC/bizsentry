@@ -97,7 +97,7 @@ export default function ItemForm({
   const [isPending, startTransition] = useTransition();
   const [isReceiptProcessing, setIsReceiptProcessing] = useState(false);
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
-  const { currentUser } = useAuth(); 
+  const { currentUser } = useAuth(); // Will be null if auth is paused
 
 
   const form = useForm<ItemFormValues>({
@@ -113,9 +113,9 @@ export default function ItemForm({
       room: item?.room || "",
       vendor: item?.vendor || "",
       project: item?.project || "",
-      originalPrice: item?.originalPrice ?? '', // Changed from ?? undefined
-      salesPrice: item?.salesPrice ?? '',   // Changed from ?? undefined
-      msrp: item?.msrp ?? '',               // Changed from ?? undefined
+      originalPrice: item?.originalPrice ?? '', 
+      salesPrice: item?.salesPrice ?? '',   
+      msrp: item?.msrp ?? '',               
       sku: item?.sku || "",
       status: item?.status || "in stock",
       receiptImageUrl: item?.receiptImageUrl || "",
@@ -177,15 +177,18 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    if (!currentUser?.id) { 
-      // console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
-      toast({
-        title: "Authentication Error",
-        description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
-        variant: "destructive",
-      });
-      return; 
-    }
+    // When auth is paused, currentUser will be null. We REMOVE the client-side auth check.
+    // The server action (addItem/updateItem) will handle the user ID logic (i.e., setting it to null).
+    // console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth():`, currentUser);
+    // if (!currentUser?.id) { // REMOVED for paused auth
+    //   console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
+    //   toast({
+    //     title: "Authentication Error",
+    //     description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
+    //     variant: "destructive",
+    //   });
+    //   return; 
+    // }
 
     const payload: ItemInput = {
         ...data,
@@ -208,7 +211,7 @@ export default function ItemForm({
         purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined,
         soldDate: data.soldDate ? data.soldDate.toISOString() : undefined,
         inUseDate: data.inUseDate ? data.inUseDate.toISOString() : undefined,
-        invokedByUserId: currentUser.id, 
+        invokedByUserId: currentUser?.id || undefined, // Pass current user's ID if available, else undefined. Server action will handle.
     };
 
     startTransition(async () => {
@@ -222,7 +225,7 @@ export default function ItemForm({
           router.push('/inventory');
           router.refresh(); 
         } else {
-          const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input.`;
+          const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input or database constraints.`;
           toast({ title: "Operation Failed", description: errorMsg, variant: "destructive" });
         }
       } catch (error) {
@@ -600,4 +603,3 @@ export default function ItemForm({
     </Form>
   );
 }
-
