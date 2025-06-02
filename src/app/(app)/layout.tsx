@@ -1,41 +1,48 @@
 
 import type { ReactNode } from 'react';
+import React from 'react'; // Ensure React is imported for cloneElement
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
 import { getCurrentUser } from '@/lib/actions/userActions';
-// import { redirect } from 'next/navigation'; // Redirect temporarily disabled
 import type { CurrentUser } from '@/types/user';
+// import { redirect } from 'next/navigation'; // TEMPORARILY DISABLED
 
 export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
   let currentUser: CurrentUser | null = null;
   let debugMessage = "Layout: Initializing...";
 
   try {
-    currentUser = await getCurrentUser(); // getCurrentUser might throw, or return null if cookie exists but user deleted
+    currentUser = await getCurrentUser();
     if (currentUser) {
       debugMessage = `Layout: User is VALID, passing to children. User: ${JSON.stringify(currentUser, null, 2)}`;
     } else {
-      // This case implies cookie might exist, userId extracted, but Supabase found no user (e.g., deleted user)
-      // OR getCurrentUser itself returned null for a reason other than an exception (should be rare with current error throwing)
       debugMessage = "Layout: getCurrentUser() returned null (UNEXPECTED, SHOULD THROW). Would redirect to /login.";
-      // redirect('/login'); // TEMPORARILY DISABLED
+      // TEMPORARILY DISABLED: redirect('/login'); 
     }
   } catch (error: any) {
-    // This catches errors thrown by getCurrentUser (e.g., cookie not found, Supabase query error)
-    debugMessage = `Layout: Error from getCurrentUser(): ${error.message}. Would redirect to /login.`;
-    // redirect('/login'); // TEMPORARILY DISABLED
+    debugMessage = `Layout: Error fetching user (Debug): ${error.message}`;
+    // TEMPORARILY DISABLED: redirect('/login');
   }
+
+  // Attempt to pass currentUser to children using React.cloneElement
+  // This may not work reliably with Server Component children in all environments.
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      // @ts-ignore // currentUser might not be a declared prop on all children initially
+      return React.cloneElement(child, { currentUser });
+    }
+    return child;
+  });
 
   return (
     <>
       <div style={{ position: 'fixed', top: '0', left: '0', right: '0', backgroundColor: 'rgba(255,0,0,0.8)', color: 'white', padding: '5px', zIndex: 9999, fontSize: '10px', textAlign: 'center', borderBottom: '1px solid white' }}>
         DEBUG (GroupedAppLayout): {debugMessage}
       </div>
-      <AppLayout currentUser={currentUser}> {/* Pass object to client component AppLayout */}
-        {children}
+      <AppLayout currentUser={currentUser}> {/* Client AppLayout for UI elements */}
+        {childrenWithProps} {/* Render children (pages) which should now have currentUser prop */}
         <Toaster />
       </AppLayout>
     </>
   );
 }
-

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-import { cache } from 'react'; // Import React.cache
+// import { cache } from 'react'; // React.cache removed for this test
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
@@ -66,20 +66,27 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+// React.cache wrapper removed for this diagnostic step
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   let userId: string | undefined;
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
+
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
-    userId = rawCookie?.value;
   } catch (cookieError: any) {
-    throw new Error(`SESSION_COOKIE_READ_ERROR: ${cookieError.message}`);
+    // This catch might be too broad if cookies() itself throws for reasons other than not finding a cookie.
+    // console.error("[GetCurrentUser] Error when trying to access cookies store:", cookieError.message);
+    throw new Error(`SESSION_COOKIE_ACCESS_ERROR: ${cookieError.message}`);
   }
 
   if (!rawCookie) {
+    // console.log("[GetCurrentUser] Cookie object not found.");
     throw new Error("SESSION_COOKIE_NOT_FOUND_OBJECT");
   }
+  
+  userId = rawCookie.value;
   if (!userId || userId.trim() === "") {
+    // console.log("[GetCurrentUser] Cookie found, but value (userId) is empty or undefined.");
     throw new Error("SESSION_COOKIE_VALUE_EMPTY");
   }
 
@@ -90,17 +97,21 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .single();
 
   if (error) {
-    if (error.code === 'PGRST116') { 
+    if (error.code === 'PGRST116') { // "Searched for a single row, but 0 rows were found"
+      // console.log(`[GetCurrentUser] Supabase: User not found for ID: ${userId}`);
       throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
+    // console.error(`[GetCurrentUser] Supabase query error: ${error.message} (Code: ${error.code})`);
     throw new Error(`SUPABASE_QUERY_ERROR: ${error.message} (Code: ${error.code})`);
   }
 
   if (!user) {
+    // This case should ideally be caught by error.code === 'PGRST116'
+    // console.log(`[GetCurrentUser] Supabase: User not found for ID ${userId}, despite no error.`);
     throw new Error(`SUPABASE_USER_NOT_FOUND_DESPITE_NO_ERROR_FOR_ID: ${userId}`);
   }
   return user as CurrentUser;
-});
+};
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -204,8 +215,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   let performingUser: CurrentUser | null = null;
   try {
-    // This call will now use the cached version if available for this request
-    performingUser = await getCurrentUser();
+    performingUser = await getCurrentUser(); // Call without React.cache
   } catch (e) {
      return { success: false, message: "Could not verify performing user's permissions." };
   }
@@ -256,10 +266,10 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   try {
-    // This call will now use the cached version if available for this request
-    const currentUser = await getCurrentUser(); 
+    const currentUser = await getCurrentUser(); // Call without React.cache
     return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   } catch (error) {
     return null;
   }
 }
+
