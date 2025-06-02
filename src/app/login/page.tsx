@@ -33,7 +33,7 @@ export default function LoginPage() {
         // Login successful, server action returns redirectPath
         toast({ title: "Login Successful", description: "Redirecting to dashboard..." });
         router.push(result.redirectPath || '/dashboard'); 
-        router.refresh(); // Ensures layout re-fetches current user state
+        router.refresh(); // Ensures layout re-fetches current user state with the new cookie
       }
     });
   };
@@ -100,3 +100,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
