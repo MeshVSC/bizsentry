@@ -17,7 +17,7 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
   // Refined check: Ensure currentUser exists AND has an id.
   // An empty object {} is truthy but currentUser.id would be undefined.
   if (!currentUser?.id) {
-    // console.warn(`[GroupedAppLayout] No valid current user found (currentUser is null, or lacks an id). Redirecting to login. Debug from getCurrentUser: ${authResult.debugMessage}`);
+    // console.warn(`[GroupedAppLayout] No valid current user found (currentUser is null, or lacks an id). Redirecting to login. Debug from getCurrentUser: ${authResult.debugMessage || "No debug message."}`);
     redirect('/login');
     // return null; // Should be unreachable due to redirect
   }
