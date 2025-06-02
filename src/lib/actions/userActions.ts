@@ -5,26 +5,17 @@ import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/typ
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js'; // For custom table interaction
+import { createClient } from '@supabase/supabase-js';
 
-// Ensure Supabase client is initialized for custom table interactions
-// These should be set in your .env file
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  // Log detailed error but avoid throwing during initial module load if possible,
-  // as this code is also bundled for client-side use by some components.
-  // Critical actions will fail if these are not set.
   console.error("Supabase URL or Anon Key is missing. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in .env");
 }
-// Create a Supabase client instance for interacting with your custom tables.
-// RLS policies on your 'stock_sentry_users' table will govern access.
 const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
-
-// --- Custom User Authentication and Management Actions ---
 
 export async function loginUser(
   formData: FormData
@@ -42,24 +33,23 @@ export async function loginUser(
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('*')
-    .eq('username', usernameInput.toLowerCase()) // Query by username
+    .eq('username', usernameInput.toLowerCase()) // Query by lowercase username
     .single();
 
   if (error || !user) {
-    console.error("Login error or user not found:", error);
+    console.error("Login error or user not found:", error ? error.message : "User not found for username: " + usernameInput.toLowerCase());
     return { success: false, message: "Invalid username or password." };
   }
 
-  // DIRECT PASSWORD COMPARISON - NOT SECURE FOR PRODUCTION
   if (user.password_text === passwordInput) {
     cookies().set(SESSION_COOKIE_NAME, user.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 60 * 24 * 7, 
       path: '/',
       sameSite: 'lax',
     });
-    revalidatePath("/", "layout"); // Revalidate to ensure layout picks up session
+    revalidatePath("/", "layout"); 
     redirect('/dashboard'); 
   } else {
     return { success: false, message: "Invalid username or password." };
@@ -85,12 +75,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
-    .select('id, username, role') // Only select necessary fields for CurrentUser
+    .select('id, username, role') 
     .eq('id', userId)
     .single();
 
   if (error || !user) {
-    // Clear cookie if user not found in DB for this ID
     if (error) console.error("Error fetching current user:", error);
     cookies().delete(SESSION_COOKIE_NAME);
     return null;
@@ -98,8 +87,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   return user as CurrentUser;
 }
-
-// --- User Role Management (for stock_sentry_users table) ---
 
 export async function getUsers(): Promise<UserView[]> {
   const performingUser = await getCurrentUser();
@@ -140,10 +127,11 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
      return { success: false, message: "Supabase client not configured on server." };
   }
 
+  const normalizedUsername = data.username.toLowerCase();
   const { data: existingUser, error: selectError } = await supabase
     .from('stock_sentry_users')
     .select('id')
-    .eq('username', data.username.toLowerCase())
+    .eq('username', normalizedUsername)
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
@@ -157,8 +145,8 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const { data: newUser, error: insertError } = await supabase
     .from('stock_sentry_users')
     .insert({
-      username: data.username.toLowerCase(),
-      password_text: data.password, // Storing plaintext password - NOT SECURE
+      username: normalizedUsername,
+      password_text: data.password, 
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -187,7 +175,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   const { data: targetUserForRoleCheck, error: targetUserError } = await supabase
     .from('stock_sentry_users')
-    .select('role, username') // Also select username for messages
+    .select('role, username') 
     .eq('id', userId)
     .single();
 
@@ -279,22 +267,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
-
-// Function to get app-specific role for a logged-in user (using custom table)
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
-  const currentUser = await getCurrentUser(); // This now checks our custom session cookie & table
+  const currentUser = await getCurrentUser(); 
   return currentUser ? currentUser.role : null;
 }
 
-// Initial seed data - this is only used if your Supabase table is empty
-// For a real app, initial admin setup would be done differently (e.g. seed script or first signup)
-// This is NOT automatically inserted into Supabase by this code.
-// You would run INSERT statements in Supabase SQL editor for the very first users.
 const initialUsersSeed: Omit<User, 'id' | 'created_at' | 'updated_at'>[] = [
   { username: "admin", password_text: "adminpassword", role: "admin" },
-  { username: "manager_user", password_text: "managerpassword", role: "manager" },
+  { username: "manager", password_text: "managerpassword", role: "manager" },
   { username: "viewer", password_text: "viewerpassword", role: "viewer" },
 ];
-
-// NOTE: The 'globalThis._usersStore' logic has been removed as user data is now in Supabase 'stock_sentry_users' table.
-// The 'initialUsersSeed' above is for reference and would be used for initial Supabase table population.
