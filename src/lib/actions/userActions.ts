@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client'; // Use the shared client
 
+const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
+
 export async function loginUser(
   formData: FormData
 ): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
@@ -19,13 +21,19 @@ export async function loginUser(
   const normalizedUsername = usernameInput.trim().toLowerCase();
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
-    .select('*')
-    .ilike('username', normalizedUsername) 
+    .select('*') // Select all fields for now, includes 'id'
+    .ilike('username', normalizedUsername)
     .single();
 
   if (error || !user) {
     console.error("Login error or user not found:", error ? error.message : "User not found for username: " + normalizedUsername);
     return { success: false, message: "Invalid username or password." };
+  }
+
+  // Defensive check: Ensure user.id exists before using it
+  if (!user.id) {
+    console.error("Login failed: User object fetched from database is missing an ID. User data:", user);
+    return { success: false, message: "Login failed due to a server data integrity issue. Please contact support." };
   }
 
   // Direct password comparison - INSECURE FOR PRODUCTION
@@ -37,19 +45,16 @@ export async function loginUser(
       path: '/',
       sameSite: 'lax',
     });
-    // No redirect here, client will handle it
     return { success: true, redirectPath: '/dashboard' };
   } else {
     return { success: false, message: "Invalid username or password." };
   }
 }
 
-const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
-
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
   try {
     cookies().delete(SESSION_COOKIE_NAME);
-    revalidatePath("/", "layout"); // Revalidate to ensure login state is cleared across app
+    revalidatePath("/", "layout"); 
     return { success: true, redirectPath: "/login" };
   } catch (e) {
     console.error("Logout error:", e);
@@ -71,12 +76,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (error || !user) {
-    // If error is not 'PGRST116' (0 rows found), then log it.
-    // PGRST116 is expected if cookie is stale & user ID doesn't exist.
     if (error && error.code !== 'PGRST116') { 
       console.error(`getCurrentUser: Error fetching user for ID ${userId} from Supabase:`, error.message);
     }
-    // Simply return null. The cookie will be overwritten on next login or cleared on explicit logout.
     return null;
   }
 
@@ -120,7 +122,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const { data: existingUser, error: selectError } = await supabase
     .from('stock_sentry_users')
     .select('id')
-    .eq('username', normalizedUsername) 
+    .ilike('username', normalizedUsername) 
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
@@ -135,7 +137,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .from('stock_sentry_users')
     .insert({
       username: normalizedUsername, 
-      password_text: data.password, // Storing plaintext password - INSECURE
+      password_text: data.password, 
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -255,14 +257,9 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
 }
 
-// Initial seed data - For reference, typically run manually in Supabase SQL editor or via a seeding script
-// Example:
-// INSERT INTO stock_sentry_users (username, password_text, role) VALUES 
-//   ('admin', 'adminpassword', 'admin'),
-//   ('manager', 'managerpassword', 'manager'),
-//   ('viewer', 'viewerpassword', 'viewer');
 const initialUsersSeed: Omit<User, 'id' | 'created_at' | 'updated_at'>[] = [
   { username: "admin", password_text: "adminpassword", role: "admin" },
-  { username: "manager", password_text: "managerpassword", role: "manager" },
+  { username: "manager_user", password_text: "managerpassword", role: "manager" },
   { username: "viewer", password_text: "viewerpassword", role: "viewer" },
 ];
+    
