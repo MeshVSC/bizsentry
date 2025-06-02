@@ -19,25 +19,35 @@ export async function loginUser(
   }
 
   const normalizedUsername = usernameInput.trim().toLowerCase();
+  
+  // console.log(`[LoginAttempt] Username: ${normalizedUsername}`);
+
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
-    .select('*') // Select all fields for now, includes 'id'
-    .ilike('username', normalizedUsername)
+    .select('*') 
+    .ilike('username', normalizedUsername) 
     .single();
 
   if (error || !user) {
-    console.error("Login error or user not found:", error ? error.message : "User not found for username: " + normalizedUsername);
+    // console.error(`[LoginFailed] Error or user not found for username "${normalizedUsername}":`, error ? error.message : "User not found.");
     return { success: false, message: "Invalid username or password." };
   }
 
   // Defensive check: Ensure user.id exists before using it
   if (!user.id) {
-    console.error("Login failed: User object fetched from database is missing an ID. User data:", user);
-    return { success: false, message: "Login failed due to a server data integrity issue. Please contact support." };
+    console.error("[LoginFailed] Critical: User object fetched from database is missing an ID. User data:", user);
+    return { success: false, message: "Login failed due to a server data integrity issue (user ID missing). Please contact support." };
   }
+
+  // console.log(`[LoginAttempt] User found in DB: ID ${user.id}, Username: ${user.username}`);
 
   // Direct password comparison - INSECURE FOR PRODUCTION
   if (user.password_text === passwordInput) {
+    // console.log(`[LoginSuccess] Passwords match for user ID ${user.id}. Setting cookie.`);
+    
+    // Explicitly revalidate layout before setting cookie and returning.
+    revalidatePath('/', 'layout'); 
+
     cookies().set(SESSION_COOKIE_NAME, user.id, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -45,27 +55,33 @@ export async function loginUser(
       path: '/',
       sameSite: 'lax',
     });
+    // console.log(`[LoginSuccess] Cookie set for user ID ${user.id}.`);
     return { success: true, redirectPath: '/dashboard' };
   } else {
+    // console.log(`[LoginFailed] Passwords do not match for user ID ${user.id}.`);
     return { success: false, message: "Invalid username or password." };
   }
 }
 
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
   try {
+    // console.log("[LogoutAttempt] Deleting session cookie.");
     cookies().delete(SESSION_COOKIE_NAME);
     revalidatePath("/", "layout"); 
+    // console.log("[LogoutSuccess] Cookie deleted, path revalidated.");
     return { success: true, redirectPath: "/login" };
-  } catch (e) {
-    console.error("Logout error:", e);
-    return { success: false, message: "Logout failed due to a server error." };
+  } catch (e: any) {
+    console.error("[LogoutFailed] Error during logout:", e);
+    return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const userId = cookies().get(SESSION_COOKIE_NAME)?.value;
+  // console.log(`[GetCurrentUser] Attempting to get user. Cookie UserID: ${userId || 'Not set/found'}`);
 
   if (!userId) {
+    // console.log("[GetCurrentUser] No userId found in cookie.");
     return null;
   }
 
@@ -76,19 +92,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (error || !user) {
-    if (error && error.code !== 'PGRST116') { 
-      console.error(`getCurrentUser: Error fetching user for ID ${userId} from Supabase:`, error.message);
+    if (error && error.code !== 'PGRST116') { // PGRST116 means "Searched for a single row, but 0 rows were found"
+      console.error(`[GetCurrentUser] Error fetching user for ID "${userId}" from Supabase:`, error.message);
+    } else if (!user) {
+      // console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale.`);
     }
     return null;
   }
-
+  // console.log(`[GetCurrentUser] User found: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
   return user as CurrentUser;
 }
 
 export async function getUsers(): Promise<UserView[]> {
   const performingUser = await getCurrentUser();
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-    console.warn("getUsers: Access denied. Current user is not an admin or not found.");
+    console.warn("[GetUsers] Access denied. Current user is not an admin or not found.");
     return [];
   }
 
@@ -98,9 +116,10 @@ export async function getUsers(): Promise<UserView[]> {
     .order('username', { ascending: true });
 
   if (error) {
-    console.error("Error fetching users:", error);
+    console.error("[GetUsers] Error fetching users:", error);
     return [];
   }
+  // console.log(`[GetUsers] Fetched ${data?.length || 0} users.`);
   return (data as UserView[]) || [];
 }
 
@@ -126,7 +145,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
-      console.error("Error checking existing user:", selectError);
+      console.error("[AddUser] Error checking existing user:", selectError);
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
   }
   if (existingUser) {
@@ -144,12 +163,13 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .single();
 
   if (insertError) {
-    console.error("Error adding user:", insertError);
+    console.error("[AddUser] Error adding user:", insertError);
     return { success: false, message: `Failed to add user: ${insertError.message}` };
   }
 
   if (newUser) {
     revalidatePath("/settings/users", "page");
+    // console.log(`[AddUser] User "${newUser.username}" added successfully.`);
     return { success: true, message: `User "${newUser.username}" added successfully.`, user: newUser as UserView };
   }
   return { success: false, message: "Failed to add user for an unknown reason."};
@@ -178,7 +198,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
       .eq('role', 'admin');
     
     if (adminCountError) {
-      console.error("Error counting admins:", adminCountError);
+      console.error("[UpdateUserRole] Error counting admins:", adminCountError);
       return { success: false, message: "Could not verify admin count."};
     }
     if (count !== null && count <= 1) {
@@ -194,12 +214,13 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     .single();
 
   if (error) {
-    console.error("Error updating user role:", error);
+    console.error("[UpdateUserRole] Error updating user role:", error);
     return { success: false, message: `Failed to update role: ${error.message}` };
   }
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
+    // console.log(`[UpdateUserRole] User "${updatedUser.username}" role updated to ${newRole}.`);
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
@@ -230,7 +251,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
         .select('id', { count: 'exact', head: true })
         .eq('role', 'admin');
     if (adminCountError) {
-        console.error("Error counting admins for delete:", adminCountError);
+        console.error("[DeleteUser] Error counting admins for delete:", adminCountError);
         return { success: false, message: "Could not verify admin count."};
     }
     if (count !== null && count <= 1) {
@@ -244,11 +265,12 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     .eq('id', userId);
 
   if (deleteError) {
-    console.error("Error deleting user:", deleteError);
+    console.error("[DeleteUser] Error deleting user:", deleteError);
     return { success: false, message: `Failed to delete user: ${deleteError.message}` };
   }
 
   revalidatePath("/settings/users", "page");
+  // console.log(`[DeleteUser] User "${targetUser.username}" deleted successfully.`);
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
@@ -257,9 +279,13 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
 }
 
+// Example initial users for manual seeding if table is empty.
+// These would typically be added directly via Supabase Studio for first-time setup.
+/*
 const initialUsersSeed: Omit<User, 'id' | 'created_at' | 'updated_at'>[] = [
   { username: "admin", password_text: "adminpassword", role: "admin" },
   { username: "manager_user", password_text: "managerpassword", role: "manager" },
   { username: "viewer", password_text: "viewerpassword", role: "viewer" },
 ];
+*/
     
