@@ -4,8 +4,9 @@
 import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
 import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase/client'; // Use the shared client
-import { redirect } from 'next/navigation'; // Import redirect
+import { supabase } from '@/lib/supabase/client'; 
+import { redirect } from 'next/navigation'; 
+import { cache } from 'react'; // Import React cache
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
@@ -51,11 +52,9 @@ export async function loginUser(
     
     try {
       cookies().set(SESSION_COOKIE_NAME, user.id, {
-        // httpOnly: true, // Studio might have issues with httpOnly if not properly proxied
-        // secure: process.env.NODE_ENV === 'production', // And secure if not https in dev/studio
         maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
-        sameSite: 'lax', // Good default
+        sameSite: 'lax', 
       });
       // console.log(`[LoginSuccess] Cookie set for user ID ${user.id}.`);
     } catch (cookieError: any) {
@@ -65,8 +64,7 @@ export async function loginUser(
     
     revalidatePath('/', 'layout'); 
     // console.log("[LoginSuccess] Path revalidated. Redirecting to /dashboard from server action...");
-    redirect('/dashboard'); // Redirect from server action
-    // This line will not be reached if redirect is successful
+    redirect('/dashboard'); 
   } else {
     // console.log(`[LoginFailed] Passwords do not match for user ID ${user.id}.`);
     return { success: false, message: "Invalid username or password." };
@@ -86,13 +84,13 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   let userId;
   let rawCookie;
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
-    userId = rawCookie?.value;
     // console.log(`[GetCurrentUser] Raw cookie object for ${SESSION_COOKIE_NAME}:`, JSON.stringify(rawCookie || null));
+    userId = rawCookie?.value;
   } catch (cookieError: any) {
     // console.error(`[GetCurrentUser] Error reading cookie: ${cookieError.message}`);
     throw new Error(`SESSION_COOKIE_READ_ERROR: ${cookieError.message}`);
@@ -115,7 +113,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   if (error) {
     // console.error(`[GetCurrentUser] Error fetching user for ID "${userId}" from Supabase:`, error.message);
-    if (error.code === 'PGRST116') { // PGRST116: "Searched for a single row, but 0 rows were found"
+    if (error.code === 'PGRST116') { 
       throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
     throw new Error(`SUPABASE_QUERY_ERROR: ${error.message} (Code: ${error.code})`);
@@ -128,22 +126,13 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   // console.log(`[GetCurrentUser] User found: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
   return user as CurrentUser;
-}
+});
 
 export async function getUsers(): Promise<UserView[]> {
   // console.log("[GetUsers] Attempting to fetch all users.");
-  // In a real app, ensure performingUser has rights, e.g., is an admin.
-  // For simplicity in this prototype, we might bypass this or assume admin if this function is called from an admin page.
-  // const performingUser = await getCurrentUser(); 
-  // if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-  //   console.warn("[GetUsers] Access denied. Current user is not an admin or not found. Current user role:", performingUser?.role);
-  //   return [];
-  // }
-  // console.log("[GetUsers] Admin user confirmed (assumption for prototype). Fetching users from Supabase.");
-
   const { data, error } = await supabase
     .from('stock_sentry_users')
-    .select('id, username, role, created_at, updated_at') // ensure created_at, updated_at are available if needed
+    .select('id, username, role, created_at, updated_at') 
     .order('username', { ascending: true });
 
   if (error) {
@@ -156,13 +145,7 @@ export async function getUsers(): Promise<UserView[]> {
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
   // console.log("[AddUser] Attempting to add new user:", { username: data.username, role: data.role });
-  // Add performing user check here if necessary
-  // const performingUser = await getCurrentUser(); 
-  // if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-  //   console.warn("[AddUser] Permission denied: Only admins can add users. Current user role:", performingUser?.role);
-  //   return { success: false, message: "Permission denied: Only admins can add users." };
-  // }
-
+  
   if (!data.username || !data.password || !data.role) {
     // console.warn("[AddUser] Validation failed: Username, password, and role are required.");
     return { success: false, message: "Username, password, and role are required." };
@@ -177,10 +160,10 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const { data: existingUser, error: selectError } = await supabase
     .from('stock_sentry_users')
     .select('id')
-    .ilike('username', normalizedUsername) // Case-insensitive check for username
+    .ilike('username', normalizedUsername) 
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { // PGRST116: "Searched for a single row, but 0 rows were found" (which is fine)
+  if (selectError && selectError.code !== 'PGRST116') { 
       // console.error("[AddUser] Error checking existing user in Supabase:", selectError);
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
   }
@@ -194,7 +177,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .from('stock_sentry_users')
     .insert({
       username: normalizedUsername, 
-      password_text: data.password, // Storing password in plaintext - NOT FOR PRODUCTION
+      password_text: data.password, 
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -206,7 +189,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   }
 
   if (newUser) {
-    revalidatePath("/settings/users", "page"); // Or whichever page lists users
+    revalidatePath("/settings/users", "page"); 
     // console.log(`[AddUser] User "${newUser.username}" added successfully.`);
     return { success: true, message: `User "${newUser.username}" added successfully.`, user: newUser as UserView };
   }
@@ -216,17 +199,11 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
   // console.log(`[UpdateUserRole] Attempting to update role for user ID ${userId} to ${newRole}.`);
-  // Add performing user check here if necessary
-  // const performingUser = await getCurrentUser(); 
-  // if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-  //   console.warn("[UpdateUserRole] Permission denied: Only admins can update roles. Current user role:", performingUser?.role);
-  //   return { success: false, message: "Permission denied: Only admins can update roles." };
-  // }
-
+  
   // console.log(`[UpdateUserRole] Fetching target user ID ${userId} for role check.`);
   const { data: targetUserForRoleCheck, error: targetUserError } = await supabase
     .from('stock_sentry_users')
-    .select('role, username') // Select username for logging/messages
+    .select('role, username') 
     .eq('id', userId)
     .single();
 
@@ -237,10 +214,9 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (targetUserForRoleCheck.role === 'admin' && newRole !== 'admin') {
     // console.log("[UpdateUserRole] Target user is admin, new role is not admin. Counting admins.");
-    // Count how many admins exist
     const { count, error: adminCountError } = await supabase
       .from('stock_sentry_users')
-      .select('id', { count: 'exact', head: true }) // Efficiently count
+      .select('id', { count: 'exact', head: true }) 
       .eq('role', 'admin');
     
     if (adminCountError) {
@@ -278,7 +254,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   // console.log(`[DeleteUser] Attempting to delete user ID ${userId}.`);
-  const performingUser = await getCurrentUser(); // Get current user to check if they are deleting themselves or if they are admin
+  const performingUser = await getCurrentUser(); 
   
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     // console.warn("[DeleteUser] Permission denied: Only admins can delete users. Current user role:", performingUser?.role);
@@ -289,7 +265,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     // console.warn("[DeleteUser] Admin attempting to delete their own account.");
     return { success: false, message: "Cannot delete your own account." };
   }
-
 
   // console.log(`[DeleteUser] Fetching target user ID ${userId} for pre-delete checks.`);
   const { data: targetUser, error: targetUserError } = await supabase
@@ -303,7 +278,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     return { success: false, message: "User not found." };
   }
 
-  // If the user to be deleted is an admin, check if they are the last admin
   if (targetUser.role === 'admin') {
     // console.log("[DeleteUser] Target user is admin. Counting admins.");
     const { count, error: adminCountError } = await supabase
@@ -337,10 +311,9 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
-// This function can be used by middleware or layouts to get the role for permission checks
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   // console.log("[GetRoleForCurrentUser] Fetching current user to determine role.");
-  const currentUser = await getCurrentUser();  // This might throw, which is fine for this function's purpose if the caller handles it
+  const currentUser = await getCurrentUser();  
   const role = currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   // console.log(`[GetRoleForCurrentUser] Role determined: ${role}`);
   return role;
