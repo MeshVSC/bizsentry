@@ -12,8 +12,9 @@ import { AlertTriangle } from 'lucide-react';
 
 export default async function VendorsSettingsPage() {
   const currentUser = await getCurrentUser();
+  const userRole = currentUser?.role?.trim().toLowerCase();
 
-  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'manager')) {
+  if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 p-8">
         <AlertTriangle className="h-16 w-16 text-destructive" />
@@ -50,3 +51,4 @@ export default async function VendorsSettingsPage() {
     </>
   );
 }
+

@@ -1,7 +1,7 @@
 
 import PageHeader from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUsers, getCurrentUser } from '@/lib/actions/userActions'; // Using custom actions
+import { getUsers, getCurrentUser } from '@/lib/actions/userActions'; 
 import { AlertTriangle } from 'lucide-react';
 import AddUserForm from '@/components/settings/AddUserForm';
 import UserManagementTable from '@/components/settings/UserManagementTable';
@@ -9,8 +9,9 @@ import type { CurrentUser } from '@/types/user';
 
 export default async function UserSettingsPage() {
   const currentUser: CurrentUser | null = await getCurrentUser();
+  const userRole = currentUser?.role?.trim().toLowerCase();
 
-  if (!currentUser || currentUser.role !== 'admin') {
+  if (!currentUser || userRole !== 'admin') {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 p-8">
         <AlertTriangle className="h-16 w-16 text-destructive" />
@@ -33,7 +34,7 @@ export default async function UserSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
-          <CardDescription>Add new users or modify existing ones. This creates users in your custom Supabase table.</CardDescription>
+          <CardDescription>Add new users or modify existing ones. User data is stored in your custom Supabase table.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
           <AddUserForm />
