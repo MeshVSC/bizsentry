@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import NextImage from "next/image";
-import { DatePicker } from "@/components/shared/DatePicker"; 
+import { DatePicker } from "@/components/shared/DatePicker";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
@@ -44,22 +44,22 @@ const itemFormSchema = z.object({
   description: z.string().max(500).optional().default(""),
   quantity: z.coerce.number().min(0, { message: "Quantity must be non-negative." }),
   category: z.string().max(50).optional().default(""),
-  subcategory: z.string().max(50).optional().default(""), 
+  subcategory: z.string().max(50).optional().default(""),
   storageLocation: z.string().max(100).optional().default(""),
   binLocation: z.string().max(50).optional().default(""),
-  room: z.string().max(100).optional().default(""), 
-  vendor: z.string().max(100).optional().default(""), 
-  project: z.string().max(100).optional().default(""), 
+  room: z.string().max(100).optional().default(""),
+  vendor: z.string().max(100).optional().default(""),
+  project: z.string().max(100).optional().default(""),
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
-  msrp: z.coerce.number().min(0).optional(), 
+  msrp: z.coerce.number().min(0).optional(),
   sku: z.string().max(50).optional().default(""),
   status: z.enum(itemStatuses, { required_error: "Status is required."}).default("in stock"),
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
   productImageUrl: z.string().optional().default(""),
   productUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""),
-  purchaseDate: z.date().optional(), 
-  soldDate: z.date().optional(), 
+  purchaseDate: z.date().optional(),
+  soldDate: z.date().optional(),
   inUseDate: z.date().optional(),
 });
 
@@ -70,12 +70,12 @@ interface ItemFormProps {
   onSubmitAction: (data: ItemInput) => Promise<Item | { error: string } | undefined>;
   isEditing?: boolean;
   availableCategories: string[];
-  availableSubcategories: string[]; 
+  availableSubcategories: string[];
   availableStorageLocations: string[];
   availableBinLocations: string[];
-  availableRooms: string[]; 
-  availableVendors: string[]; 
-  availableProjects: string[]; 
+  availableRooms: string[];
+  availableVendors: string[];
+  availableProjects: string[];
 }
 
 const MAX_IMAGE_SIZE_MB = 2;
@@ -99,6 +99,12 @@ export default function ItemForm({
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
   const { currentUser } = useAuth(); // Get currentUser from AuthContext
 
+  useEffect(() => {
+    // Log currentUser when the form mounts or currentUser changes
+    console.log(`[ItemForm useEffect] currentUser from useAuth():`, JSON.parse(JSON.stringify(currentUser || null)));
+  }, [currentUser]);
+
+
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
     defaultValues: {
@@ -114,14 +120,14 @@ export default function ItemForm({
       project: item?.project || "",
       originalPrice: item?.originalPrice ?? "",
       salesPrice: item?.salesPrice ?? "",
-      msrp: item?.msrp ?? "", 
+      msrp: item?.msrp ?? "",
       sku: item?.sku || "",
       status: item?.status || "in stock",
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
       productUrl: item?.productUrl || "",
-      purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined, 
-      soldDate: item?.soldDate ? new Date(item.soldDate) : undefined, 
+      purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined,
+      soldDate: item?.soldDate ? new Date(item.soldDate) : undefined,
       inUseDate: item?.inUseDate ? new Date(item.inUseDate) : undefined,
     },
   });
@@ -137,7 +143,7 @@ export default function ItemForm({
         if ('error' in result || !result.items || result.items.length === 0) {
           toast({ title: "Receipt Processing Failed", description: (result as any).error || "Could not extract data from receipt.", variant: "destructive" });
         } else {
-          const extracted = result.items[0] as ExtractedItemData; 
+          const extracted = result.items[0] as ExtractedItemData;
           if (extracted.name && !form.getValues("name")) form.setValue("name", extracted.name, { shouldValidate: true });
           if (extracted.description && !form.getValues("description")) form.setValue("description", extracted.description, { shouldValidate: true });
           if (extracted.quantity && form.getValues("quantity") === 0) form.setValue("quantity", extracted.quantity, { shouldValidate: true });
@@ -176,7 +182,9 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    if (!currentUser?.id) {
+    console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, JSON.parse(JSON.stringify(currentUser || null)));
+    if (!currentUser?.id) { // Check for currentUser.id
+      console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser:`, JSON.parse(JSON.stringify(currentUser || null)));
       toast({
         title: "Authentication Error",
         description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
@@ -189,7 +197,7 @@ export default function ItemForm({
         ...data,
         originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
         salesPrice: data.salesPrice === "" ? undefined : Number(data.salesPrice),
-        msrp: data.msrp === "" ? undefined : Number(data.msrp), 
+        msrp: data.msrp === "" ? undefined : Number(data.msrp),
         sku: data.sku || undefined,
         description: data.description || undefined,
         category: data.category || undefined,
@@ -203,8 +211,8 @@ export default function ItemForm({
         receiptImageUrl: data.receiptImageUrl || undefined,
         productImageUrl: data.productImageUrl || undefined,
         productUrl: data.productUrl || undefined,
-        purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, 
-        soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, 
+        purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined,
+        soldDate: data.soldDate ? data.soldDate.toISOString() : undefined,
         inUseDate: data.inUseDate ? data.inUseDate.toISOString() : undefined,
         invokedByUserId: currentUser.id, // Add invokedByUserId from context
     };
