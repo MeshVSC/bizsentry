@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-import { cache } from 'react';
+// import { cache } from 'react'; // Temporarily removed for debugging
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
@@ -51,7 +51,8 @@ export async function loginUser(
       httpOnly: true,
     };
     try {
-      cookies().set(SESSION_COOKIE_NAME, user.id, cookieOptions);
+      const cookieStore = cookies();
+      cookieStore.set(SESSION_COOKIE_NAME, user.id, cookieOptions);
       // console.log(`[LoginUser (${timestamp})] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
     } catch (cookieError: any) {
       // console.error(`[LoginUser (${timestamp})] Login succeeded for ${normalizedUsername} but failed to set session cookie: ${cookieError.message}`);
@@ -80,37 +81,38 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
+// Temporarily removed cache for debugging
+export const getCurrentUser = async (): Promise<GetCurrentUserResult> => {
   const timestamp = new Date().toISOString();
-  let finalDebugMessage = `[GetCurrentUser (${timestamp})]`;
+  let debugMessage = `[GetCurrentUser (${timestamp})] Executing.`;
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
 
   try {
-    const cookieStore = cookies();
+    const cookieStore = cookies(); // Assign to variable first
     rawCookie = cookieStore.get(SESSION_COOKIE_NAME);
-    // finalDebugMessage += ` Cookie read attempt finished.`;
+    debugMessage += ` Cookie read attempt finished.`;
   } catch (cookieAccessError: any) {
-    finalDebugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
-    // console.error(finalDebugMessage);
-    return { user: null, debugMessage: finalDebugMessage };
+    debugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
+    console.log("getCurrentUser returning (cookie access error):", { user: null, debugMessage });
+    return { user: null, debugMessage: debugMessage };
   }
 
   if (!rawCookie) {
-    finalDebugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" not found by cookies().get().`;
-    // console.warn(finalDebugMessage);
-    return { user: null, debugMessage: finalDebugMessage };
+    debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" not found.`;
+    console.log("getCurrentUser returning (no cookie):", { user: null, debugMessage });
+    return { user: null, debugMessage: debugMessage };
   }
   
   const userId = rawCookie.value;
-  // finalDebugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
+  debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
 
   if (!userId || userId.trim() === "") {
-    finalDebugMessage += ` Cookie value (userId) is empty/whitespace.`;
-    // console.warn(finalDebugMessage);
-    return { user: null, debugMessage: finalDebugMessage };
+    debugMessage += ` Cookie value (userId) is empty/whitespace.`;
+    console.log("getCurrentUser returning (empty cookie value):", { user: null, debugMessage });
+    return { user: null, debugMessage: debugMessage };
   }
 
-  // finalDebugMessage += ` Fetching from Supabase with userId: "${userId}".`;
+  debugMessage += ` Fetching from Supabase with userId: "${userId}".`;
   const { data: dbUser, error: dbError } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -118,28 +120,33 @@ export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
     .single();
 
   if (dbError) {
-    finalDebugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
-    // console.error(finalDebugMessage);
-    return { user: null, debugMessage: finalDebugMessage };
+    debugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
+    console.log("getCurrentUser returning (db error):", { user: null, debugMessage });
+    return { user: null, debugMessage: debugMessage };
   }
 
-  if (!dbUser) { // This covers if Supabase returns null for dbUser
-    finalDebugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
-    // console.warn(finalDebugMessage);
-    return { user: null, debugMessage: finalDebugMessage };
+  if (!dbUser) {
+    debugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
+    console.log("getCurrentUser returning (no user in db):", { user: null, debugMessage });
+    return { user: null, debugMessage: debugMessage };
   }
 
-  // Defensive check: Ensure dbUser has an id and other essential fields
-  if (typeof dbUser.id !== 'string' || !dbUser.id.trim() || typeof dbUser.username !== 'string' || typeof dbUser.role !== 'string') {
-    finalDebugMessage += ` Retrieved dbUser object from Supabase is malformed or missing essential fields (id, username, role). dbUser: ${JSON.stringify(dbUser)}. Treating as no user found.`;
-    // console.warn(finalDebugMessage);
-    return { user: null, debugMessage: finalDebugMessage };
+  // Strengthened validation: Ensure dbUser has essential fields and they are of the correct type.
+  if (
+    !dbUser.id || typeof dbUser.id !== 'string' || !dbUser.id.trim() ||
+    !dbUser.username || typeof dbUser.username !== 'string' || !dbUser.username.trim() ||
+    !dbUser.role || typeof dbUser.role !== 'string' || !dbUser.role.trim()
+  ) {
+    debugMessage += ` Retrieved dbUser object from Supabase is malformed or missing essential fields. dbUser: ${JSON.stringify(dbUser)}. Treating as no user found.`;
+    console.log("getCurrentUser returning (malformed dbUser):", { user: null, debugMessage });
+    return { user: null, debugMessage: debugMessage };
   }
   
-  // finalDebugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
-  // console.log(finalDebugMessage);
-  return { user: dbUser as CurrentUser, debugMessage: finalDebugMessage + " User retrieved." };
-});
+  debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
+  const result = { user: dbUser as CurrentUser, debugMessage: debugMessage + " User retrieved." };
+  console.log("getCurrentUser returning (success):", JSON.parse(JSON.stringify(result)));
+  return result;
+};
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -199,7 +206,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  const authResult = await getCurrentUser();
+  const authResult = await getCurrentUser(); // This now returns { user, debugMessage }
   if (!authResult.user) {
       return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
   }
@@ -246,16 +253,13 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
-    // If the performing user updated their own role, update their session info if possible (complex with HttpOnly cookies server-side)
-    // For now, this might require a re-login for the change to be fully reflected for the self-updater.
-    // However, if the updatedUser is the current user from context, their context role won't auto-update here.
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  const authResult = await getCurrentUser();
+  const authResult = await getCurrentUser(); // This now returns { user, debugMessage }
   const performingUser = authResult.user;
 
   if (!performingUser) {
@@ -306,9 +310,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
-// Helper, not directly exported for client use unless necessary
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   const { user } = await getCurrentUser(); 
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }
-
