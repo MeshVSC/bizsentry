@@ -1,19 +1,18 @@
 
 "use server";
 
-import type { User, UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
+import type { UserRole, CurrentUser, UserFormInput, UserView } from "@/types/user";
 import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase/client'; 
-import { redirect } from 'next/navigation'; 
-import { cache } from 'react'; // Import React cache
+import { supabase } from '@/lib/supabase/client';
+import { redirect } from 'next/navigation';
+// import { cache } from 'react'; // Removed cache for now
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
-// Modified to redirect internally on success
 export async function loginUser(
   formData: FormData
-): Promise<{ success: boolean; message?: string } | void> { // Return void on success due to redirect
+): Promise<{ success: boolean; message?: string } | void> {
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
 
@@ -40,7 +39,7 @@ export async function loginUser(
 
   // console.log(`[LoginAttempt] User found in DB: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
 
-  if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") { 
+  if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") {
     // console.error("[LoginFailed] Critical: User object fetched from database is missing a valid ID string. User data:", JSON.stringify(user));
     return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
@@ -49,22 +48,24 @@ export async function loginUser(
 
   if (user.password_text === passwordInput) {
     // console.log(`[LoginSuccess] Passwords match for user ID ${user.id}. Attempting to set cookie.`);
-    
+
     try {
       cookies().set(SESSION_COOKIE_NAME, user.id, {
         maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
-        sameSite: 'lax', 
+        sameSite: 'lax',
+        httpOnly: false, // TEMPORARILY false for debugging
+        // secure: process.env.NODE_ENV === 'production', // Keep secure for production if https
       });
       // console.log(`[LoginSuccess] Cookie set for user ID ${user.id}.`);
     } catch (cookieError: any) {
       // console.error(`[LoginFailed] Error setting cookie for user ID ${user.id}:`, cookieError.message);
       return { success: false, message: "Login succeeded but failed to set session. Please try again." };
     }
-    
-    revalidatePath('/', 'layout'); 
+
+    revalidatePath('/', 'layout');
     // console.log("[LoginSuccess] Path revalidated. Redirecting to /dashboard from server action...");
-    redirect('/dashboard'); 
+    redirect('/dashboard');
   } else {
     // console.log(`[LoginFailed] Passwords do not match for user ID ${user.id}.`);
     return { success: false, message: "Invalid username or password." };
@@ -75,7 +76,7 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   try {
     // console.log("[LogoutAttempt] Deleting session cookie.");
     cookies().delete(SESSION_COOKIE_NAME);
-    revalidatePath("/", "layout"); 
+    revalidatePath("/", "layout");
     // console.log("[LogoutSuccess] Cookie deleted, path revalidated.");
     return { success: true, redirectPath: "/login" };
   } catch (e: any) {
@@ -84,7 +85,8 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+// Removed cache wrapper for now
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   let userId;
   let rawCookie;
   try {
@@ -95,7 +97,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     // console.error(`[GetCurrentUser] Error reading cookie: ${cookieError.message}`);
     throw new Error(`SESSION_COOKIE_READ_ERROR: ${cookieError.message}`);
   }
-  
+
   // console.log(`[GetCurrentUser] Attempting to get user. Cookie UserID: ${userId || 'Not set/found'}`);
 
   if (!userId || userId.trim() === "") {
@@ -105,20 +107,20 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
-    .select('id, username, role') 
+    .select('id, username, role')
     .eq('id', userId)
     .single();
-  
+
   // console.log(`[GetCurrentUser] Supabase query result for ID ${userId}:`, { data: JSON.stringify(user || null), error: error ? JSON.stringify(error) : null });
 
   if (error) {
     // console.error(`[GetCurrentUser] Error fetching user for ID "${userId}" from Supabase:`, error.message);
-    if (error.code === 'PGRST116') { 
+    if (error.code === 'PGRST116') {
       throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
     throw new Error(`SUPABASE_QUERY_ERROR: ${error.message} (Code: ${error.code})`);
   }
-  
+
   if (!user) {
     // console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale or RLS policy issue.`);
     throw new Error(`SUPABASE_USER_NOT_FOUND_DESPITE_NO_ERROR_FOR_ID: ${userId}`);
@@ -126,13 +128,14 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   // console.log(`[GetCurrentUser] User found: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
   return user as CurrentUser;
-});
+}
+
 
 export async function getUsers(): Promise<UserView[]> {
   // console.log("[GetUsers] Attempting to fetch all users.");
   const { data, error } = await supabase
     .from('stock_sentry_users')
-    .select('id, username, role, created_at, updated_at') 
+    .select('id, username, role, created_at, updated_at')
     .order('username', { ascending: true });
 
   if (error) {
@@ -145,7 +148,7 @@ export async function getUsers(): Promise<UserView[]> {
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
   // console.log("[AddUser] Attempting to add new user:", { username: data.username, role: data.role });
-  
+
   if (!data.username || !data.password || !data.role) {
     // console.warn("[AddUser] Validation failed: Username, password, and role are required.");
     return { success: false, message: "Username, password, and role are required." };
@@ -155,15 +158,15 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     return { success: false, message: "Password does not meet requirements (min 5 chars, 1 uppercase, 1 number)." };
   }
 
-  const normalizedUsername = data.username.trim().toLowerCase(); 
+  const normalizedUsername = data.username.trim().toLowerCase();
   // console.log("[AddUser] Checking for existing user with normalized username:", normalizedUsername);
   const { data: existingUser, error: selectError } = await supabase
     .from('stock_sentry_users')
     .select('id')
-    .ilike('username', normalizedUsername) 
+    .ilike('username', normalizedUsername)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { 
+  if (selectError && selectError.code !== 'PGRST116') {
       // console.error("[AddUser] Error checking existing user in Supabase:", selectError);
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
   }
@@ -176,8 +179,8 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   const { data: newUser, error: insertError } = await supabase
     .from('stock_sentry_users')
     .insert({
-      username: normalizedUsername, 
-      password_text: data.password, 
+      username: normalizedUsername,
+      password_text: data.password,
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -189,7 +192,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   }
 
   if (newUser) {
-    revalidatePath("/settings/users", "page"); 
+    revalidatePath("/settings/users", "page");
     // console.log(`[AddUser] User "${newUser.username}" added successfully.`);
     return { success: true, message: `User "${newUser.username}" added successfully.`, user: newUser as UserView };
   }
@@ -199,11 +202,11 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
   // console.log(`[UpdateUserRole] Attempting to update role for user ID ${userId} to ${newRole}.`);
-  
+
   // console.log(`[UpdateUserRole] Fetching target user ID ${userId} for role check.`);
   const { data: targetUserForRoleCheck, error: targetUserError } = await supabase
     .from('stock_sentry_users')
-    .select('role, username') 
+    .select('role, username')
     .eq('id', userId)
     .single();
 
@@ -216,9 +219,9 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     // console.log("[UpdateUserRole] Target user is admin, new role is not admin. Counting admins.");
     const { count, error: adminCountError } = await supabase
       .from('stock_sentry_users')
-      .select('id', { count: 'exact', head: true }) 
+      .select('id', { count: 'exact', head: true })
       .eq('role', 'admin');
-    
+
     if (adminCountError) {
       // console.error("[UpdateUserRole] Error counting admins in Supabase:", adminCountError);
       return { success: false, message: "Could not verify admin count."};
@@ -229,7 +232,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
       return { success: false, message: "Cannot remove the last administrator's role." };
     }
   }
-  
+
   // console.log(`[UpdateUserRole] Updating role for user ID ${userId} in Supabase.`);
   const { data: updatedUser, error } = await supabase
     .from('stock_sentry_users')
@@ -254,13 +257,13 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   // console.log(`[DeleteUser] Attempting to delete user ID ${userId}.`);
-  const performingUser = await getCurrentUser(); 
-  
+  const performingUser = await getCurrentUser();
+
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     // console.warn("[DeleteUser] Permission denied: Only admins can delete users. Current user role:", performingUser?.role);
     return { success: false, message: "Permission denied: Only admins can delete users." };
   }
-  
+
   if (performingUser.id === userId) {
     // console.warn("[DeleteUser] Admin attempting to delete their own account.");
     return { success: false, message: "Cannot delete your own account." };
@@ -313,8 +316,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   // console.log("[GetRoleForCurrentUser] Fetching current user to determine role.");
-  const currentUser = await getCurrentUser();  
-  const role = currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
-  // console.log(`[GetRoleForCurrentUser] Role determined: ${role}`);
-  return role;
+  try {
+    const currentUser = await getCurrentUser();
+    const role = currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
+    // console.log(`[GetRoleForCurrentUser] Role determined: ${role}`);
+    return role;
+  } catch (error) {
+    // console.warn("[GetRoleForCurrentUser] Error fetching current user, returning null role:", (error as Error).message);
+    return null; // If getCurrentUser throws (e.g. cookie not found), return null role
+  }
 }
