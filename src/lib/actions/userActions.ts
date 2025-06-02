@@ -12,7 +12,7 @@ const SESSION_COOKIE_NAME = 'stocksentry_custom_session'; // Kept for reference 
 
 // Define a mock admin user that will be returned when auth is "disabled"
 const MOCK_ADMIN_USER: CurrentUser = {
-  id: 'mock-admin-user-id',
+  id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // VALID UUID
   username: 'MockAdmin',
   role: 'admin',
 };
@@ -274,3 +274,4 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   const { user } = await getCurrentUser(); // Will be MOCK_ADMIN_USER
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }
+

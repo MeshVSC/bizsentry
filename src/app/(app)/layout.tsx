@@ -9,7 +9,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 
 // Define the mock user directly in the layout or import from a shared constant if preferred
 const MOCK_USER_FOR_LAYOUT: CurrentUser = {
-  id: 'mock-admin-user-id', // Consistent ID
+  id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // VALID UUID
   username: 'MockAdmin',
   role: 'admin',
 };
@@ -43,3 +43,4 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
     </AuthProvider>
   );
 }
+
