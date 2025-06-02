@@ -5,7 +5,7 @@ import {
   addManagedSubcategoryOption,
   deleteManagedSubcategoryOption,
 } from '@/lib/actions/itemActions';
-import { getCurrentUser } from '@/lib/actions/userActions'; // Page now calls getCurrentUser
+import { getCurrentUser } from '@/lib/actions/userActions'; // Page calls getCurrentUser
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CurrentUser } from '@/types/user';
@@ -15,11 +15,12 @@ import { redirect } from 'next/navigation';
 export default async function SubcategoriesSettingsPage() {
   let currentUser: CurrentUser | null = null;
   try {
-    currentUser = await getCurrentUser(); // Should use cached version
-    if (!currentUser) redirect('/login');
+    currentUser = await getCurrentUser(); // Call should hit React.cache
+    if (!currentUser) {
+      redirect('/login'); // Safeguard redirect
+    }
   } catch (error) {
-    // console.error('[SubcategoriesSettingsPage] Error fetching user:', error);
-    redirect('/login');
+    redirect('/login'); // Safeguard redirect if getCurrentUser throws
   }
 
   const userRole = currentUser?.role?.trim().toLowerCase();

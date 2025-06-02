@@ -1,7 +1,7 @@
 
 import PageHeader from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUsers, getCurrentUser } from '@/lib/actions/userActions'; // Page now calls getCurrentUser
+import { getUsers, getCurrentUser } from '@/lib/actions/userActions'; // Page calls getCurrentUser
 import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
 import AddUserForm from '@/components/settings/AddUserForm';
@@ -11,11 +11,12 @@ import { redirect } from 'next/navigation';
 export default async function UserSettingsPage() {
   let currentUser: CurrentUser | null = null;
   try {
-    currentUser = await getCurrentUser(); // Should use cached version
-    if (!currentUser) redirect('/login');
+    currentUser = await getCurrentUser(); // Call should hit React.cache
+    if (!currentUser) {
+      redirect('/login'); // Safeguard redirect
+    }
   } catch (error) {
-    // console.error('[UserSettingsPage] Error fetching user:', error);
-    redirect('/login');
+    redirect('/login'); // Safeguard redirect if getCurrentUser throws
   }
 
   const userRole = currentUser?.role?.trim().toLowerCase();
@@ -40,6 +41,7 @@ export default async function UserSettingsPage() {
         title="User Management"
         description="Manage application users and their roles."
       />
+      {/* Removed yellow debug box if it was here */}
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>

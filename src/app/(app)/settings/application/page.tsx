@@ -5,29 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
 import { getAppSettings } from '@/lib/actions/settingsActions';
-// Ensure no redirect import from next/navigation if page doesn't handle it
-// import { redirect } from 'next/navigation'; // TEMPORARILY DISABLED
+import { getCurrentUser } from '@/lib/actions/userActions'; // Page calls getCurrentUser
+import { redirect } from 'next/navigation';
 
-export interface ApplicationSettingsPageProps {
-  currentUser?: CurrentUser | null; // Prop passed from GroupedAppLayout
-}
-
-export default async function ApplicationSettingsPage(props: ApplicationSettingsPageProps) {
-  const receivedCurrentUser = props.currentUser; // Use the prop
-  const userRole = receivedCurrentUser?.role?.trim().toLowerCase();
-
-  let pageDebugMessage = `App Settings Page: Prop currentUser is ${receivedCurrentUser ? 'defined' : 'null or undefined'}.`;
-  let pageErrorDisplay: string | null = null;
-
-  if (!receivedCurrentUser) {
-    pageErrorDisplay = "The 'currentUser' prop was not received or is null.";
-  } else if (userRole !== 'admin' && userRole !== 'manager') {
-    pageErrorDisplay = `Access denied based on received role: '${userRole || 'undefined'}'.`;
+export default async function ApplicationSettingsPage() {
+  let currentUser: CurrentUser | null = null;
+  try {
+    currentUser = await getCurrentUser(); // Call should hit React.cache if layout called it first
+    if (!currentUser) {
+      redirect('/login'); // Safeguard redirect
+    }
+  } catch (error) {
+    redirect('/login'); // Safeguard redirect if getCurrentUser throws
   }
   
-  if (!receivedCurrentUser || (userRole !== 'admin' && userRole !== 'manager')) {
-    // const accessDeniedDebugCurrentUserDisplay = receivedCurrentUser ? JSON.stringify(receivedCurrentUser, null, 2) : "currentUser prop is null or undefined";
-    
+  const userRole = currentUser?.role?.trim().toLowerCase();
+
+  if (userRole !== 'admin' && userRole !== 'manager') {
     return (
       <>
         <PageHeader title="Application Settings" description="Manage global application settings." />
@@ -37,21 +31,12 @@ export default async function ApplicationSettingsPage(props: ApplicationSettings
           <p className="text-muted-foreground text-center">
             You do not have permission to view this page. Please contact an administrator.
           </p>
-          <div className="mt-4 p-4 bg-yellow-900/20 border border-yellow-700/50 text-yellow-300 rounded-md text-xs w-full max-w-2xl shadow">
-            <h3 className="font-semibold mb-2 text-yellow-200">Debug Information (Access Denied by Page Prop Context):</h3>
-            {pageErrorDisplay && <p className="mt-1">Page Error: <code className="bg-background/30 p-1 rounded text-sm">{pageErrorDisplay}</code></p>}
-            <p className="mt-1">Current User Prop Received by Page:</p>
-            <pre className="whitespace-pre-wrap break-all bg-background/30 p-2 rounded text-sm">{receivedCurrentUser ? JSON.stringify(receivedCurrentUser, null, 2) : "currentUser prop is null or undefined"}</pre>
-            <p className="mt-1">Computed User Role (from prop) for Check: <code className="bg-background/30 p-1 rounded text-sm">{userRole || 'undefined'}</code></p>
-            <p className="mt-1">Page Debug Message: <code className="bg-background/30 p-1 rounded text-sm">{pageDebugMessage}</code></p>
-          </div>
         </div>
       </>
     );
   }
 
   const initialAppSettings = await getAppSettings();
-  const accessGrantedDebugCurrentUserDisplay = receivedCurrentUser ? JSON.stringify(receivedCurrentUser, null, 2) : "currentUser prop is unexpectedly null (access granted path by page)";
 
   return (
     <>
@@ -59,13 +44,7 @@ export default async function ApplicationSettingsPage(props: ApplicationSettings
         title="Application Settings"
         description="Manage global behaviors of the application."
       />
-      <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-700/50 text-yellow-300 rounded-md text-xs shadow">
-          <h3 className="font-semibold mb-1 text-yellow-200">Debug Information (Access Granted by Page Prop Context):</h3>
-          <p className="text-foreground mt-1">Current User Prop Received by Page:</p>
-          <pre className="whitespace-pre-wrap break-all bg-background/30 p-2 rounded text-sm">{accessGrantedDebugCurrentUserDisplay}</pre>
-          <p className="mt-1">Computed User Role (from prop) for Check: <code className="bg-background/30 p-1 rounded text-sm">{userRole || 'undefined'}</code></p>
-          <p className="mt-1">Page Debug Message: <code className="bg-background/30 p-1 rounded text-sm">{pageDebugMessage}</code></p>
-      </div>
+      {/* Removed yellow debug box */}
       <Card>
         <CardHeader>
             <CardTitle>General Application Settings</CardTitle>
