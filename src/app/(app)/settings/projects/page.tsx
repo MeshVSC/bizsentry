@@ -1,19 +1,22 @@
 
 import PageHeader from '@/components/shared/PageHeader';
-import { 
+import {
   getManagedProjectOptions,
   addManagedProjectOption,
   deleteManagedProjectOption,
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// Removed: import { getCurrentUser } from '@/lib/actions/userActions';
-import type { CurrentUser } from '@/types/user'; // Keep for prop type
+import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
 
 // Accept currentUser as a prop
-export default async function ProjectsSettingsPage({ currentUser }: { currentUser: CurrentUser | null }) {
-  // const currentUser = await getCurrentUser(); // Removed direct call
+interface ProjectsSettingsPageProps {
+  currentUser: CurrentUser | null;
+}
+
+export default async function ProjectsSettingsPage({ currentUser }: ProjectsSettingsPageProps) {
+  // DO NOT call getCurrentUser() here. Use the prop.
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
@@ -32,9 +35,9 @@ export default async function ProjectsSettingsPage({ currentUser }: { currentUse
 
   return (
     <>
-      <PageHeader 
-        title="Manage Projects" 
-        description="Define projects items can be associated with." 
+      <PageHeader
+        title="Manage Projects"
+        description="Define projects items can be associated with."
       />
       <Card>
         <CardHeader>

@@ -1,16 +1,19 @@
 
 import PageHeader from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUsers } from '@/lib/actions/userActions'; 
-// Removed: import { getCurrentUser } from '@/lib/actions/userActions';
-import type { CurrentUser } from '@/types/user'; // Keep for prop type
+import { getUsers } from '@/lib/actions/userActions';
+import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
 import AddUserForm from '@/components/settings/AddUserForm';
 import UserManagementTable from '@/components/settings/UserManagementTable';
 
 // Accept currentUser as a prop
-export default async function UserSettingsPage({ currentUser }: { currentUser: CurrentUser | null}) {
-  // const currentUser: CurrentUser | null = await getCurrentUser(); // Removed direct call
+interface UserSettingsPageProps {
+  currentUser: CurrentUser | null;
+}
+
+export default async function UserSettingsPage({ currentUser }: UserSettingsPageProps) {
+  // DO NOT call getCurrentUser() here. Use the prop.
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || userRole !== 'admin') {
@@ -24,14 +27,14 @@ export default async function UserSettingsPage({ currentUser }: { currentUser: C
       </div>
     );
   }
-  
+
   const allUsersFromCustomTable = await getUsers();
-  
+
   return (
     <>
-      <PageHeader 
-        title="User Management" 
-        description="Manage application users and their roles." 
+      <PageHeader
+        title="User Management"
+        description="Manage application users and their roles."
       />
       <Card>
         <CardHeader>

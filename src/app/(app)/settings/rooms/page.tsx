@@ -1,19 +1,22 @@
 
 import PageHeader from '@/components/shared/PageHeader';
-import { 
+import {
   getManagedRoomOptions,
   addManagedRoomOption,
   deleteManagedRoomOption,
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// Removed: import { getCurrentUser } from '@/lib/actions/userActions';
-import type { CurrentUser } from '@/types/user'; // Keep for prop type
+import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
 
 // Accept currentUser as a prop
-export default async function RoomsSettingsPage({ currentUser }: { currentUser: CurrentUser | null }) {
-  // const currentUser = await getCurrentUser(); // Removed direct call
+interface RoomsSettingsPageProps {
+  currentUser: CurrentUser | null;
+}
+
+export default async function RoomsSettingsPage({ currentUser }: RoomsSettingsPageProps) {
+  // DO NOT call getCurrentUser() here. Use the prop.
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
@@ -32,9 +35,9 @@ export default async function RoomsSettingsPage({ currentUser }: { currentUser: 
 
   return (
     <>
-      <PageHeader 
-        title="Manage Rooms" 
-        description="Define rooms or areas where items are located." 
+      <PageHeader
+        title="Manage Rooms"
+        description="Define rooms or areas where items are located."
       />
       <Card>
         <CardHeader>
