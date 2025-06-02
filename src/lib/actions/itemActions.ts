@@ -4,11 +4,8 @@
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
-import { supabase } from '@/lib/supabase/client'; // Import the shared Supabase client
+import { supabase } from '@/lib/supabase/client'; 
 
-// Managed options are now stored in Supabase 'managed_options' table, associated with user_id
-
-// Helper function to seed options for a user if they don't exist
 async function seedUserOptions(userId: string, optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
@@ -18,11 +15,10 @@ async function seedUserOptions(userId: string, optionType: string, defaultOption
 
   if (fetchError) {
     console.error(`Error fetching existing ${optionType} for user ${userId}:`, fetchError);
-    return; // Don't proceed with seeding if fetch fails
+    return; 
   }
 
   if (existingOptions && existingOptions.length === 0) {
-    // No options of this type exist for the user, so seed them
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
@@ -50,13 +46,8 @@ export interface ItemFilters {
 }
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  const { data: { user } } = await supabase.auth.getUser(); // RLS relies on auth.uid()
-  if (!user && process.env.NEXT_PUBLIC_USE_SUPABASE_AUTH === 'false') { // Check if custom auth is active
-      // For custom auth, RLS won't work with auth.uid().
-      // We'd need to pass user_id from custom session, or have broader RLS for service key.
-      // This part needs adjustment based on final auth strategy for items if not using Supabase Auth.
-      // For now, assuming custom auth might not have items linked to a user_id or RLS is more open.
-      // If items ARE linked to user_id, getCurrentUser() from custom auth and its ID is needed here.
+  const { data: { user } } = await supabase.auth.getUser(); 
+  if (!user && process.env.NEXT_PUBLIC_USE_SUPABASE_AUTH === 'false') { 
       console.warn("getItems: Custom auth in use, RLS based on auth.uid() may not apply. Ensure items are fetched correctly for the custom user.");
   }
 
@@ -65,15 +56,6 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     .from('items')
     .select('*', { count: 'exact' });
 
-  // If using custom auth AND items are linked via user_id, you'd need this:
-  // const customCurrentUser = await import('@/lib/actions/userActions').then(m => m.getCurrentUser());
-  // if (customCurrentUser) {
-  //   query = query.eq('user_id', customCurrentUser.id);
-  // } else if (process.env.NEXT_PUBLIC_USE_SUPABASE_AUTH === 'false') {
-  //   console.error("getItems: Custom auth active but no current user found. Cannot filter items by user.");
-  //   return { items: [], totalPages: 0, count: 0 };
-  // }
-  // If Supabase Auth is used, RLS policy (auth.uid() = user_id) handles this automatically.
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -131,17 +113,24 @@ export async function getItemById(id: string): Promise<Item | undefined> {
 }
 
 export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
-  // Determine user_id based on auth system
+  const timestamp = new Date().toISOString();
+  console.log(`[AddItem (${timestamp})] Server action called with data:`, JSON.stringify(itemData));
+  
   let userIdToAdd: string | undefined;
   const customUserModule = await import('@/lib/actions/userActions');
+  console.log(`[AddItem (${timestamp})] Attempting to get current user...`);
   const customCurrentUser = await customUserModule.getCurrentUser();
+  
   if (customCurrentUser) {
     userIdToAdd = customCurrentUser.id;
+    console.log(`[AddItem (${timestamp})] User authenticated: ${customCurrentUser.username}, ID: ${userIdToAdd}`);
   } else {
+    console.error(`[AddItem (${timestamp})] User not authenticated. getCurrentUser() returned null.`);
     return { error: "User not authenticated" };
   }
 
   if (!userIdToAdd) {
+    console.error(`[AddItem (${timestamp})] userIdToAdd is still undefined after authentication check. This should not happen.`);
     return { error: "User not authenticated or user ID could not be determined." };
   }
 
@@ -161,10 +150,8 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     bin_location: itemData.binLocation,
     barcode_data: itemData.sku ? `BARCODE-${itemData.sku.substring(0,8).toUpperCase()}` : `BARCODE-${crypto.randomUUID().substring(0,8).toUpperCase()}`,
     qr_code_data: itemData.sku ? `QR-${itemData.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
-    // ensure created_at and updated_at are not part of input payload if DB defaults them
   };
   
-  // Remove explicitly passed created_at/updated_at if DB handles them
   delete newItemPayload.createdAt;
   delete newItemPayload.updatedAt;
   
@@ -175,6 +162,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     }
   });
   
+  console.log(`[AddItem (${timestamp})] Inserting item payload into Supabase:`, JSON.stringify(newItemPayload));
   const { data: insertedItem, error } = await supabase
     .from('items')
     .insert([newItemPayload])
@@ -182,16 +170,18 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     .single();
 
   if (error) {
-    console.error("Error adding item:", error);
+    console.error(`[AddItem (${timestamp})] Error adding item to Supabase:`, error);
     return { error: error.message };
   }
 
   if (insertedItem) {
+    console.log(`[AddItem (${timestamp})] Item added successfully to Supabase. ID: ${insertedItem.id}`);
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     return insertedItem as Item;
   }
+  console.error(`[AddItem (${timestamp})] Failed to add item to Supabase for an unknown reason. insertedItem is null/undefined.`);
   return { error: "Failed to add item for an unknown reason." };
 }
 
@@ -206,7 +196,6 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if (!currentItemData || ('error' in currentItemData)) {
         return { error: "Item not found or not accessible for update." };
     }
-     // Add a check to ensure the item belongs to the current user (if RLS isn't solely relied upon)
     if (currentItemData.user_id !== customCurrentUser.id) {
         return { error: "Permission denied: You can only update your own items." };
     }
@@ -214,7 +203,6 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     const updatePayload: { [key: string]: any } = { ...itemData };
     const now = new Date().toISOString();
 
-    // Map camelCase to snake_case for specific fields if necessary for Supabase update
     if (itemData.originalPrice !== undefined) updatePayload.original_price = itemData.originalPrice; else if (itemData.hasOwnProperty('originalPrice')) updatePayload.original_price = null;
     if (itemData.salesPrice !== undefined) updatePayload.sales_price = itemData.salesPrice; else if (itemData.hasOwnProperty('salesPrice')) updatePayload.sales_price = null;
     if (itemData.msrp !== undefined) updatePayload.msrp = itemData.msrp; else if (itemData.hasOwnProperty('msrp')) updatePayload.msrp = null;
@@ -236,39 +224,38 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     } else if (itemData.status === currentItemData.status) { 
         if (itemData.status === 'sold') updatePayload.sold_date = itemData.soldDate !== undefined ? itemData.soldDate : currentItemData.sold_date; else if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = null;
         if (itemData.status === 'in use') updatePayload.in_use_date = itemData.inUseDate !== undefined ? itemData.inUseDate : currentItemData.in_use_date; else if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = null;
-    } else { // Status not in itemData, but dates might be
+    } else { 
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate;
     }
     
     const keysToRemoveFromPayload = ['originalPrice', 'salesPrice', 'receiptImageUrl', 'productImageUrl', 'productUrl', 'purchaseDate', 'storageLocation', 'binLocation'];
     keysToRemoveFromPayload.forEach(key => {
-      if (key in updatePayload) { // check if original camelCase key exists
+      if (key in updatePayload) { 
         const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-        if (snakeKey in updatePayload) { // if snake_case version also exists (meaning it was mapped)
-          delete updatePayload[key]; // remove the camelCase one
+        if (snakeKey in updatePayload) { 
+          delete updatePayload[key]; 
         }
       }
     });
 
     Object.keys(updatePayload).forEach(key => {
-        if (updatePayload[key] === undefined && !itemData.hasOwnProperty(key as keyof ItemInput)) { // only delete if not explicitly set to undefined
+        if (updatePayload[key] === undefined && !itemData.hasOwnProperty(key as keyof ItemInput)) { 
           delete updatePayload[key];
         }
     });
     
-    // Explicitly exclude user_id from being updated
     delete updatePayload.user_id;
-    delete updatePayload.id; // also ensure id is not part of update payload
-    delete updatePayload.created_at; // ensure created_at is not updated
-    updatePayload.updated_at = now; // Manually set updated_at if DB trigger isn't used/reliable for all cases
+    delete updatePayload.id; 
+    delete updatePayload.created_at; 
+    updatePayload.updated_at = now; 
 
 
     const { data: updatedItem, error } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', customCurrentUser.id) // Ensure user owns the item
+        .eq('user_id', customCurrentUser.id) 
         .select()
         .single();
 
@@ -298,7 +285,7 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .from('items')
     .delete()
     .eq('id', id)
-    .eq('user_id', customCurrentUser.id); // Ensure user owns the item
+    .eq('user_id', customCurrentUser.id); 
 
   if (error) {
     console.error("Error deleting item:", error);
@@ -331,11 +318,10 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
         return { error: "User not authenticated." };
     }
     
-    const currentItemResult = await getItemById(id); // getItemById doesn't inherently filter by user_id with custom auth unless modified to do so
+    const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
       return { error: "Item not found." };
     }
-    // Explicit check for ownership if getItemById doesn't guarantee it
     if (currentItemResult.user_id !== customCurrentUser.id) {
       return { error: "Permission denied to update status for this item." };
     }
@@ -350,7 +336,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     } else if (newStatus === 'in use') {
       updatePayload.in_use_date = currentItem.in_use_date || now;
       updatePayload.sold_date = null;
-    } else { // 'in stock'
+    } else { 
       updatePayload.sold_date = null;
       updatePayload.in_use_date = null;
     }
@@ -360,7 +346,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', customCurrentUser.id) // Ensure ownership for the update
+      .eq('user_id', customCurrentUser.id) 
       .select()
       .single();
     
@@ -391,7 +377,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .eq('user_id', customCurrentUser.id); // Ensure user owns all items being deleted
+    .eq('user_id', customCurrentUser.id); 
 
   if (error) {
     console.error("Error bulk deleting items:", error);
@@ -418,12 +404,12 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now; // For bulk, generally set to now unless more complex logic is needed
+    updatePayload.sold_date = now; 
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
     updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
-  } else { // 'in stock'
+  } else { 
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
@@ -433,7 +419,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .eq('user_id', customCurrentUser.id) // Ensure user owns all items being updated
+    .eq('user_id', customCurrentUser.id) 
     .select({count: 'exact'}); 
 
   if (error) {
@@ -462,7 +448,7 @@ export async function getUniqueCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .eq('user_id', customCurrentUser.id); // Filter by current user
+    .eq('user_id', customCurrentUser.id); 
 
   if (error) {
     console.error("Error fetching unique categories:", error);
@@ -473,9 +459,6 @@ export async function getUniqueCategories(): Promise<string[]> {
   const categories = Array.from(new Set(data.map(item => item.category).filter(Boolean as (value: any) => value is string))).sort();
   return categories;
 }
-
-
-// --- Managed Options Getters/Adders/Deleters for 'managed_options' table ---
 
 const defaultManagedCategories = ['Electronics', 'Accessories', 'Office Supplies', 'Furniture', 'Appliances', 'Software', 'Miscellaneous', 'Lighting'];
 const defaultManagedSubcategories = ['Peripherals', 'Computer Accessories', 'Cables', 'Lighting', 'Kitchen Appliances', 'Productivity Tools', 'Decor', 'Desks', 'Desk Lamps'];
@@ -516,7 +499,6 @@ async function getManagedOptions(optionType: OptionType): Promise<string[]> {
     return [];
   }
 
-  // Seed options if none exist for this user and type
   await seedUserOptions(customCurrentUser.id, optionType, optionTypeToDefaultsMap[optionType]);
 
   const { data, error } = await supabase
@@ -559,10 +541,10 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .select('id')
     .eq('user_id', customCurrentUser.id)
     .eq('type', optionType)
-    .ilike('name', name.trim()) // Case-insensitive check
+    .ilike('name', name.trim()) 
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { // PGRST116: "Searched for a single row, but 0 rows were found" (which is fine)
+  if (selectError && selectError.code !== 'PGRST116') { 
       console.error(`Error checking existing ${singularName}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
@@ -584,7 +566,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
   }
 
   const updatedOptions = await getManagedOptions(optionType);
-  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`; // e.g. /settings/storage-locations
+  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`; 
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
   revalidatePath("/inventory/[id]/edit", "layout");
@@ -604,7 +586,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .delete()
     .eq('user_id', customCurrentUser.id)
     .eq('type', optionType)
-    .eq('name', name); // Name comparison should be exact for deletion
+    .eq('name', name); 
 
   if (error) {
     console.error(`Error deleting ${singularName}:`, error);
@@ -635,7 +617,6 @@ export async function deleteManagedVendorOption(name: string) { return deleteMan
 export async function addManagedProjectOption(name: string) { return addManagedOption(name, 'project'); }
 export async function deleteManagedProjectOption(name: string) { return deleteManagedOption(name, 'project'); }
 
-// --- Bulk Import ---
 export interface BulkImportResult {
   successCount: number;
   errorCount: number;
@@ -643,8 +624,7 @@ export interface BulkImportResult {
 }
 
 export async function bulkImportItems(csvFileContent: string): Promise<BulkImportResult> {
-  // This feature is temporarily disabled until it's migrated to use Supabase.
-  console.warn("Bulk import feature is temporarily disabled and needs migration to Supabase.");
+  console.warn("Bulk import feature is temporarily disabled until it's migrated to use Supabase.");
   const lineCount = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '').length;
   const errorCount = lineCount > 1 ? lineCount -1 : (lineCount === 1 ? 1: 0);
 
@@ -658,5 +638,3 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
     }]
   };
 }
-
-    

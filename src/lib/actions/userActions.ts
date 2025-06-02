@@ -6,13 +6,12 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-// Removed React.cache import
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
-export interface GetCurrentUserResult { // Kept for structure, but debugMessage less critical now
+export interface GetCurrentUserResult {
   user: CurrentUser | null;
-  debugMessage?: string; // Can be simplified or removed if not used by layout directly
+  debugMessage?: string; 
 }
 
 export async function loginUser(
@@ -20,14 +19,15 @@ export async function loginUser(
 ): Promise<{ success: boolean; message?: string } | void> {
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
+  const timestamp = new Date().toISOString();
+  console.log(`[LoginUser (${timestamp})] Attempting login for username: ${usernameInput}`);
 
   if (!usernameInput || !passwordInput) {
+    console.warn(`[LoginUser (${timestamp})] Login failed: Username or password not provided.`);
     return { success: false, message: "Username and password are required." };
   }
 
   const normalizedUsername = usernameInput.trim().toLowerCase();
-
-  console.log(`[LoginUser] Attempting login for username: ${normalizedUsername}`);
 
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
@@ -36,17 +36,17 @@ export async function loginUser(
     .single();
 
   if (error || !user) {
-    console.warn(`[LoginUser] Login attempt failed for username: ${normalizedUsername}. User not found or Supabase error: ${error?.message}`);
+    console.warn(`[LoginUser (${timestamp})] Login failed for username: ${normalizedUsername}. User not found or Supabase error: ${error?.message}`);
     return { success: false, message: "Invalid username or password." };
   }
   
   if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") {
-     console.error(`[LoginUser] Login failed for ${normalizedUsername}: User object fetched but ID is invalid or missing.`);
+     console.error(`[LoginUser (${timestamp})] Login failed for ${normalizedUsername}: User object fetched but ID is invalid or missing.`);
      return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
 
   if (user.password_text === passwordInput) {
-    console.log(`[LoginUser] Password match for ${normalizedUsername}. Setting cookie.`);
+    console.log(`[LoginUser (${timestamp})] Password match for ${normalizedUsername}. Setting cookie.`);
     const cookieOptions = {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -56,61 +56,62 @@ export async function loginUser(
     };
     try {
       cookies().set(SESSION_COOKIE_NAME, user.id, cookieOptions);
-      console.log(`[LoginUser] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
+      console.log(`[LoginUser (${timestamp})] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
     } catch (cookieError: any) {
-      console.error(`[LoginUser] Login succeeded for ${normalizedUsername} but failed to set session cookie: ${cookieError.message}`);
+      console.error(`[LoginUser (${timestamp})] Login succeeded for ${normalizedUsername} but failed to set session cookie: ${cookieError.message}`);
       return { success: false, message: "Login succeeded but failed to set session. Please try again." };
     }
 
     revalidatePath('/', 'layout');
-    redirect('/dashboard'); // This will trigger a new request, where getCurrentUser will be called.
+    redirect('/dashboard'); 
   } else {
-    console.warn(`[LoginUser] Login attempt failed for username: ${normalizedUsername}. Password mismatch.`);
+    console.warn(`[LoginUser (${timestamp})] Login attempt failed for username: ${normalizedUsername}. Password mismatch.`);
     return { success: false, message: "Invalid username or password." };
   }
 }
 
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
+  const timestamp = new Date().toISOString();
   try {
-    console.log(`[LogoutUser] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
+    console.log(`[LogoutUser (${timestamp})] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
     cookies().delete(SESSION_COOKIE_NAME);
-    console.log(`[LogoutUser] Cookie deleted. Revalidating path and preparing redirect.`);
+    console.log(`[LogoutUser (${timestamp})] Cookie deleted. Revalidating path and preparing redirect.`);
     revalidatePath("/", "layout");
     return { success: true, redirectPath: "/login" };
   } catch (e: any) {
-    console.error(`[LogoutUser] Logout failed: ${e.message}`);
+    console.error(`[LogoutUser (${timestamp})] Logout failed: ${e.message}`);
     return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
-// Not wrapped with React.cache anymore
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const timestamp = new Date().toISOString();
+  console.log(`[GetCurrentUser (${timestamp})] Function called.`);
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
   let userId: string | undefined;
 
   try {
+    console.log(`[GetCurrentUser (${timestamp})] Attempting to read cookie: ${SESSION_COOKIE_NAME}`);
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
   } catch (cookieAccessError: any) {
-    // This error means cookies() itself or .get() failed, which is severe.
     console.error(`[GetCurrentUser (${timestamp})] CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}`);
-    // Depending on policy, could throw or return null with specific error for layout to handle
-    return null; // Simplest for now: if cookie access fails, treat as no user.
+    return null;
   }
 
   if (!rawCookie) {
-    // console.log(`[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`);
+    console.warn(`[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`);
     return null;
   }
+  console.log(`[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" found by cookies().get(): ${JSON.stringify(rawCookie)}`);
 
   userId = rawCookie.value;
 
   if (!userId || userId.trim() === "") {
-    // console.log(`[GetCurrentUser (${timestamp})] Session cookie "${SESSION_COOKIE_NAME}" found, but value (userId) is empty/whitespace. Cookie: ${JSON.stringify(rawCookie)}`);
+    console.warn(`[GetCurrentUser (${timestamp})] Session cookie "${SESSION_COOKIE_NAME}" found, but value (userId) is empty/whitespace. Cookie: ${JSON.stringify(rawCookie)}`);
     return null;
   }
 
-  // console.log(`[GetCurrentUser (${timestamp})] Found cookie with userId: "${userId}". Fetching from Supabase.`);
+  console.log(`[GetCurrentUser (${timestamp})] Found cookie with userId: "${userId}". Fetching from Supabase.`);
   const { data: dbUser, error: dbError } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -118,16 +119,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (dbError) {
-    // console.error(`[GetCurrentUser (${timestamp})] Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code})`);
+    console.error(`[GetCurrentUser (${timestamp})] Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code})`);
     return null;
   }
 
   if (!dbUser) {
-    // console.log(`[GetCurrentUser (${timestamp})] No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`);
+    console.warn(`[GetCurrentUser (${timestamp})] No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`);
     return null;
   }
   
-  // console.log(`[GetCurrentUser (${timestamp})] Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id})`);
+  console.log(`[GetCurrentUser (${timestamp})] Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id})`);
   return dbUser as CurrentUser;
 }
 
@@ -160,7 +161,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .ilike('username', normalizedUsername)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is good here.
+  if (selectError && selectError.code !== 'PGRST116') { 
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
   }
   if (existingUser) {
@@ -171,7 +172,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .from('stock_sentry_users')
     .insert({
       username: normalizedUsername,
-      password_text: data.password, // Storing password in plaintext
+      password_text: data.password, 
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -226,9 +227,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
-    // If the current user's own role changed, their session data in AuthContext might become stale
-    // but AppLayout should refetch on next full navigation.
-    // No direct way to update AuthContext from server action without page reload.
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
