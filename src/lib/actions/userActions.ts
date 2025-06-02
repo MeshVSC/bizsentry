@@ -3,19 +3,32 @@
 
 import type { UserRole, CurrentUser, UserFormInput, UserView, GetCurrentUserResult } from "@/types/user";
 import { revalidatePath } from "next/cache";
-import { cookies } from 'next/headers';
+// import { cookies } from 'next/headers'; // No longer needed for getCurrentUser with mock
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-// import { cache } from 'react'; // Temporarily removed for debugging
+// import { cache } from 'react'; // No longer needed for getCurrentUser
 
-const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
+const SESSION_COOKIE_NAME = 'stocksentry_custom_session'; // Kept for reference if loginUser/logoutUser are used
+
+// Define a mock admin user that will be returned when auth is "disabled"
+const MOCK_ADMIN_USER: CurrentUser = {
+  id: 'mock-admin-user-id',
+  username: 'MockAdmin',
+  role: 'admin',
+};
 
 export async function loginUser(
   formData: FormData
 ): Promise<{ success: boolean; message?: string } | void> {
+  // In "auth disabled" mode, this function might not be hit if /login redirects.
+  // If it is, we can just simulate success and redirect.
+  // For now, let's assume it won't be called due to /login page redirect.
+  // If direct access to this action happens, it would try to work with Supabase.
+  // To fully disable, we could make it return { success: true } and redirect,
+  // but the /login page redirect should cover most cases.
   const usernameInput = formData.get("username") as string;
   const passwordInput = formData.get("password") as string;
-  const timestamp = new Date().toISOString();
+  // const timestamp = new Date().toISOString();
   // console.log(`[LoginUser (${timestamp})] Attempting login for username: ${usernameInput}`);
 
   if (!usernameInput || !passwordInput) {
@@ -51,8 +64,9 @@ export async function loginUser(
       httpOnly: true,
     };
     try {
-      const cookieStore = cookies();
-      cookieStore.set(SESSION_COOKIE_NAME, user.id, cookieOptions);
+      // const cookieStore = cookies(); // cookies() might not be available if not in a route handler/server component directly using it.
+      // For now, this part will be bypassed if /login redirects.
+      // cookieStore.set(SESSION_COOKIE_NAME, user.id, cookieOptions);
       // console.log(`[LoginUser (${timestamp})] Cookie SET: name=${SESSION_COOKIE_NAME}, value=${user.id}, options=${JSON.stringify(cookieOptions)}`);
     } catch (cookieError: any) {
       // console.error(`[LoginUser (${timestamp})] Login succeeded for ${normalizedUsername} but failed to set session cookie: ${cookieError.message}`);
@@ -68,87 +82,23 @@ export async function loginUser(
 }
 
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
-  const timestamp = new Date().toISOString();
+  // const timestamp = new Date().toISOString();
   try {
     // console.log(`[LogoutUser (${timestamp})] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
-    cookies().delete(SESSION_COOKIE_NAME);
+    // cookies().delete(SESSION_COOKIE_NAME); // cookies() might not be available.
     // console.log(`[LogoutUser (${timestamp})] Cookie deleted. Revalidating path and preparing redirect.`);
     revalidatePath("/", "layout");
-    return { success: true, redirectPath: "/login" };
+    return { success: true, redirectPath: "/login" }; // Login will redirect to dashboard in "auth disabled" mode.
   } catch (e: any) {
     // console.error(`[LogoutUser (${timestamp})] Logout failed: ${e.message}`);
     return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
-// Temporarily removed cache for debugging
 export const getCurrentUser = async (): Promise<GetCurrentUserResult> => {
-  const timestamp = new Date().toISOString();
-  let debugMessage = `[GetCurrentUser (${timestamp})] Executing.`;
-  let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
-
-  try {
-    const cookieStore = cookies(); 
-    rawCookie = cookieStore.get(SESSION_COOKIE_NAME);
-    debugMessage += ` Cookie read attempt finished.`;
-  } catch (cookieAccessError: any) {
-    debugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
-    console.log("getCurrentUser returning (cookie access error):", { user: null, debugMessage });
-    return { user: null, debugMessage: debugMessage };
-  }
-
-  if (!rawCookie) {
-    debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" not found.`;
-    console.log("getCurrentUser returning (no cookie):", { user: null, debugMessage });
-    return { user: null, debugMessage: debugMessage };
-  }
-  
-  const userId = rawCookie.value;
-  debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
-
-  if (!userId || userId.trim() === "") {
-    debugMessage += ` Cookie value (userId) is empty/whitespace.`;
-    console.log("getCurrentUser returning (empty cookie value):", { user: null, debugMessage });
-    return { user: null, debugMessage: debugMessage };
-  }
-
-  debugMessage += ` Fetching from Supabase with userId: "${userId}".`;
-  const { data: dbUser, error: dbError } = await supabase
-    .from('stock_sentry_users')
-    .select('id, username, role')
-    .eq('id', userId)
-    .single();
-
-  if (dbError) {
-    debugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
-    console.log("getCurrentUser returning (db error):", { user: null, debugMessage });
-    return { user: null, debugMessage: debugMessage };
-  }
-
-  if (!dbUser) {
-    debugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
-    console.log("getCurrentUser returning (no user in db):", { user: null, debugMessage });
-    return { user: null, debugMessage: debugMessage };
-  }
-
-  // Rigorous check for a valid CurrentUser structure
-  const isValidUserObject = 
-    dbUser &&
-    typeof dbUser === 'object' &&
-    dbUser.id && typeof dbUser.id === 'string' && dbUser.id.trim() !== "" &&
-    dbUser.username && typeof dbUser.username === 'string' && dbUser.username.trim() !== "" &&
-    dbUser.role && typeof dbUser.role === 'string' && dbUser.role.trim() !== "";
-
-  if (!isValidUserObject) {
-    debugMessage += ` Retrieved dbUser object from Supabase is malformed or missing essential fields. dbUser: ${JSON.stringify(dbUser)}. Treating as no user found.`;
-    console.log("getCurrentUser returning (malformed dbUser):", { user: null, debugMessage });
-    return { user: null, debugMessage: debugMessage };
-  }
-  
-  debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
-  const result = { user: dbUser as CurrentUser, debugMessage: debugMessage + " User retrieved and validated." };
-  console.log("getCurrentUser returning (success):", JSON.parse(JSON.stringify(result)));
-  return result;
+  // In "auth disabled" mode, always return the mock admin user.
+  // console.log("[GetCurrentUser DEBUG] Auth disabled - returning mock admin user.");
+  return { user: MOCK_ADMIN_USER, debugMessage: "Auth disabled: Returning mock admin user." };
 };
 
 
@@ -210,7 +160,9 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
   const authResult = await getCurrentUser(); 
+  // With auth disabled, authResult.user will be MOCK_ADMIN_USER
   if (!authResult.user) {
+      // This case should not be hit if getCurrentUser always returns mock admin
       return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
   }
   const performingUser = authResult.user;
@@ -263,9 +215,10 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   const authResult = await getCurrentUser(); 
-  const performingUser = authResult.user;
+  const performingUser = authResult.user; // Will be MOCK_ADMIN_USER
 
   if (!performingUser) {
+     // This case should not be hit
     return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
   }
 
@@ -274,6 +227,10 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   }
 
   if (performingUser.id === userId) {
+    // This check will now compare against 'mock-admin-user-id'
+    if (userId === MOCK_ADMIN_USER.id) {
+        return { success: false, message: "Cannot delete the mock admin user account." };
+    }
     return { success: false, message: "Cannot delete your own account." };
   }
 
@@ -314,6 +271,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 }
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
-  const { user } = await getCurrentUser(); 
+  const { user } = await getCurrentUser(); // Will be MOCK_ADMIN_USER
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }
