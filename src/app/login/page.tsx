@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+// No longer need useRouter here for successful navigation
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+  // const router = useRouter(); // Not needed for push/refresh anymore
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -24,17 +24,16 @@ export default function LoginPage() {
     const formData = new FormData(event.currentTarget);
 
     startTransition(async () => {
+      // loginUser will now redirect on success or return an error object
       const result = await loginUser(formData);
 
-      if (!result.success) {
+      if (result && !result.success) { // If result is returned, it's an error
         setError(result.message || "Login failed.");
         toast({ title: "Login Failed", description: result.message || "Invalid credentials.", variant: "destructive" });
-      } else {
-        // Login successful, server action returns redirectPath
-        toast({ title: "Login Successful", description: "Redirecting to dashboard..." });
-        router.push(result.redirectPath || '/dashboard'); 
-        router.refresh(); // Ensures layout re-fetches current user state with the new cookie
       }
+      // No else needed: successful loginUser will have already redirected.
+      // If it doesn't redirect and doesn't return an error, something is very wrong,
+      // but the primary paths are redirect or error object.
     });
   };
 
