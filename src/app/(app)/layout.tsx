@@ -3,43 +3,38 @@ import type { ReactNode } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
 import { getCurrentUser } from '@/lib/actions/userActions'; 
-// import { redirect } from 'next/navigation'; // Keep redirect commented for now
+import { redirect } from 'next/navigation';
 import type { CurrentUser } from '@/types/user';
 
 export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
   let currentUser: CurrentUser | null = null;
-  let debugMessage: string | null = null;
+  let errorFetchingUser: string | null = null;
 
   try {
     currentUser = await getCurrentUser();
+    // Server-side console log (not directly visible in Studio UI, but good for completeness)
     if (currentUser) {
-        console.log('[AppLayout Debug] getCurrentUser returned a user object:', JSON.stringify(currentUser));
-        debugMessage = `Current User (Debug): ${JSON.stringify(currentUser)}`;
+        // console.log('[AppLayout Server Log] getCurrentUser returned a user object:', JSON.stringify(currentUser));
     } else {
-        // This case should ideally not be hit if getCurrentUser throws errors instead of returning null
-        console.log('[AppLayout Debug] getCurrentUser returned null (and did not throw an error). This is unexpected.');
-        debugMessage = "Current User (Debug): null (Unexpected - getCurrentUser did not throw)";
+        // console.log('[AppLayout Server Log] getCurrentUser returned null (and did not throw an error). This is unexpected if an error should have been thrown.');
     }
   } catch (error: any) {
-    console.error('[AppLayout Debug] Error in getCurrentUser:', error.message);
-    debugMessage = `Error fetching user (Debug): ${error.message}`;
+    // console.error('[AppLayout Server Log] Error in getCurrentUser:', error.message);
+    errorFetchingUser = error.message; // Store the error message
     // currentUser remains null
   }
 
-  // Temporarily disable redirect to see the debug message
-  // if (!currentUser) {
-  //   console.log('[AppLayout Debug] currentUser is null (or error occurred), redirecting to /login. Value was:', JSON.stringify(currentUser), 'Debug Message:', debugMessage); 
-  //   // redirect('/login'); // Keep disabled for now
-  // }
+  if (!currentUser) {
+    // If there was an error fetching the user (like cookie not found),
+    // or if currentUser is simply null without an error (less likely with current getCurrentUser logic),
+    // redirect to login.
+    // console.log(`[AppLayout Server Log] No currentUser (or error: ${errorFetchingUser}), redirecting to /login.`);
+    redirect('/login'); 
+  }
 
   return (
     <>
-      {debugMessage && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'rgba(255,0,0,0.7)', color: 'white', padding: '10px', zIndex: 9999, textAlign: 'center', fontSize: '12px' }}>
-          {debugMessage}
-          {currentUser === null && " (Redirect to /login was TEMPORARILY DISABLED for debugging)"}
-        </div>
-      )}
+      {/* The debug div has been removed */}
       <AppLayout currentUser={currentUser}>
         {children}
         <Toaster />
