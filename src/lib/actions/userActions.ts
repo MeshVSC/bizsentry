@@ -48,13 +48,14 @@ export async function loginUser(
     
     try {
       cookies().set(SESSION_COOKIE_NAME, user.id, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7, 
+        // Simplified cookie options:
+        // httpOnly: true, // Temporarily removed for Studio environment
+        // secure: process.env.NODE_ENV === 'production', // Temporarily removed for Studio environment
+        maxAge: 60 * 60 * 24 * 7, // 1 week
         path: '/',
-        sameSite: 'lax',
+        sameSite: 'lax', // Good default
       });
-      console.log(`[LoginSuccess] Cookie set for user ID ${user.id}.`);
+      console.log(`[LoginSuccess] Cookie set with simplified options for user ID ${user.id}.`);
     } catch (cookieError: any) {
       console.error(`[LoginFailed] Error setting cookie for user ID ${user.id}:`, cookieError.message);
       return { success: false, message: "Login succeeded but failed to set session. Please try again." };
@@ -84,17 +85,20 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   let userId;
+  let rawCookie;
   try {
-    userId = cookies().get(SESSION_COOKIE_NAME)?.value;
+    rawCookie = cookies().get(SESSION_COOKIE_NAME);
+    userId = rawCookie?.value;
+    console.log(`[GetCurrentUser] Raw cookie object for ${SESSION_COOKIE_NAME}:`, rawCookie);
   } catch (cookieError: any) {
     console.error(`[GetCurrentUser] Error reading cookie: ${cookieError.message}`);
     return null;
   }
   
-  console.log(`[GetCurrentUser] Attempting to get user. Cookie UserID: ${userId || 'Not set/found'}`);
+  console.log(`[GetCurrentUser] Attempting to get user. Cookie UserID from value: ${userId || 'Not set/found'}`);
 
   if (!userId) {
-    console.log("[GetCurrentUser] No userId found in cookie.");
+    console.log("[GetCurrentUser] No userId found in cookie or cookie itself not found.");
     return null;
   }
 
@@ -104,13 +108,13 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .eq('id', userId)
     .single();
   
-  console.log(`[GetCurrentUser] Supabase query result for ID ${userId}:`, { data: user, error: error });
+  console.log(`[GetCurrentUser] Supabase query result for ID ${userId}:`, { data: JSON.stringify(user), error: error ? JSON.stringify(error) : null });
 
   if (error || !user) {
     if (error && error.code !== 'PGRST116') { 
       console.error(`[GetCurrentUser] Error fetching user for ID "${userId}" from Supabase:`, error.message);
     } else if (!user) {
-      console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale.`);
+      console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale or RLS policy issue.`);
     }
     return null;
   }
@@ -323,5 +327,3 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   console.log(`[GetRoleForCurrentUser] Role determined: ${role}`);
   return role;
 }
-
-    
