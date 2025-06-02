@@ -99,10 +99,7 @@ export default function ItemForm({
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
   const { currentUser } = useAuth(); 
 
-  useEffect(() => {
-    console.log(`[ItemForm useEffect] currentUser from useAuth():`, JSON.parse(JSON.stringify(currentUser || null)));
-  }, [currentUser]);
-
+  // Removed useEffect log to reduce client-side noise
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -117,9 +114,9 @@ export default function ItemForm({
       room: item?.room || "",
       vendor: item?.vendor || "",
       project: item?.project || "",
-      originalPrice: item?.originalPrice ?? undefined, // Ensure undefined for empty, not ""
-      salesPrice: item?.salesPrice ?? undefined,   // Ensure undefined for empty, not ""
-      msrp: item?.msrp ?? undefined,               // Ensure undefined for empty, not ""
+      originalPrice: item?.originalPrice ?? undefined, 
+      salesPrice: item?.salesPrice ?? undefined,   
+      msrp: item?.msrp ?? undefined,               
       sku: item?.sku || "",
       status: item?.status || "in stock",
       receiptImageUrl: item?.receiptImageUrl || "",
@@ -181,7 +178,7 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, JSON.parse(JSON.stringify(currentUser || null)));
+    // console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth() before check:`, JSON.parse(JSON.stringify(currentUser || null)));
     if (!currentUser?.id) { 
       console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
       toast({
@@ -225,13 +222,12 @@ export default function ItemForm({
             description: `${data.name} has been successfully ${isEditing ? 'updated' : 'added'}.`,
           });
           router.push('/inventory');
-          router.refresh(); // Added to ensure data consistency after navigation
+          router.refresh(); 
         } else {
           const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input.`;
           toast({ title: "Operation Failed", description: errorMsg, variant: "destructive" });
         }
       } catch (error) {
-        // console.error("Failed to submit item form:", error);
         toast({ title: "Submission Error", description: `An unexpected error occurred: ${(error as Error).message}. Please try again.`, variant: "destructive" });
       }
     });

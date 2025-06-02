@@ -11,12 +11,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children, currentUser }: { children: ReactNode; currentUser: CurrentUser | null }) {
-  useEffect(() => {
-    console.log(`[AuthProvider] Effect: currentUser updated or component mounted. currentUser:`, JSON.parse(JSON.stringify(currentUser || null)));
-  }, [currentUser]);
-
-  console.log(`[AuthProvider] Rendering. Initial currentUser prop:`, JSON.parse(JSON.stringify(currentUser || null)));
-
+  // Removed console.log from here to reduce noise
   return (
     <AuthContext.Provider value={{ currentUser }}>
       {children}
@@ -29,6 +24,5 @@ export function useAuth() {
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  // console.log('[useAuth] Context value:', context);
   return context;
 }

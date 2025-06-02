@@ -88,7 +88,7 @@ export const getCurrentUser = async (): Promise<GetCurrentUserResult> => {
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
 
   try {
-    const cookieStore = cookies(); // Assign to variable first
+    const cookieStore = cookies(); 
     rawCookie = cookieStore.get(SESSION_COOKIE_NAME);
     debugMessage += ` Cookie read attempt finished.`;
   } catch (cookieAccessError: any) {
@@ -131,19 +131,22 @@ export const getCurrentUser = async (): Promise<GetCurrentUserResult> => {
     return { user: null, debugMessage: debugMessage };
   }
 
-  // Strengthened validation: Ensure dbUser has essential fields and they are of the correct type.
-  if (
-    !dbUser.id || typeof dbUser.id !== 'string' || !dbUser.id.trim() ||
-    !dbUser.username || typeof dbUser.username !== 'string' || !dbUser.username.trim() ||
-    !dbUser.role || typeof dbUser.role !== 'string' || !dbUser.role.trim()
-  ) {
+  // Rigorous check for a valid CurrentUser structure
+  const isValidUserObject = 
+    dbUser &&
+    typeof dbUser === 'object' &&
+    dbUser.id && typeof dbUser.id === 'string' && dbUser.id.trim() !== "" &&
+    dbUser.username && typeof dbUser.username === 'string' && dbUser.username.trim() !== "" &&
+    dbUser.role && typeof dbUser.role === 'string' && dbUser.role.trim() !== "";
+
+  if (!isValidUserObject) {
     debugMessage += ` Retrieved dbUser object from Supabase is malformed or missing essential fields. dbUser: ${JSON.stringify(dbUser)}. Treating as no user found.`;
     console.log("getCurrentUser returning (malformed dbUser):", { user: null, debugMessage });
     return { user: null, debugMessage: debugMessage };
   }
   
   debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
-  const result = { user: dbUser as CurrentUser, debugMessage: debugMessage + " User retrieved." };
+  const result = { user: dbUser as CurrentUser, debugMessage: debugMessage + " User retrieved and validated." };
   console.log("getCurrentUser returning (success):", JSON.parse(JSON.stringify(result)));
   return result;
 };
@@ -206,7 +209,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 }
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
-  const authResult = await getCurrentUser(); // This now returns { user, debugMessage }
+  const authResult = await getCurrentUser(); 
   if (!authResult.user) {
       return { success: false, message: "Action requires authentication. " + (authResult.debugMessage || "") };
   }
@@ -259,7 +262,7 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  const authResult = await getCurrentUser(); // This now returns { user, debugMessage }
+  const authResult = await getCurrentUser(); 
   const performingUser = authResult.user;
 
   if (!performingUser) {

@@ -11,19 +11,31 @@ export default async function GroupedAppLayout({ children }: { children: ReactNo
   const authResult: GetCurrentUserResult = await getCurrentUser();
   console.log("[GroupedAppLayout] authResult from getCurrentUser():", JSON.parse(JSON.stringify(authResult || null)));
   
-  const currentUser: CurrentUser | null = authResult.user;
-  console.log("[GroupedAppLayout] currentUser derived from authResult:", JSON.parse(JSON.stringify(currentUser || null)));
+  const currentUserFromAuthResult: CurrentUser | null = authResult.user;
+  console.log("[GroupedAppLayout] currentUser derived from authResult:", JSON.parse(JSON.stringify(currentUserFromAuthResult || null)));
 
-  if (!currentUser?.id) {
-    console.warn(`[GroupedAppLayout] No valid current user found (currentUser is null, or lacks an id). currentUser value: ${JSON.stringify(currentUser)}. Redirecting to login. Debug from getCurrentUser: ${authResult.debugMessage || "No debug message."}`);
+  // Rigorous check to ensure currentUser is valid before passing to AuthProvider
+  const finalCurrentUserForProvider: CurrentUser | null =
+    (currentUserFromAuthResult &&
+    typeof currentUserFromAuthResult === 'object' &&
+    currentUserFromAuthResult.id &&
+    typeof currentUserFromAuthResult.id === 'string' &&
+    currentUserFromAuthResult.id.trim() !== "")
+      ? currentUserFromAuthResult
+      : null;
+
+  console.log("[GroupedAppLayout] finalCurrentUserForProvider (after rigorous check):", JSON.parse(JSON.stringify(finalCurrentUserForProvider || null)));
+  
+  if (!finalCurrentUserForProvider) {
+    console.warn(`[GroupedAppLayout] No valid current user found (finalCurrentUserForProvider is null). Redirecting to login. Debug from getCurrentUser: ${authResult.debugMessage || "No debug message."}`);
     redirect('/login');
   }
 
-  console.log("[GroupedAppLayout] User IS authenticated. Value being passed to AuthProvider:", JSON.parse(JSON.stringify(currentUser)));
+  console.log("[GroupedAppLayout] User IS authenticated. Value being passed to AuthProvider:", JSON.parse(JSON.stringify(finalCurrentUserForProvider)));
 
   return (
-    <AuthProvider currentUser={currentUser}>
-      <AppLayout currentUser={currentUser}>
+    <AuthProvider currentUser={finalCurrentUserForProvider}>
+      <AppLayout currentUser={finalCurrentUserForProvider}>
         {children}
         <Toaster />
       </AppLayout>

@@ -27,3 +27,8 @@ export interface CurrentUser {
   username: string;
   role: UserRole;
 }
+
+export interface GetCurrentUserResult {
+  user: CurrentUser | null; // Explicitly null if no valid user
+  debugMessage?: string;
+}
