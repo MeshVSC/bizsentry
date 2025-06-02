@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LifeBuoy, LogOut, LogIn } from 'lucide-react'; 
+import { Bell, Settings, LifeBuoy, LogIn, UserCircle } from 'lucide-react'; // LogOut removed, UserCircle added
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -19,74 +19,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { logoutUser } from '@/lib/actions/userActions'; 
-import type { CurrentUser } from '@/types/user'; 
+// useToast and logoutUser are no longer needed here as auth is removed
+// import type { CurrentUser } from '@/types/user'; // CurrentUser type no longer needed here
 
 interface AppLayoutProps {
   children: ReactNode;
-  currentUser: CurrentUser | null; 
+  // currentUser prop removed
 }
 
-function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
-  const router = useRouter();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    try {
-      const result = await logoutUser(); // logoutUser should now always succeed in "paused auth"
-      toast({ title: "Logged Out", description: "You have been logged out (session state cleared)." });
-      router.push(result.redirectPath || "/login"); 
-      router.refresh(); 
-    } catch (error) {
-      toast({ title: "Logout Failed", description: (error as Error).message || "An unexpected error occurred.", variant: "destructive" });
-    }
-  };
-  
-  const handleLoginRedirect = () => {
-    router.push('/login'); // /login will redirect to /dashboard if auth is paused
-  };
-
-  if (!currentUser) {
-    // Simplified menu for "Guest" or when auth is paused and currentUser is null
-    return (
-       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8 bg-card">
-              <AvatarFallback className="bg-card text-foreground">G</AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border-border">
-          <DropdownMenuLabel>Guest</DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-border" />
-          <DropdownMenuItem onClick={handleLoginRedirect} className="cursor-pointer">
-            <LogIn className="mr-2 h-4 w-4" />
-            <span>Login</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    );
-  }
-
-  // Full user menu if currentUser exists (though it won't in "fully paused auth" from layout)
-  let fallback = currentUser.username ? currentUser.username.substring(0, 2).toUpperCase() : "U";
-  let username = currentUser.username || "My Account";
-  const avatarSrc = "https://placehold.co/100x100.png"; 
-
+function SimplifiedUserMenu() {
+  // No user context, so this menu is simplified or could be removed.
+  // For now, let's offer a generic settings link and a placeholder for potential future non-auth actions.
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8">
           <Avatar className="h-full w-full bg-card">
-            <AvatarImage src={avatarSrc} alt="User Avatar" data-ai-hint="user avatar" />
-            <AvatarFallback className="bg-card text-foreground">{fallback}</AvatarFallback>
+            <UserCircle className="h-6 w-6 text-foreground m-auto" /> 
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border-border">
-        <DropdownMenuLabel>{username}</DropdownMenuLabel>
+        <DropdownMenuLabel>Menu</DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem asChild>
           <Link href="/settings/application" className="flex items-center w-full cursor-pointer">
@@ -98,34 +52,23 @@ function UserMenu({ currentUser }: { currentUser: CurrentUser | null }) {
           <LifeBuoy className="mr-2 h-4 w-4" />
           <span>Support</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator className="bg-border"/>
-        <DropdownMenuItem 
-          onSelect={(e) => { e.preventDefault(); handleLogout(); }}
-          className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Logout</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
 
-export default function AppLayout({ children, currentUser }: AppLayoutProps) {
+export default function AppLayout({ children }: AppLayoutProps) {
   const appVersion = "0.1.0";
-  
-  // Determine sidebar state based on whether currentUser is null (auth paused) or not.
-  // If auth is paused (currentUser is null), we might want the sidebar to be collapsed by default
-  // or behave as if for a guest. For now, `defaultOpen` in SidebarProvider will control it.
-  // The data-sidebar-state on the wrapper div is used by child components.
-  const sidebarDataState = currentUser ? "expanded" : "collapsed"; // Example logic
+  // Sidebar is always open by default as there's no user state to control it.
+  // The data-sidebar-state could be fixed or removed. For simplicity, let's assume it's always expanded.
+  const sidebarDataState = "expanded"; 
 
   return (
-    <SidebarProvider defaultOpen={!!currentUser}> {/* Sidebar open if user, else closed */}
+    <SidebarProvider defaultOpen={true}> {/* Sidebar always open by default */}
       <div className="flex min-h-screen w-full bg-background group/sidebar-wrapper" data-sidebar-state={sidebarDataState}>
         <Sidebar
           variant="sidebar"
-          collapsible="icon"
+          collapsible="icon" 
           className={cn(
             "flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
           )}
@@ -183,7 +126,7 @@ export default function AppLayout({ children, currentUser }: AppLayoutProps) {
                 <Bell className="h-5 w-5" />
                 <span className="sr-only">Toggle notifications</span>
               </Button>
-              <UserMenu currentUser={currentUser} /> 
+              <SimplifiedUserMenu /> 
             </div>
           </header>
           <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background">

@@ -3,7 +3,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, BarChart3, Settings, Users, SlidersHorizontal, ListFilter, Archive as StorageIcon, MapPin as BinIcon, Building as RoomIcon, Briefcase as VendorIcon, Construction as ProjectIcon, type LucideIcon } from 'lucide-react';
+import { Home, Package, BarChart3, Settings, SlidersHorizontal, ListFilter, Archive as StorageIcon, MapPin as BinIcon, Building as RoomIcon, Briefcase as VendorIcon, Construction as ProjectIcon, type LucideIcon } from 'lucide-react';
+// Users icon removed as User Management is gone
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from '@/lib/utils';
@@ -29,9 +30,10 @@ const mainNavItems: NavItem[] = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3, matcher: /^\/analytics$/ },
 ];
 
+// User Management link removed from settingsSubNavItems
 const settingsSubNavItems: NavItem[] = [
   { href: '/settings/application', label: 'Application', icon: SlidersHorizontal, matcher: /^\/settings\/application$/ },
-  { href: '/settings/users', label: 'User Management', icon: Users, matcher: /^\/settings\/users$/ },
+  // { href: '/settings/users', label: 'User Management', icon: Users, matcher: /^\/settings\/users$/ }, // Removed
   { href: '/settings/categories', label: 'Categories', icon: ListFilter, matcher: /^\/settings\/categories$/ },
   { href: '/settings/subcategories', label: 'Subcategories', icon: ListFilter, matcher: /^\/settings\/subcategories$/ },
   { href: '/settings/storage-locations', label: 'Storage', icon: StorageIcon, matcher: /^\/settings\/storage-locations$/ },
@@ -51,7 +53,7 @@ const settingsAccordionItem: AccordionNavItem = {
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const { state: sidebarState } = useSidebar();
+  const { state: sidebarState } = useSidebar(); // state can be "expanded" or "collapsed"
 
   const isSettingsActive = settingsAccordionItem.matcher?.test(pathname);
   const isSettingsSection = pathname.startsWith('/settings');
@@ -71,11 +73,12 @@ export default function SidebarNav() {
                 tooltip={{ children: item.label }}
                 className={cn(
                   "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary",
-                  isActive && "bg-primary/30 text-primary"
+                  isActive && "bg-primary/30 text-primary" // Highlight active link
                 )}
               >
                 <a>
                   <item.icon className="h-5 w-5" />
+                  {/* Show label only if sidebar is expanded */}
                   <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{item.label}</span>
                 </a>
               </SidebarMenuButton>
@@ -84,11 +87,12 @@ export default function SidebarNav() {
         );
       })}
 
+      {/* Settings Accordion */}
       <Accordion type="single" collapsible defaultValue={defaultAccordionValue} className="w-full">
         <AccordionItem value={settingsAccordionItem.id} className="border-b-0">
            <SidebarMenuButton 
              asChild 
-             isActive={isSettingsActive}
+             isActive={isSettingsActive} // Active if any child is active or if settings root is active
              className={cn(
                 "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full",
                 isSettingsActive && "bg-primary/30 text-primary"
@@ -112,7 +116,7 @@ export default function SidebarNav() {
                         isActive={isSubActive}
                         tooltip={{ children: subItem.label }}
                         className={cn(
-                          "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full h-8",
+                          "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full h-8", // Reduced height
                            isSubActive && "bg-primary/30 text-primary"
                         )}
                       >

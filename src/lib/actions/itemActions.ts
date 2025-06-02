@@ -5,23 +5,17 @@ import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client'; 
-import { getCurrentUser } from '@/lib/actions/userActions'; 
+// getCurrentUser import removed
 
-async function seedUserOptions(userId: string | null, optionType: string, defaultOptions: string[]) {
-  if (!userId) { // If auth is paused and no user ID, don't try to seed user-specific options.
-    // console.log(`[SeedUserOptions] Auth paused for ${optionType}, skipping user-specific seeding.`);
-    // Optionally, you could seed global options here if your schema supports options without a user_id.
-    // For now, we just skip.
-    return;
-  }
-
+async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
     .select('name')
-    .eq('user_id', userId)
+    .is('user_id', null) // Check for global options
     .eq('type', optionType);
 
   if (fetchError) {
+    // console.error(`Error fetching global ${optionType}:`, fetchError);
     return; 
   }
 
@@ -29,7 +23,7 @@ async function seedUserOptions(userId: string | null, optionType: string, defaul
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
-      user_id: userId,
+      user_id: null, // Explicitly set user_id to null for global options
     }));
 
     const { error: insertError } = await supabase
@@ -37,7 +31,7 @@ async function seedUserOptions(userId: string | null, optionType: string, defaul
       .insert(optionsToInsert);
 
     if (insertError) {
-      // console.error(`Error seeding ${optionType} for user ${userId}:`, insertError);
+      // console.error(`Error seeding global ${optionType}:`, insertError);
     }
   }
 }
@@ -51,22 +45,13 @@ export interface ItemFilters {
 }
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  const authResult = await getCurrentUser();
-  // When auth is paused, authResult.user will be null.
-  const userId = authResult.user?.id; // Will be null if auth is paused.
-
+  // No user context, fetch all items.
   let query = supabase
     .from('items')
-    .select('*', { count: 'exact' });
-
-  // If userId is available (auth not paused), filter by user_id.
-  // If userId is null (auth paused), DO NOT filter by user_id, effectively fetching all items.
-  if (userId) {
-    query = query.eq('user_id', userId);
-  } else {
-    // console.log("[GetItems] Auth paused, fetching items without user_id filter.");
-  }
-
+    .select('*', { count: 'exact' })
+    .is('user_id', null); // Fetch only items with user_id = NULL (global items)
+                            // Or remove .is('user_id', null) if items can have user_id from before and you want to see all of them.
+                            // For a true "no-user" system, ideally items don't have user_ids or they are all NULL.
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -79,9 +64,11 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
   query = query.order('created_at', { ascending: false });
   
+  // First, get the total count of matching items
   const { count: totalMatchingCount, error: countError } = await query;
 
   if (countError) {
+    // console.error("Error fetching item count:", countError);
     return { items: [], totalPages: 0, count: 0 };
   }
   
@@ -93,14 +80,16 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     const limit = filters.limit;
     const startIndex = (page - 1) * limit;
     totalPages = Math.ceil(totalItems / limit);
-    query = query.range(startIndex, startIndex + limit - 1);
+    query = query.range(startIndex, startIndex + limit - 1); // Apply pagination to the original query object
   } else if (totalItems === 0) {
      return { items: [], totalPages: 0, count: 0 };
   }
 
+
   const { data, error } = await query;
 
   if (error) {
+    // console.error("Error fetching items:", error);
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -108,41 +97,30 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 }
 
 export async function getItemById(id: string): Promise<Item | undefined | { error: string }> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth is paused
-
-  let query = supabase
+  // No user context, fetch item by ID.
+  // Assumes items are global or we are fetching an item with user_id = NULL
+  const { data, error } = await supabase
     .from('items')
     .select('*')
-    .eq('id', id);
-
-  if (userId) {
-    query = query.eq('user_id', userId);
-  } else {
-    // console.log(`[GetItemById] Auth paused, fetching item ${id} without user_id filter.`);
-  }
-  
-  const { data, error } = await query.single(); 
+    .eq('id', id)
+    .is('user_id', null) // Consider if this should be removed to find any item by ID
+    .single(); 
 
   if (error) {
     if (error.code === 'PGRST116') { 
-        return { error: "Item not found." }; // Simpler message if auth is paused
+        return { error: "Item not found." };
     }
+    // console.error("Error fetching item by ID:", error);
     return { error: error.message };
   }
   return data as Item | undefined;
 }
 
 export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
-  const authDetails = await getCurrentUser();
-  // When auth is paused, authDetails.user is null.
-  // We will set user_id to null in the database if items.user_id is nullable.
-  const finalUserIdForOperation = authDetails.user?.id || null; 
-  
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: finalUserIdForOperation, // This will be NULL if auth is paused
+    user_id: null, // Explicitly set user_id to null
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -168,6 +146,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     qr_code_data: itemData.sku ? `QR-${itemData.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
   };
   
+  // Ensure undefined optional fields are passed as null
   for (const key in newItemPayload) {
     if (newItemPayload[key] === undefined) {
       newItemPayload[key] = null;
@@ -181,7 +160,8 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     .single();
 
   if (error) {
-    return { error: `Failed to add item: ${error.message}. Details: ${error.details}. Note: If auth is paused, items.user_id must be nullable in your database.` };
+    // console.error("Error adding item:", error);
+    return { error: `Failed to add item: ${error.message}. Details: ${error.details}.` };
   }
 
   if (insertedItem) {
@@ -194,16 +174,12 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    const authDetails = await getCurrentUser();
-    const userId = authDetails.user?.id; // Will be null if auth paused
-
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
         return { error: (currentItemResult as { error: string })?.error || "Item not found or not accessible for update." };
     }
     
     const currentItem = currentItemResult as Item; 
-
     const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
 
@@ -242,24 +218,23 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     
     updatePayload.updated_at = now;
 
+    // Ensure undefined properties are nullified
     for (const key in updatePayload) {
       if (updatePayload[key] === undefined) {
         updatePayload[key] = null;
       }
     }
 
-    let query = supabase
+    const { data: updatedItem, error } = await supabase
         .from('items')
         .update(updatePayload)
-        .eq('id', id);
-
-    if (userId) { // Only filter by user_id if auth is not paused
-        query = query.eq('user_id', userId);
-    }
-    
-    const { data: updatedItem, error } = await query.select().single();
+        .eq('id', id)
+        .is('user_id', null) // Assuming we only update global items
+        .select()
+        .single();
 
     if (error) {
+        // console.error("Error updating item:", error);
         return { error: `Failed to update item: ${error.message}. Details: ${error.details}` };
     }
     if (updatedItem) {
@@ -274,21 +249,14 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
 }
 
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth is paused
-
-  let query = supabase
+  const { error } = await supabase
     .from('items')
     .delete()
-    .eq('id', id);
-
-  if (userId) {
-    query = query.eq('user_id', userId); 
-  }
-  
-  const { error } = await query;
+    .eq('id', id)
+    .is('user_id', null); // Assuming we only delete global items
 
   if (error) {
+    // console.error("Error deleting item:", error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -306,21 +274,18 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     }
     return extractedData;
   } catch (error) {
+    // console.error("Error processing receipt:", error);
     return { error: "Failed to extract data from receipt. Please try again or enter manually." };
   }
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const authResult = await getCurrentUser();
-    const userId = authResult.user?.id; // Will be null if auth is paused
-    
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
     
     const currentItem = currentItemResult as Item; 
-  
     const updatePayload: { [key: string]: any } = { status: newStatus };
     const now = new Date().toISOString();
   
@@ -336,18 +301,16 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     }
     updatePayload.updated_at = now;
   
-    let query = supabase
+    const { data: updatedItem, error } = await supabase
       .from('items')
       .update(updatePayload)
-      .eq('id', id);
-
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
-      
-    const { data: updatedItem, error } = await query.select().single();
+      .eq('id', id)
+      .is('user_id', null) // Assuming we only update global items
+      .select()
+      .single();
     
     if (error) {
+      // console.error("Error updating item status:", error);
       return { error: error.message };
     }
   
@@ -362,23 +325,16 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth is paused
-
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
 
-  let query = supabase
+  const { error, count } = await supabase
     .from('items')
     .delete({ count: 'exact' })
-    .in('id', itemIds);
-
-  if (userId) {
-    query = query.eq('user_id', userId); 
-  }
-
-  const { error, count } = await query;
+    .in('id', itemIds)
+    .is('user_id', null); // Assuming we only delete global items
 
   if (error) {
+    // console.error("Error bulk deleting items:", error);
     return { success: false, message: error.message };
   }
   if (count && count > 0) {
@@ -387,12 +343,10 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     revalidatePath("/analytics", "layout");
     return { success: true, message: `${count} item(s) deleted successfully.` };
   }
-  return { success: false, message: itemIds.length > 0 ? `No items deleted.` : "No items selected." };
+  return { success: false, message: itemIds.length > 0 ? `No global items deleted.` : "No items selected." };
 }
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth is paused
   if (itemIds.length === 0) return { success: false, message: "No items selected."};
 
   const updatePayload: { [key: string]: any } = { status: newStatus };
@@ -410,18 +364,15 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   }
   updatePayload.updated_at = now;
   
-  let query = supabase
+  const { error, count } = await supabase
     .from('items')
     .update(updatePayload)
-    .in('id', itemIds);
-
-  if (userId) {
-    query = query.eq('user_id', userId); 
-  }
-  
-  const { error, count } = await query.select({count: 'exact'}); 
+    .in('id', itemIds)
+    .is('user_id', null) // Assuming we only update global items
+    .select({count: 'exact'}); 
 
   if (error) {
+    // console.error("Error bulk updating item statuses:", error);
     return { success: false, message: error.message };
   }
 
@@ -430,26 +381,19 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout"));
-    return { success: true, message: `${count} item(s) status updated to ${newStatus}.` };
+    return { success: true, message: `${count} global item(s) status updated to ${newStatus}.` };
   }
-  return { success: false, message: itemIds.length > 0 ? "No items updated." : "No items selected." };
+  return { success: false, message: itemIds.length > 0 ? "No global items updated." : "No items selected." };
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth is paused
-
-  let query = supabase
+  const { data, error } = await supabase
     .from('items')
-    .select('category');
-
-  if (userId) {
-    query = query.eq('user_id', userId); 
-  }
-
-  const { data, error } = await query;
+    .select('category')
+    .is('user_id', null); // Only consider global items for categories
 
   if (error) {
+    // console.error("Error fetching unique categories:", error);
     return [];
   }
   if (!data) return [];
@@ -490,32 +434,17 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth paused
+  await seedGlobalOptions(optionType, optionTypeToDefaultsMap[optionType]);
 
-  // If auth is paused (userId is null), seeding user-specific options is skipped by seedUserOptions.
-  // We also need to decide if managed options should be global or empty in this state.
-  // For now, let's assume if auth is paused, we fetch options without a user_id filter,
-  // effectively making them global, or reliant on how seedUserOptions handles null userId.
-  await seedUserOptions(userId, optionType, optionTypeToDefaultsMap[optionType]);
-
-  let query = supabase
+  const { data, error } = await supabase
     .from('managed_options')
     .select('name')
-    .eq('type', optionType);
-
-  if (userId) {
-    query = query.eq('user_id', userId);
-  } else {
-    // console.log(`[GetManagedOptions - ${optionType}] Auth paused. Fetching without user_id. Requires options to be global or seeded without user_id if schema allows.`);
-    // If your 'managed_options' table requires user_id, this might return nothing or error.
-    // For full "paused auth", schema might need user_id on managed_options to be nullable.
-    // Assuming for now it might fetch options where user_id IS NULL, or just returns all if no user_id filter applied.
-  }
-  
-  const { data, error } = await query.order('name', { ascending: true });
+    .eq('type', optionType)
+    .is('user_id', null) // Fetch only global options
+    .order('name', { ascending: true });
 
   if (error) {
+    // console.error(`Error fetching managed ${optionType} options:`, error);
     return [];
   }
   return data ? data.map(opt => opt.name) : [];
@@ -531,35 +460,26 @@ export async function getManagedProjectOptions(): Promise<string[]> { return get
 
 
 async function addManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth paused
   const singularName = optionTypeToSingularName[optionType];
 
   if (!name || name.trim() === "") {
     return { success: false, message: `${singularName} name cannot be empty.` };
   }
 
-  let selectQuery = supabase
+  const { data: existing, error: selectError } = await supabase
     .from('managed_options')
     .select('id')
     .eq('type', optionType)
-    .ilike('name', name.trim());
-  
-  if (userId) {
-    selectQuery = selectQuery.eq('user_id', userId);
-  } else {
-    // If auth is paused, we might be adding a "global" option (user_id is NULL).
-    // The check for existing should also consider options where user_id IS NULL.
-    selectQuery = selectQuery.is('user_id', null);
-  }
-
-  const { data: existing, error: selectError } = await selectQuery.single();
+    .ilike('name', name.trim())
+    .is('user_id', null) // Check against global options
+    .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
+      // console.error(`Error checking existing ${singularName}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
-    return { success: false, message: `${singularName} "${name.trim()}" already exists${userId ? ' for this user' : ' as a global option'}.` };
+    return { success: false, message: `${singularName} "${name.trim()}" already exists as a global option.` };
   }
 
   const { error: insertError } = await supabase
@@ -567,11 +487,12 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: userId, // This will be NULL if auth is paused. Requires managed_options.user_id to be nullable.
+      user_id: null, // Explicitly set user_id to null
     });
 
   if (insertError) {
-    return { success: false, message: `Failed to add ${singularName}: ${insertError.message}. (Note: If auth paused, managed_options.user_id must be nullable)` };
+    // console.error(`Error adding ${singularName}:`, insertError);
+    return { success: false, message: `Failed to add ${singularName}: ${insertError.message}.` };
   }
 
   const updatedOptions = await getManagedOptions(optionType);
@@ -583,26 +504,17 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 }
 
 async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
-  const authResult = await getCurrentUser();
-  const userId = authResult.user?.id; // Will be null if auth paused
   const singularName = optionTypeToSingularName[optionType];
 
-  let deleteQuery = supabase
+  const { error } = await supabase
     .from('managed_options')
     .delete()
     .eq('type', optionType)
-    .eq('name', name); 
-
-  if (userId) {
-    deleteQuery = deleteQuery.eq('user_id', userId);
-  } else {
-    // If auth paused, attempting to delete an option where user_id IS NULL (global option)
-    deleteQuery = deleteQuery.is('user_id', null);
-  }
-
-  const { error } = await deleteQuery;
+    .eq('name', name)
+    .is('user_id', null); // Delete only global options
 
   if (error) {
+    // console.error(`Error deleting ${singularName}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
@@ -613,7 +525,6 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
   revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `${singularName} "${name}" deleted.`, options: updatedOptions };
 }
-
 
 export async function addManagedCategoryOption(name: string) { return addManagedOption(name, 'category'); }
 export async function deleteManagedCategoryOption(name: string) { return deleteManagedOption(name, 'category'); }
@@ -666,9 +577,6 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
 
   const results: BulkImportResult = { successCount: 0, errorCount: 0, errors: [] };
-  const authDetails = await getCurrentUser(); // Get user context for items (will be null if paused)
-  const userIdForImport = authDetails.user?.id || null;
-
 
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
@@ -722,7 +630,6 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         receiptImageUrl: getValue("receiptImageUrl") || undefined,
         productUrl: getValue("productUrl") || undefined,
         status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
-        // invokedByUserId is not part of CSV, addItem will use its own getCurrentUser logic
       };
       
       if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
@@ -732,8 +639,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         itemInput.purchaseDate = undefined;
       }
 
-      // The addItem function will now handle setting user_id to null if auth is paused.
-      const addResult = await addItem(itemInput);
+      const addResult = await addItem(itemInput); // addItem will now handle user_id as null
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });

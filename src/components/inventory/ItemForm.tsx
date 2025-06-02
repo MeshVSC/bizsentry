@@ -23,7 +23,7 @@ import { useState, useTransition, useEffect } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UploadCloud, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
+import { Loader2, UploadCloud, Image as ImageIcon } from "lucide-react"; // Link icon removed
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
@@ -35,7 +35,7 @@ import {
 import NextImage from "next/image";
 import { DatePicker } from "@/components/shared/DatePicker";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useAuth } from '@/contexts/AuthContext'; 
+// useAuth import removed
 
 const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
@@ -97,8 +97,7 @@ export default function ItemForm({
   const [isPending, startTransition] = useTransition();
   const [isReceiptProcessing, setIsReceiptProcessing] = useState(false);
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
-  const { currentUser } = useAuth(); // Will be null if auth is paused
-
+  // currentUser from useAuth removed
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -177,18 +176,8 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
-    // When auth is paused, currentUser will be null. We REMOVE the client-side auth check.
-    // The server action (addItem/updateItem) will handle the user ID logic (i.e., setting it to null).
-    // console.log(`[ItemForm onSubmit] Attempting submission. currentUser from useAuth():`, currentUser);
-    // if (!currentUser?.id) { // REMOVED for paused auth
-    //   console.error(`[ItemForm onSubmit] currentUser or currentUser.id is missing. currentUser value:`, currentUser);
-    //   toast({
-    //     title: "Authentication Error",
-    //     description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
-    //     variant: "destructive",
-    //   });
-    //   return; 
-    // }
+    // Client-side auth check removed
+    // console.log(`[ItemForm onSubmit] Attempting submission. Authentication removed.`);
 
     const payload: ItemInput = {
         ...data,
@@ -211,7 +200,7 @@ export default function ItemForm({
         purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined,
         soldDate: data.soldDate ? data.soldDate.toISOString() : undefined,
         inUseDate: data.inUseDate ? data.inUseDate.toISOString() : undefined,
-        invokedByUserId: currentUser?.id || undefined, // Pass current user's ID if available, else undefined. Server action will handle.
+        // invokedByUserId removed
     };
 
     startTransition(async () => {
@@ -559,7 +548,7 @@ export default function ItemForm({
                     {form.watch("productImageUrl") && (
                     <div className="mt-4">
                         <FormLabel>Product Image Preview</FormLabel>
-                        <NextImage src={form.watch("productImageUrl")!} alt="Product Preview" width={200} height={200} className="mt-2 rounded-md border max-h-60 w-full object-contain" data-ai-hint="product item" />
+                        <NextImage src={form.watch("productImageUrl")!} alt="Product Preview" width={200} height={200} className="mt-2 rounded-md border max-h-60 w-full object-contain" data-ai-hint="product item"/>
                     </div>
                     )}
                     <FormField control={form.control} name="productImageUrl" render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
@@ -582,7 +571,7 @@ export default function ItemForm({
                 {form.watch("receiptImageUrl") && (
                   <div className="mt-4">
                     <FormLabel>Receipt Preview</FormLabel>
-                    <NextImage src={form.watch("receiptImageUrl")!} alt="Receipt Preview" width={200} height={200} className="mt-2 rounded-md border max-h-60 w-full object-contain" data-ai-hint="receipt paper" />
+                    <NextImage src={form.watch("receiptImageUrl")!} alt="Receipt Preview" width={200} height={200} className="mt-2 rounded-md border max-h-60 w-full object-contain" data-ai-hint="receipt paper"/>
                   </div>
                 )}
                  <FormField control={form.control} name="receiptImageUrl" render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />

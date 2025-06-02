@@ -1,34 +1,8 @@
+// All user-specific types have been removed as authentication and user management
+// features are no longer part of the application.
 
-export type UserRole = 'admin' | 'manager' | 'viewer';
+// If any generic types were previously in this file and are still needed,
+// they should be moved to a more appropriate location.
 
-// Represents a user in our custom stock_sentry_users Supabase table
-export interface User {
-  id: string; // UUID from Supabase
-  username: string; // Used as login ID
-  password_text: string; // Plaintext password - NOT SECURE FOR PRODUCTION
-  role: UserRole;
-  created_at: string;
-  updated_at: string;
-}
-
-// View model for displaying users (omits password)
-export interface UserView extends Omit<User, 'password_text'> {}
-
-// Input for the "Add User" form (for the custom table)
-export interface UserFormInput {
-  username: string;
-  password?: string; // Password required for adding users
-  role: UserRole;
-}
-
-// Represents the currently logged-in user from our custom system
-export interface CurrentUser {
-  id: string;
-  username: string;
-  role: UserRole;
-}
-
-export interface GetCurrentUserResult {
-  user: CurrentUser | null; // Explicitly null if no valid user
-  debugMessage?: string;
-}
+// This file can potentially be deleted if no other user-related (e.g., "author" for a blog post)
+// types are planned for the future. For now, it's left empty.

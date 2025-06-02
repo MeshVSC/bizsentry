@@ -1,28 +1,3 @@
-
-"use client";
-
-import type { CurrentUser } from "@/types/user";
-import { createContext, useContext, type ReactNode, useEffect } from "react";
-
-interface AuthContextType {
-  currentUser: CurrentUser | null;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children, currentUser }: { children: ReactNode; currentUser: CurrentUser | null }) {
-  // Removed console.log from here to reduce noise
-  return (
-    <AuthContext.Provider value={{ currentUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-}
+// This file is intentionally left blank after removing the AuthContext, AuthProvider, and useAuth hook.
+// These components are no longer needed as user authentication has been removed from the application.
+// This file can be safely deleted from the project.
