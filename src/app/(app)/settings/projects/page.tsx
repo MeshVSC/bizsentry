@@ -1,31 +1,43 @@
 
+"use client"; // This page is now a Client Component
+
 import PageHeader from '@/components/shared/PageHeader';
 import {
-  getManagedProjectOptions,
-  addManagedProjectOption,
-  deleteManagedProjectOption,
+  getManagedProjectOptions, // Server action
+  addManagedProjectOption,  // Server action
+  deleteManagedProjectOption, // Server action
 } from '@/lib/actions/itemActions';
-import { getCurrentUser } from '@/lib/actions/userActions'; // Page calls getCurrentUser
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
-import { redirect } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext'; // Use client-side context
+import { useEffect, useState } from 'react';
 
-export default async function ProjectsSettingsPage() {
-  let currentUser: CurrentUser | null = null;
-  try {
-    currentUser = await getCurrentUser(); // Call should hit React.cache
-    if (!currentUser) {
-      redirect('/login'); // Safeguard redirect
+export default function ProjectsSettingsPage() {
+  const { currentUser } = useAuth();
+  const [initialProjects, setInitialProjects] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchOptions() {
+      if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
+        try {
+          setLoading(true);
+          const options = await getManagedProjectOptions();
+          setInitialProjects(options);
+        } catch (error) {
+          console.error("Failed to fetch project options:", error);
+        } finally {
+          setLoading(false);
+        }
+      }
     }
-  } catch (error) {
-    redirect('/login'); // Safeguard redirect if getCurrentUser throws
-  }
-  
+    fetchOptions();
+  }, [currentUser]);
+
   const userRole = currentUser?.role?.trim().toLowerCase();
 
-  if (userRole !== 'admin' && userRole !== 'manager') {
+  if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 p-8">
         <AlertTriangle className="h-16 w-16 text-destructive" />
@@ -36,8 +48,6 @@ export default async function ProjectsSettingsPage() {
       </div>
     );
   }
-
-  const initialProjects = await getManagedProjectOptions();
 
   return (
     <>
@@ -51,12 +61,14 @@ export default async function ProjectsSettingsPage() {
             <CardDescription>List projects for item association.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-           <ManageOptionsSection
-            optionType="Project"
-            initialOptions={initialProjects}
-            addOptionAction={addManagedProjectOption}
-            deleteOptionAction={deleteManagedProjectOption}
-          />
+          {loading ? <p>Loading projects...</p> : (
+            <ManageOptionsSection
+              optionType="Project"
+              initialOptions={initialProjects}
+              addOptionAction={addManagedProjectOption}
+              deleteOptionAction={deleteManagedProjectOption}
+            />
+          )}
         </CardContent>
       </Card>
     </>

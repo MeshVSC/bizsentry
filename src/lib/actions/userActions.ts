@@ -6,13 +6,13 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-import { cache } from 'react';
+// Removed React.cache import
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
-export interface GetCurrentUserResult {
+export interface GetCurrentUserResult { // Kept for structure, but debugMessage less critical now
   user: CurrentUser | null;
-  debugMessage?: string;
+  debugMessage?: string; // Can be simplified or removed if not used by layout directly
 }
 
 export async function loginUser(
@@ -27,6 +27,8 @@ export async function loginUser(
 
   const normalizedUsername = usernameInput.trim().toLowerCase();
 
+  console.log(`[LoginUser] Attempting login for username: ${normalizedUsername}`);
+
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('*')
@@ -37,13 +39,14 @@ export async function loginUser(
     console.warn(`[LoginUser] Login attempt failed for username: ${normalizedUsername}. User not found or Supabase error: ${error?.message}`);
     return { success: false, message: "Invalid username or password." };
   }
-
+  
   if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") {
-    console.error(`[LoginUser] Login failed for ${normalizedUsername}: User object fetched but ID is invalid or missing.`);
-    return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
+     console.error(`[LoginUser] Login failed for ${normalizedUsername}: User object fetched but ID is invalid or missing.`);
+     return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
 
   if (user.password_text === passwordInput) {
+    console.log(`[LoginUser] Password match for ${normalizedUsername}. Setting cookie.`);
     const cookieOptions = {
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -60,7 +63,7 @@ export async function loginUser(
     }
 
     revalidatePath('/', 'layout');
-    redirect('/dashboard');
+    redirect('/dashboard'); // This will trigger a new request, where getCurrentUser will be called.
   } else {
     console.warn(`[LoginUser] Login attempt failed for username: ${normalizedUsername}. Password mismatch.`);
     return { success: false, message: "Invalid username or password." };
@@ -69,41 +72,45 @@ export async function loginUser(
 
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
   try {
+    console.log(`[LogoutUser] Attempting to delete cookie: ${SESSION_COOKIE_NAME}`);
     cookies().delete(SESSION_COOKIE_NAME);
+    console.log(`[LogoutUser] Cookie deleted. Revalidating path and preparing redirect.`);
     revalidatePath("/", "layout");
     return { success: true, redirectPath: "/login" };
   } catch (e: any) {
+    console.error(`[LogoutUser] Logout failed: ${e.message}`);
     return { success: false, message: `Logout failed due to a server error: ${e.message}` };
   }
 }
 
-export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
+// Not wrapped with React.cache anymore
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const timestamp = new Date().toISOString();
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
   let userId: string | undefined;
-  const timestamp = new Date().toISOString();
 
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
   } catch (cookieAccessError: any) {
-    const msg = `[GetCurrentUser (${timestamp})] CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}`;
-    console.error(msg);
-    return { user: null, debugMessage: msg };
+    // This error means cookies() itself or .get() failed, which is severe.
+    console.error(`[GetCurrentUser (${timestamp})] CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}`);
+    // Depending on policy, could throw or return null with specific error for layout to handle
+    return null; // Simplest for now: if cookie access fails, treat as no user.
   }
 
   if (!rawCookie) {
-    const msg = `[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`;
-    console.warn(msg);
-    return { user: null, debugMessage: msg };
+    // console.log(`[GetCurrentUser (${timestamp})] Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`);
+    return null;
   }
 
   userId = rawCookie.value;
 
   if (!userId || userId.trim() === "") {
-    const msg = `[GetCurrentUser (${timestamp})] Session cookie "${SESSION_COOKIE_NAME}" found, but its value (userId) is empty or whitespace. Cookie: ${JSON.stringify(rawCookie)}`;
-    console.warn(msg);
-    return { user: null, debugMessage: msg };
+    // console.log(`[GetCurrentUser (${timestamp})] Session cookie "${SESSION_COOKIE_NAME}" found, but value (userId) is empty/whitespace. Cookie: ${JSON.stringify(rawCookie)}`);
+    return null;
   }
 
+  // console.log(`[GetCurrentUser (${timestamp})] Found cookie with userId: "${userId}". Fetching from Supabase.`);
   const { data: dbUser, error: dbError } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -111,21 +118,18 @@ export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
     .single();
 
   if (dbError) {
-    const msg = `[GetCurrentUser (${timestamp})] Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code})`;
-    console.error(msg);
-    return { user: null, debugMessage: msg };
+    // console.error(`[GetCurrentUser (${timestamp})] Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code})`);
+    return null;
   }
 
   if (!dbUser) {
-    const msg = `[GetCurrentUser (${timestamp})] No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
-    console.warn(msg);
-    return { user: null, debugMessage: msg };
+    // console.log(`[GetCurrentUser (${timestamp})] No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`);
+    return null;
   }
   
-  const successMsg = `[GetCurrentUser (${timestamp})] Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id})`;
-  console.log(successMsg);
-  return { user: dbUser as CurrentUser, debugMessage: "User fetch successful (this message should ideally not show if user is valid)" };
-});
+  // console.log(`[GetCurrentUser (${timestamp})] Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id})`);
+  return dbUser as CurrentUser;
+}
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -156,7 +160,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .ilike('username', normalizedUsername)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') {
+  if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is good here.
       return { success: false, message: `Error checking existing user: ${selectError.message}` };
   }
   if (existingUser) {
@@ -167,7 +171,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .from('stock_sentry_users')
     .insert({
       username: normalizedUsername,
-      password_text: data.password,
+      password_text: data.password, // Storing password in plaintext
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -222,20 +226,19 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
   if (updatedUser) {
     revalidatePath("/settings/users", "page");
-    const getCurrentUserResult = await getCurrentUser(); // This will use the cached value
-    if (getCurrentUserResult.user && getCurrentUserResult.user.id === userId && getCurrentUserResult.user.role !== newRole) {
-        revalidatePath("/", "layout");
-    }
+    // If the current user's own role changed, their session data in AuthContext might become stale
+    // but AppLayout should refetch on next full navigation.
+    // No direct way to update AuthContext from server action without page reload.
     return { success: true, message: `User "${updatedUser.username}" role updated to ${newRole}.`, user: updatedUser as UserView };
   }
    return { success: false, message: "Failed to update role for an unknown reason."};
 }
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
-  const { user: performingUser, debugMessage: performingUserError } = await getCurrentUser();
+  const performingUser = await getCurrentUser();
 
   if (!performingUser) {
-    return { success: false, message: performingUserError || "Action requires authentication." };
+    return { success: false, message: "Action requires authentication." };
   }
 
   if (performingUser.role?.trim().toLowerCase() !== 'admin') {
@@ -283,6 +286,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 }
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
-  const { user } = await getCurrentUser();
+  const user = await getCurrentUser();
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }

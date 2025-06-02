@@ -1,27 +1,41 @@
 
+"use client"; // This page is now a Client Component
+
 import PageHeader from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUsers, getCurrentUser } from '@/lib/actions/userActions'; // Page calls getCurrentUser
-import type { CurrentUser } from '@/types/user';
+import { getUsers } from '@/lib/actions/userActions'; // Server action
+import type { UserView } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
 import AddUserForm from '@/components/settings/AddUserForm';
 import UserManagementTable from '@/components/settings/UserManagementTable';
-import { redirect } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext'; // Use client-side context
+import { useEffect, useState } from 'react';
 
-export default async function UserSettingsPage() {
-  let currentUser: CurrentUser | null = null;
-  try {
-    currentUser = await getCurrentUser(); // Call should hit React.cache
-    if (!currentUser) {
-      redirect('/login'); // Safeguard redirect
+export default function UserSettingsPage() {
+  const { currentUser } = useAuth(); // Get user from client-side context
+  const [allUsers, setAllUsers] = useState<UserView[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      if (currentUser?.role === 'admin') {
+        try {
+          setLoadingUsers(true);
+          const usersData = await getUsers(); // Server Action call
+          setAllUsers(usersData);
+        } catch (error) {
+          console.error("Failed to fetch users:", error);
+        } finally {
+          setLoadingUsers(false);
+        }
+      }
     }
-  } catch (error) {
-    redirect('/login'); // Safeguard redirect if getCurrentUser throws
-  }
+    fetchUsers();
+  }, [currentUser]); // Re-fetch if currentUser changes or role allows
 
   const userRole = currentUser?.role?.trim().toLowerCase();
 
-  if (userRole !== 'admin') {
+  if (!currentUser || userRole !== 'admin') {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 p-8">
         <AlertTriangle className="h-16 w-16 text-destructive" />
@@ -32,16 +46,13 @@ export default async function UserSettingsPage() {
       </div>
     );
   }
-
-  const allUsersFromCustomTable = await getUsers();
-
+  
   return (
     <>
       <PageHeader
         title="User Management"
         description="Manage application users and their roles."
       />
-      {/* Removed yellow debug box if it was here */}
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
@@ -49,7 +60,7 @@ export default async function UserSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
           <AddUserForm />
-          <UserManagementTable initialUsers={allUsersFromCustomTable} />
+          {loadingUsers ? <p>Loading users...</p> : <UserManagementTable initialUsers={allUsers} />}
         </CardContent>
       </Card>
     </>
