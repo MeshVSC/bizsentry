@@ -37,18 +37,18 @@ export async function loginUser(
 
   console.log(`[LoginAttempt] User found in DB: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
 
-  if (!user.id) {
-    console.error("[LoginFailed] Critical: User object fetched from database is missing an ID. User data:", user);
-    return { success: false, message: "Login failed due to a server data integrity issue (user ID missing). Please contact support." };
+  if (!user.id || typeof user.id !== 'string' || user.id.trim() === "") { // Enhanced check
+    console.error("[LoginFailed] Critical: User object fetched from database is missing a valid ID string. User data:", user);
+    return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
   console.log(`[LoginSuccess] User ID for cookie: ${user.id}`);
+
 
   if (user.password_text === passwordInput) {
     console.log(`[LoginSuccess] Passwords match for user ID ${user.id}. Attempting to set cookie.`);
     
     try {
       cookies().set(SESSION_COOKIE_NAME, user.id, {
-        // Simplified cookie options:
         // httpOnly: true, // Temporarily removed for Studio environment
         // secure: process.env.NODE_ENV === 'production', // Temporarily removed for Studio environment
         maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -84,6 +84,16 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
+  // --- TEMPORARY MOCK USER FOR DEBUGGING ---
+  console.log("[GetCurrentUser] USING MOCK ADMIN USER FOR DEBUGGING!");
+  return {
+    id: "mock-admin-id-123", // Replace with your actual admin user's ID if needed for other logic
+    username: "mockadmin",    // Replace with your actual admin user's username if needed
+    role: "admin"
+  };
+  // --- END TEMPORARY MOCK USER ---
+
+  /*
   let userId;
   let rawCookie;
   try {
@@ -116,20 +126,22 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     } else if (!user) {
       console.log(`[GetCurrentUser] No user found in database for ID "${userId}". Cookie might be stale or RLS policy issue.`);
     }
+    // Do not delete cookie or revalidate here, let AppLayout handle redirect.
     return null;
   }
   console.log(`[GetCurrentUser] User found: ID ${user.id}, Username: ${user.username}, Role: ${user.role}`);
   return user as CurrentUser;
+  */
 }
 
 export async function getUsers(): Promise<UserView[]> {
   console.log("[GetUsers] Attempting to fetch all users.");
-  const performingUser = await getCurrentUser();
+  const performingUser = await getCurrentUser(); // This will use the mock user if active
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-    console.warn("[GetUsers] Access denied. Current user is not an admin or not found.");
+    console.warn("[GetUsers] Access denied. Current user is not an admin or not found. Current user role:", performingUser?.role);
     return [];
   }
-  console.log("[GetUsers] Admin user confirmed. Fetching users from Supabase.");
+  console.log("[GetUsers] Admin user confirmed (possibly mock). Fetching users from Supabase.");
 
   const { data, error } = await supabase
     .from('stock_sentry_users')
@@ -146,9 +158,9 @@ export async function getUsers(): Promise<UserView[]> {
 
 export async function addUser(data: UserFormInput): Promise<{ success: boolean; message?: string; user?: UserView }> {
   console.log("[AddUser] Attempting to add new user:", { username: data.username, role: data.role });
-  const performingUser = await getCurrentUser();
+  const performingUser = await getCurrentUser(); // This will use the mock user if active
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-    console.warn("[AddUser] Permission denied: Only admins can add users.");
+    console.warn("[AddUser] Permission denied: Only admins can add users. Current user role:", performingUser?.role);
     return { success: false, message: "Permission denied: Only admins can add users." };
   }
 
@@ -205,9 +217,9 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
 
 export async function updateUserRole(userId: string, newRole: UserRole): Promise<{ success: boolean; message?: string; user?: UserView }> {
   console.log(`[UpdateUserRole] Attempting to update role for user ID ${userId} to ${newRole}.`);
-  const performingUser = await getCurrentUser();
+  const performingUser = await getCurrentUser(); // This will use the mock user if active
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-    console.warn("[UpdateUserRole] Permission denied: Only admins can update roles.");
+    console.warn("[UpdateUserRole] Permission denied: Only admins can update roles. Current user role:", performingUser?.role);
     return { success: false, message: "Permission denied: Only admins can update roles." };
   }
 
@@ -265,15 +277,21 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   console.log(`[DeleteUser] Attempting to delete user ID ${userId}.`);
-  const performingUser = await getCurrentUser();
+  const performingUser = await getCurrentUser(); // This will use the mock user if active
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
-    console.warn("[DeleteUser] Permission denied: Only admins can delete users.");
+    console.warn("[DeleteUser] Permission denied: Only admins can delete users. Current user role:", performingUser?.role);
     return { success: false, message: "Permission denied: Only admins can delete users." };
+  }
+  // Prevent mock admin from deleting itself if its ID was used for the real admin during testing
+  if (performingUser.id === userId && userId === "mock-admin-id-123") { 
+      console.warn("[DeleteUser] Mock admin attempting to delete itself based on mock ID.");
+      return { success: false, message: "Cannot delete the currently active (mock) admin user." };
   }
   if (performingUser.id === userId) {
     console.warn("[DeleteUser] Admin attempting to delete their own account.");
     return { success: false, message: "Cannot delete your own account." };
   }
+
 
   console.log(`[DeleteUser] Fetching target user ID ${userId} for pre-delete checks.`);
   const { data: targetUser, error: targetUserError } = await supabase
@@ -322,7 +340,7 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
 
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   console.log("[GetRoleForCurrentUser] Fetching current user to determine role.");
-  const currentUser = await getCurrentUser(); 
+  const currentUser = await getCurrentUser();  // This will use the mock user if active
   const role = currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   console.log(`[GetRoleForCurrentUser] Role determined: ${role}`);
   return role;
