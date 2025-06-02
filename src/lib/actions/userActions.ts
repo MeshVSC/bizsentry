@@ -16,17 +16,19 @@ export async function loginUser(
     return { success: false, message: "Username and password are required." };
   }
 
+  const normalizedUsername = usernameInput.trim().toLowerCase();
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('*')
-    .ilike('username', usernameInput.trim().toLowerCase()) // Ensure consistent case for query
+    .ilike('username', normalizedUsername) 
     .single();
 
   if (error || !user) {
-    console.error("Login error or user not found:", error ? error.message : "User not found for username: " + usernameInput);
+    console.error("Login error or user not found:", error ? error.message : "User not found for username: " + normalizedUsername);
     return { success: false, message: "Invalid username or password." };
   }
 
+  // Direct password comparison - INSECURE FOR PRODUCTION
   if (user.password_text === passwordInput) {
     cookies().set(SESSION_COOKIE_NAME, user.id, {
       httpOnly: true,
@@ -35,7 +37,7 @@ export async function loginUser(
       path: '/',
       sameSite: 'lax',
     });
-    revalidatePath("/", "layout"); 
+    // No redirect here, client will handle it
     return { success: true, redirectPath: '/dashboard' };
   } else {
     return { success: false, message: "Invalid username or password." };
@@ -47,7 +49,7 @@ const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 export async function logoutUser(): Promise<{ success: boolean; message?: string; redirectPath?: string }> {
   try {
     cookies().delete(SESSION_COOKIE_NAME);
-    revalidatePath("/", "layout");
+    revalidatePath("/", "layout"); // Revalidate to ensure login state is cleared across app
     return { success: true, redirectPath: "/login" };
   } catch (e) {
     console.error("Logout error:", e);
@@ -69,11 +71,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (error || !user) {
-    if (error && error.code !== 'PGRST116') { // PGRST116: "Searched for a single row, but 0 rows were found"
+    // If error is not 'PGRST116' (0 rows found), then log it.
+    // PGRST116 is expected if cookie is stale & user ID doesn't exist.
+    if (error && error.code !== 'PGRST116') { 
       console.error(`getCurrentUser: Error fetching user for ID ${userId} from Supabase:`, error.message);
     }
-    // If user not found or error, ensure cookie is cleared.
-    cookies().delete(SESSION_COOKIE_NAME);
+    // Simply return null. The cookie will be overwritten on next login or cleared on explicit logout.
     return null;
   }
 
@@ -83,6 +86,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 export async function getUsers(): Promise<UserView[]> {
   const performingUser = await getCurrentUser();
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
+    console.warn("getUsers: Access denied. Current user is not an admin or not found.");
     return [];
   }
 
@@ -107,9 +111,10 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
   if (!data.username || !data.password || !data.role) {
     return { success: false, message: "Username, password, and role are required." };
   }
-  if (data.password.length < 5 || !/[A-Z]/.test(data.password) || !/[0-9]/.test(data.password) ) {
+   if (data.password.length < 5 || !/[A-Z]/.test(data.password) || !/[0-9]/.test(data.password) ) {
        return { success: false, message: "Password does not meet requirements (min 5 chars, 1 uppercase, 1 number)." };
   }
+
 
   const normalizedUsername = data.username.trim().toLowerCase(); 
   const { data: existingUser, error: selectError } = await supabase
@@ -130,7 +135,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .from('stock_sentry_users')
     .insert({
       username: normalizedUsername, 
-      password_text: data.password, 
+      password_text: data.password, // Storing plaintext password - INSECURE
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -251,10 +256,13 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
 }
 
 // Initial seed data - For reference, typically run manually in Supabase SQL editor or via a seeding script
+// Example:
+// INSERT INTO stock_sentry_users (username, password_text, role) VALUES 
+//   ('admin', 'adminpassword', 'admin'),
+//   ('manager', 'managerpassword', 'manager'),
+//   ('viewer', 'viewerpassword', 'viewer');
 const initialUsersSeed: Omit<User, 'id' | 'created_at' | 'updated_at'>[] = [
   { username: "admin", password_text: "adminpassword", role: "admin" },
   { username: "manager", password_text: "managerpassword", role: "manager" },
   { username: "viewer", password_text: "viewerpassword", role: "viewer" },
 ];
-
-    
