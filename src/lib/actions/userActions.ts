@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
-// No longer importing React.cache as it was removed from getCurrentUser
+import { cache } from 'react'; // Import cache
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
@@ -22,6 +22,7 @@ export async function loginUser(
 
   const normalizedUsername = usernameInput.trim().toLowerCase();
 
+  // console.log(`[LoginUser] Attempting to fetch user: ${normalizedUsername}`);
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('*')
@@ -38,6 +39,8 @@ export async function loginUser(
     return { success: false, message: "Login failed due to a server data integrity issue (user ID invalid). Please contact support." };
   }
 
+  // console.log(`[LoginUser] User fetched: ${user.id}, role: ${user.role}`);
+
   if (user.password_text === passwordInput) {
     try {
       // console.log(`[LoginUser] Credentials valid for user ID: ${user.id}. Attempting to set cookie.`);
@@ -45,19 +48,18 @@ export async function loginUser(
         path: '/',
         maxAge: 60 * 60 * 24 * 7, // 1 week
         sameSite: 'lax',
-        secure: true, // IMPORTANT for production
-        httpOnly: true, // IMPORTANT for security
+        secure: true, 
+        httpOnly: true, // Ensure httpOnly is true for security
       });
-      // console.log(`[LoginUser] Cookie for user ID ${user.id} should be set.`);
+      // console.log(`[LoginUser] Cookie for user ID ${user.id} should be set with httpOnly: true.`);
     } catch (cookieError: any) {
       // console.error("[LoginUser] Cookie setting error:", cookieError);
       return { success: false, message: "Login succeeded but failed to set session. Please try again." };
     }
 
-    revalidatePath('/', 'layout'); // Revalidate to ensure layout re-renders with new session state
+    revalidatePath('/', 'layout'); 
     // console.log("[LoginUser] Redirecting to /dashboard.");
-    redirect('/dashboard'); // Redirect from server action
-    // Unreachable code after redirect, no explicit return needed here.
+    redirect('/dashboard'); 
   } else {
     // console.warn("[LoginUser] Password mismatch for user:", normalizedUsername);
     return { success: false, message: "Invalid username or password." };
@@ -75,24 +77,25 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+// Wrap getCurrentUser with React.cache
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   let userId;
   let rawCookie;
   try {
     rawCookie = cookies().get(SESSION_COOKIE_NAME);
     userId = rawCookie?.value;
-    // console.log("[GetCurrentUser] Attempting to read cookie. Raw cookie:", rawCookie, "User ID from cookie:", userId);
+    // console.log("[GetCurrentUser CACHED] Attempting to read cookie. Raw cookie:", rawCookie, "User ID from cookie:", userId);
   } catch (cookieError: any) {
-    // This error implies issue with cookie parsing or access rights to the store
-    // console.error("[GetCurrentUser] Error reading cookie:", cookieError);
+    // console.error("[GetCurrentUser CACHED] Error reading cookie:", cookieError);
     throw new Error(`SESSION_COOKIE_READ_ERROR: ${cookieError.message}`);
   }
 
   if (!userId || userId.trim() === "") {
-    // console.log("[GetCurrentUser] No userId found in cookie or cookie itself not found/empty.");
+    // console.log("[GetCurrentUser CACHED] No userId found in cookie or cookie itself not found/empty.");
     throw new Error("SESSION_COOKIE_NOT_FOUND_OR_EMPTY");
   }
 
+  // console.log(`[GetCurrentUser CACHED] Found userId in cookie: ${userId}. Querying Supabase.`);
   const { data: user, error } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -100,21 +103,20 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .single();
 
   if (error) {
-    // console.error(`[GetCurrentUser] Supabase error fetching user ID ${userId}:`, error);
-    if (error.code === 'PGRST116') { // "Searched for a single row, but 0 rows were found"
+    // console.error(`[GetCurrentUser CACHED] Supabase error fetching user ID ${userId}:`, error);
+    if (error.code === 'PGRST116') { 
       throw new Error(`SUPABASE_USER_NOT_FOUND_FOR_ID: ${userId}`);
     }
     throw new Error(`SUPABASE_QUERY_ERROR: ${error.message} (Code: ${error.code})`);
   }
 
   if (!user) {
-    // console.warn(`[GetCurrentUser] Supabase query for ID ${userId} returned no error, but no user object.`);
-    // Should be caught by PGRST116, but as a fallback.
+    // console.warn(`[GetCurrentUser CACHED] Supabase query for ID ${userId} returned no error, but no user object.`);
     throw new Error(`SUPABASE_USER_NOT_FOUND_DESPITE_NO_ERROR_FOR_ID: ${userId}`);
   }
-  // console.log("[GetCurrentUser] Successfully fetched user:", user);
+  // console.log("[GetCurrentUser CACHED] Successfully fetched user:", user);
   return user as CurrentUser;
-}
+});
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -157,7 +159,7 @@ export async function addUser(data: UserFormInput): Promise<{ success: boolean; 
     .from('stock_sentry_users')
     .insert({
       username: normalizedUsername,
-      password_text: data.password, // Storing plaintext password
+      password_text: data.password, 
       role: data.role,
     })
     .select('id, username, role, created_at, updated_at')
@@ -187,7 +189,6 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
     return { success: false, message: "Target user not found." };
   }
 
-  // Prevent demoting the last admin
   if (targetUserForRoleCheck.role === 'admin' && newRole !== 'admin') {
     const { count, error: adminCountError } = await supabase
       .from('stock_sentry_users')
@@ -225,12 +226,12 @@ export async function updateUserRole(userId: string, newRole: UserRole): Promise
 export async function deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
   let performingUser: CurrentUser | null = null;
   try {
+    // getCurrentUser() here will use the cached version if AppLayout already called it in the same request
     performingUser = await getCurrentUser();
   } catch (e) {
      // console.error("[DeleteUser] Error getting performing user for delete check:", e);
      return { success: false, message: "Could not verify performing user's permissions." };
   }
-
 
   if (!performingUser || performingUser.role?.trim().toLowerCase() !== 'admin') {
     return { success: false, message: "Permission denied: Only admins can delete users." };
@@ -251,7 +252,6 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
     return { success: false, message: "User not found." };
   }
 
-  // Prevent deleting the last admin
   if (targetUser.role === 'admin') {
     const { count, error: adminCountError } = await supabase
         .from('stock_sentry_users')
@@ -280,16 +280,9 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; me
   return { success: true, message: `User "${targetUser.username}" deleted successfully.` };
 }
 
-
-// This function is primarily for client components that need to quickly check role for UI rendering
-// NOT for critical security checks in server actions (those should re-fetch or use user from a secure context)
 export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   try {
-    // This call to getCurrentUser() is fine as long as it's understood that it might
-    // be from a cache if called multiple times in a server component request,
-    // or a direct call if used sparingly in client components (though less ideal for perf).
-    // For the purpose of AppLayout passing current user, this direct call is what we want to avoid in pages.
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(); // Will use cached version
     return currentUser ? (currentUser.role?.trim().toLowerCase() as UserRole) : null;
   } catch (error) {
     // console.warn("[GetRoleForCurrentUser] Could not get current user role, likely not logged in:", error);

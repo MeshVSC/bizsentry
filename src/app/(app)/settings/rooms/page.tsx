@@ -5,21 +5,26 @@ import {
   addManagedRoomOption,
   deleteManagedRoomOption,
 } from '@/lib/actions/itemActions';
+import { getCurrentUser } from '@/lib/actions/userActions'; // Page now calls getCurrentUser
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
-// Accept currentUser as a prop
-interface RoomsSettingsPageProps {
-  currentUser: CurrentUser | null;
-}
+export default async function RoomsSettingsPage() {
+  let currentUser: CurrentUser | null = null;
+  try {
+    currentUser = await getCurrentUser(); // Should use cached version
+    if (!currentUser) redirect('/login');
+  } catch (error) {
+    // console.error('[RoomsSettingsPage] Error fetching user:', error);
+    redirect('/login');
+  }
 
-export default async function RoomsSettingsPage({ currentUser }: RoomsSettingsPageProps) {
-  // DO NOT call getCurrentUser() here. Use the prop.
   const userRole = currentUser?.role?.trim().toLowerCase();
 
-  if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
+  if (userRole !== 'admin' && userRole !== 'manager') {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 p-8">
         <AlertTriangle className="h-16 w-16 text-destructive" />

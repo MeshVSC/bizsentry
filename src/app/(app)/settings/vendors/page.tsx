@@ -5,21 +5,26 @@ import {
   addManagedVendorOption,
   deleteManagedVendorOption,
 } from '@/lib/actions/itemActions';
+import { getCurrentUser } from '@/lib/actions/userActions'; // Page now calls getCurrentUser
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CurrentUser } from '@/types/user';
 import { AlertTriangle } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
-// Accept currentUser as a prop
-interface VendorsSettingsPageProps {
-  currentUser: CurrentUser | null;
-}
-
-export default async function VendorsSettingsPage({ currentUser }: VendorsSettingsPageProps) {
-  // DO NOT call getCurrentUser() here. Use the prop.
+export default async function VendorsSettingsPage() {
+  let currentUser: CurrentUser | null = null;
+  try {
+    currentUser = await getCurrentUser(); // Should use cached version
+    if (!currentUser) redirect('/login');
+  } catch (error) {
+    // console.error('[VendorsSettingsPage] Error fetching user:', error);
+    redirect('/login');
+  }
+  
   const userRole = currentUser?.role?.trim().toLowerCase();
 
-  if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
+  if (userRole !== 'admin' && userRole !== 'manager') {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4 p-8">
         <AlertTriangle className="h-16 w-16 text-destructive" />
