@@ -3,11 +3,14 @@ import PageHeader from '@/components/shared/PageHeader';
 import { getAppSettings } from '@/lib/actions/settingsActions';
 import ApplicationSettingsForm from '@/components/settings/ApplicationSettingsForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getCurrentUser } from '@/lib/actions/userActions';
+// Removed: import { getCurrentUser } from '@/lib/actions/userActions';
+import type { CurrentUser } from '@/types/user'; // Keep for prop type
 import { AlertTriangle } from 'lucide-react';
 
-export default async function ApplicationSettingsPage() {
-  const currentUser = await getCurrentUser();
+// Accept currentUser as a prop
+export default async function ApplicationSettingsPage({ currentUser }: { currentUser: CurrentUser | null }) {
+  // const currentUser = await getCurrentUser(); // Removed direct call
+
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
@@ -42,4 +45,3 @@ export default async function ApplicationSettingsPage() {
     </>
   );
 }
-

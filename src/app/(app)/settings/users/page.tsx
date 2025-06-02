@@ -1,14 +1,16 @@
 
 import PageHeader from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUsers, getCurrentUser } from '@/lib/actions/userActions'; 
+import { getUsers } from '@/lib/actions/userActions'; 
+// Removed: import { getCurrentUser } from '@/lib/actions/userActions';
+import type { CurrentUser } from '@/types/user'; // Keep for prop type
 import { AlertTriangle } from 'lucide-react';
 import AddUserForm from '@/components/settings/AddUserForm';
 import UserManagementTable from '@/components/settings/UserManagementTable';
-import type { CurrentUser } from '@/types/user';
 
-export default async function UserSettingsPage() {
-  const currentUser: CurrentUser | null = await getCurrentUser();
+// Accept currentUser as a prop
+export default async function UserSettingsPage({ currentUser }: { currentUser: CurrentUser | null}) {
+  // const currentUser: CurrentUser | null = await getCurrentUser(); // Removed direct call
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || userRole !== 'admin') {
@@ -29,12 +31,12 @@ export default async function UserSettingsPage() {
     <>
       <PageHeader 
         title="User Management" 
-        description="Manage application users and their roles (stored in a custom Supabase table)." 
+        description="Manage application users and their roles." 
       />
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
-          <CardDescription>Add new users or modify existing ones. User data is stored in your custom Supabase table.</CardDescription>
+          <CardDescription>Add new users or modify existing ones. User data is stored in your database.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
           <AddUserForm />
@@ -44,4 +46,3 @@ export default async function UserSettingsPage() {
     </>
   );
 }
-

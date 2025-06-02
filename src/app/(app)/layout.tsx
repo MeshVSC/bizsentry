@@ -1,5 +1,6 @@
 
 import type { ReactNode } from 'react';
+import React, { cloneElement } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from "@/components/ui/toaster";
 import { getCurrentUser } from '@/lib/actions/userActions'; 
@@ -8,35 +9,39 @@ import type { CurrentUser } from '@/types/user';
 
 export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
   let currentUser: CurrentUser | null = null;
-  let errorFetchingUser: string | null = null;
-
+  
   try {
     currentUser = await getCurrentUser();
-    // Server-side console log (not directly visible in Studio UI, but good for completeness)
-    if (currentUser) {
-        // console.log('[AppLayout Server Log] getCurrentUser returned a user object:', JSON.stringify(currentUser));
-    } else {
-        // console.log('[AppLayout Server Log] getCurrentUser returned null (and did not throw an error). This is unexpected if an error should have been thrown.');
-    }
   } catch (error: any) {
-    // console.error('[AppLayout Server Log] Error in getCurrentUser:', error.message);
-    errorFetchingUser = error.message; // Store the error message
-    // currentUser remains null
-  }
-
-  if (!currentUser) {
-    // If there was an error fetching the user (like cookie not found),
-    // or if currentUser is simply null without an error (less likely with current getCurrentUser logic),
-    // redirect to login.
-    // console.log(`[AppLayout Server Log] No currentUser (or error: ${errorFetchingUser}), redirecting to /login.`);
+    // If getCurrentUser throws (e.g. cookie not found, Supabase error),
+    // it means user is not authenticated or session is invalid.
+    // Redirect to login. The specific error message isn't shown to user here,
+    // but it would have been logged by getCurrentUser itself if console logs were active.
     redirect('/login'); 
   }
 
+  // If try-catch block was successfully completed and currentUser is still null 
+  // (though getCurrentUser is designed to throw an error now instead of returning null directly for auth failures),
+  // also redirect. This is a defensive check.
+  if (!currentUser) {
+    redirect('/login');
+  }
+
+  // Pass currentUser to the child page component (which are Server Components)
+  // And also to the AppLayout client component for its UI elements (e.g., user menu)
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      // @ts-ignore - currentUser is not a known prop for all possible page components initially
+      // Page components will need to be updated to accept this prop.
+      return cloneElement(child, { currentUser });
+    }
+    return child;
+  });
+
   return (
     <>
-      {/* The debug div has been removed */}
       <AppLayout currentUser={currentUser}>
-        {children}
+        {childrenWithProps}
         <Toaster />
       </AppLayout>
     </>

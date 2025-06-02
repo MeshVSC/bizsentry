@@ -7,11 +7,13 @@ import {
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getCurrentUser } from '@/lib/actions/userActions';
+// Removed: import { getCurrentUser } from '@/lib/actions/userActions';
+import type { CurrentUser } from '@/types/user'; // Keep for prop type
 import { AlertTriangle } from 'lucide-react';
 
-export default async function VendorsSettingsPage() {
-  const currentUser = await getCurrentUser();
+// Accept currentUser as a prop
+export default async function VendorsSettingsPage({ currentUser }: { currentUser: CurrentUser | null }) {
+  // const currentUser = await getCurrentUser(); // Removed direct call
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
@@ -51,4 +53,3 @@ export default async function VendorsSettingsPage() {
     </>
   );
 }
-
