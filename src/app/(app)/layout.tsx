@@ -9,51 +9,42 @@ import type { CurrentUser } from '@/types/user';
 
 export default async function GroupedAppLayout({ children }: { children: ReactNode }) {
   let currentUser: CurrentUser | null = null;
-  let layoutDebugMessage = "Layout: Initializing..."; // For debugging within GroupedAppLayout
+  let layoutDebugMessage = "Layout: Initializing..."; 
 
   try {
     currentUser = await getCurrentUser();
     if (currentUser) {
-      layoutDebugMessage = `Layout: currentUser successfully fetched: ${JSON.stringify(currentUser, null, 2)}`;
+      layoutDebugMessage = `Layout: User is VALID, passing to children. User: ${JSON.stringify(currentUser, null, 2)}`;
     } else {
-      // This case should ideally be caught by an error from getCurrentUser if cookie is missing
-      layoutDebugMessage = "Layout: getCurrentUser() returned null (unexpected without error).";
+      // This case should be caught by an error from getCurrentUser if cookie is missing/invalid
+      layoutDebugMessage = "Layout: getCurrentUser() returned null AND did not throw an error (unexpected). Redirecting.";
+      redirect('/login');
     }
   } catch (error: any) {
-    layoutDebugMessage = `Layout: Error from getCurrentUser(): ${error.message}`;
-    // currentUser remains null
-  }
-
-  if (!currentUser) {
-    // This log might not be visible if redirect happens too fast, but good for server logs
-    // console.log(`[GroupedAppLayout] currentUser is null or errored (${layoutDebugMessage}). Redirecting to /login.`);
+    layoutDebugMessage = `Layout: Error from getCurrentUser(): ${error.message}. Redirecting.`;
+    // console.error('[GroupedAppLayout] Error in getCurrentUser, redirecting:', error.message);
     redirect('/login');
   }
 
   // If we reach here, currentUser MUST be populated.
-  // This log will confirm its state just before passing to children.
-  // console.log(`[GroupedAppLayout] Proceeding to render children. currentUser state:`, currentUser ? JSON.stringify(currentUser) : "null (ERROR IF THIS HAPPENS)");
-  // Overwrite layoutDebugMessage for the positive case after redirect check
-  layoutDebugMessage = `Layout: User is VALID, passing to children. User: ${JSON.stringify(currentUser, null, 2)}`;
-
+  const currentUserJson = JSON.stringify(currentUser);
 
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-      // @ts-ignore - currentUser is not a known prop for all possible page components initially
-      // Page components have been updated to accept this prop.
-      return cloneElement(child, { currentUser });
+      // @ts-ignore - currentUserJson and currentUser are not known props for all possible page components initially
+      // Page components need to be updated to accept this.
+      return cloneElement(child, { currentUserJson, currentUser }); // Pass both for now, page will use currentUserJson
     }
     return child;
   });
 
   return (
     <>
-      {/* Temporary debug display for GroupedAppLayout's currentUser state */}
       <div style={{ position: 'fixed', top: '0', left: '0', right: '0', backgroundColor: 'rgba(255,0,0,0.8)', color: 'white', padding: '5px', zIndex: 9999, fontSize: '10px', textAlign: 'center', borderBottom: '1px solid white' }}>
         DEBUG (GroupedAppLayout): {layoutDebugMessage}
       </div>
-      <AppLayout currentUser={currentUser}> {/* Pass to client component AppLayout for UI (e.g. user menu) */}
-        {childrenWithProps} {/* Pass to server component children (pages) */}
+      <AppLayout currentUser={currentUser}> {/* Pass object to client component AppLayout */}
+        {childrenWithProps} {/* Pass JSON string (and object for other pages) to server component children */}
         <Toaster />
       </AppLayout>
     </>
