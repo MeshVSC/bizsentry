@@ -127,22 +127,26 @@ export async function getItemById(id: string): Promise<Item | undefined | { erro
 }
 
 export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
-  const timestamp = new Date().toISOString();
-  // console.log(`[AddItem (${timestamp})] Server action called with data:`, JSON.stringify(itemData));
-  
-  const authResult = await getCurrentUser();
-  // console.log(`[AddItem (${timestamp})] Attempting to get current user... AuthResult:`, JSON.stringify(authResult));
-  
-  if (!authResult.user) {
-    // console.error(`[AddItem (${timestamp})] User not authenticated. Debug: ${authResult.debugMessage}`);
-    return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug info from getCurrentUser.") };
+  const authDetails = await getCurrentUser();
+  const trustedUserId = authDetails.user?.id;
+  const clientReportedUserId = itemData.invokedByUserId;
+
+  if (!trustedUserId) {
+    // console.error(`[AddItem] Critical: Server session invalid or expired. Debug: ${authDetails.debugMessage}`);
+    return { error: "User not authenticated on server. Your session may have expired. Please log out and log back in. Debug: " + (authDetails.debugMessage || "No trusted user ID from session.") };
   }
-  const userIdToAdd = authResult.user.id;
+
+  if (clientReportedUserId && clientReportedUserId !== trustedUserId) {
+    // console.warn(`[AddItem] User ID mismatch: Client reported '${clientReportedUserId}', server session ID is '${trustedUserId}'. Proceeding with server session ID for security.`);
+    // In a production system, you might log this as a security event or even reject the request.
+  }
+  
+  const finalUserIdForOperation = trustedUserId; // Always use the trusted server-side user ID
 
   const now = new Date().toISOString();
   const newItemPayload: any = {
     ...itemData,
-    user_id: userIdToAdd,
+    user_id: finalUserIdForOperation,
     original_price: itemData.originalPrice,
     sales_price: itemData.salesPrice,
     receipt_image_url: itemData.receiptImageUrl,
@@ -159,6 +163,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   
   delete newItemPayload.createdAt;
   delete newItemPayload.updatedAt;
+  delete newItemPayload.invokedByUserId; // Ensure this non-column field is removed
   
   Object.keys(newItemPayload).forEach(key => {
     const tsKey = key as keyof typeof newItemPayload;
@@ -167,7 +172,6 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     }
   });
   
-  // console.log(`[AddItem (${timestamp})] Inserting item payload into Supabase:`, JSON.stringify(newItemPayload));
   const { data: insertedItem, error } = await supabase
     .from('items')
     .insert([newItemPayload])
@@ -175,33 +179,42 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     .single();
 
   if (error) {
-    // console.error(`[AddItem (${timestamp})] Error adding item to Supabase:`, error);
+    // console.error(`[AddItem] Error adding item to Supabase:`, error);
     return { error: error.message };
   }
 
   if (insertedItem) {
-    // console.log(`[AddItem (${timestamp})] Item added successfully to Supabase. ID: ${insertedItem.id}`);
+    // console.log(`[AddItem] Item added successfully to Supabase. ID: ${insertedItem.id}`);
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     return insertedItem as Item;
   }
-  // console.error(`[AddItem (${timestamp})] Failed to add item to Supabase for an unknown reason. insertedItem is null/undefined.`);
   return { error: "Failed to add item for an unknown reason." };
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    const authResult = await getCurrentUser();
-    if (!authResult.user) {
-      return { error: "User not authenticated. Debug: " + (authResult.debugMessage || "No specific debug message.") };
-    }
-    const userId = authResult.user.id;
+    const authDetails = await getCurrentUser();
+    const trustedUserId = authDetails.user?.id;
+    const clientReportedUserId = itemData.invokedByUserId;
 
-    const currentItemResult = await getItemById(id); // This already checks ownership via user_id in its query
+    if (!trustedUserId) {
+      // console.error(`[UpdateItem] Critical: Server session invalid or expired. Debug: ${authDetails.debugMessage}`);
+      return { error: "User not authenticated on server for update. Session may have expired. Please log out and log in. Debug: " + (authDetails.debugMessage || "No trusted user ID from session.") };
+    }
+    
+    const userId = trustedUserId; // Use the trusted server-side user ID for the operation
+
+    if (clientReportedUserId && clientReportedUserId !== trustedUserId) {
+        // console.warn(`[UpdateItem] User ID mismatch during update: Client reported '${clientReportedUserId}', server session ID is '${trustedUserId}'. Update will proceed based on server session ID only for security.`);
+    }
+
+    const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
         return { error: (currentItemResult as { error: string })?.error || "Item not found or not accessible for update." };
     }
-    // No need for currentItemData.user_id !== userId check as getItemById already scopes to user
+    
+    const currentItem = currentItemResult as Item; // Cast after error check
 
     const updatePayload: { [key: string]: any } = { ...itemData };
     const now = new Date().toISOString();
@@ -216,7 +229,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if (itemData.storageLocation !== undefined) updatePayload.storage_location = itemData.storageLocation; else if (itemData.hasOwnProperty('storageLocation')) updatePayload.storage_location = null;
     if (itemData.binLocation !== undefined) updatePayload.bin_location = itemData.binLocation; else if (itemData.hasOwnProperty('binLocation')) updatePayload.bin_location = null;
 
-    if (itemData.status && itemData.status !== currentItemResult.status) {
+    if (itemData.status && itemData.status !== currentItem.status) {
         updatePayload.status = itemData.status;
         updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
         updatePayload.in_use_date = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
@@ -224,33 +237,37 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload.sold_date = null;
             updatePayload.in_use_date = null;
         }
-    } else if (itemData.status === currentItemResult.status) { 
-        if (itemData.status === 'sold') updatePayload.sold_date = itemData.soldDate !== undefined ? itemData.soldDate : currentItemResult.sold_date; else if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = null;
-        if (itemData.status === 'in use') updatePayload.in_use_date = itemData.inUseDate !== undefined ? itemData.inUseDate : currentItemResult.in_use_date; else if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = null;
+    } else if (itemData.status === currentItem.status) { 
+        if (itemData.status === 'sold') updatePayload.sold_date = itemData.soldDate !== undefined ? itemData.soldDate : currentItem.sold_date; else if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = null;
+        if (itemData.status === 'in use') updatePayload.in_use_date = itemData.inUseDate !== undefined ? itemData.inUseDate : currentItem.in_use_date; else if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = null;
     } else { 
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate;
     }
     
-    const keysToRemoveFromPayload = ['originalPrice', 'salesPrice', 'receiptImageUrl', 'productImageUrl', 'productUrl', 'purchaseDate', 'storageLocation', 'binLocation'];
+    const keysToRemoveFromPayload = ['originalPrice', 'salesPrice', 'receiptImageUrl', 'productImageUrl', 'productUrl', 'purchaseDate', 'storageLocation', 'binLocation', 'invokedByUserId'];
     keysToRemoveFromPayload.forEach(key => {
       if (key in updatePayload) { 
         const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-        if (snakeKey in updatePayload) { 
-          delete updatePayload[key]; 
+        if (snakeKey !== key && snakeKey in updatePayload) { // If it was already transformed
+          // do nothing here, it's fine
+        } else if (snakeKey === key && Object.prototype.hasOwnProperty.call(itemData, key as keyof ItemInput)) {
+          // do nothing
         }
+         delete updatePayload[key]; 
       }
     });
-
+    
     Object.keys(updatePayload).forEach(key => {
         if (updatePayload[key] === undefined && !itemData.hasOwnProperty(key as keyof ItemInput)) { 
           delete updatePayload[key];
         }
     });
-    
+        
     delete updatePayload.user_id;
     delete updatePayload.id; 
     delete updatePayload.created_at; 
+    delete updatePayload.invokedByUserId; // Ensure this is removed
     updatePayload.updated_at = now; 
 
 
@@ -258,7 +275,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', userId) 
+        .eq('user_id', userId) // Crucial: ensure the update only happens if the item belongs to the trusted user
         .select()
         .single();
 
@@ -325,8 +342,8 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     if (!currentItemResult || 'error' in currentItemResult) {
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
-    // No need for currentItemResult.user_id !== userId check here because getItemById now scopes to user
-    const currentItem = currentItemResult as Item; // Cast because we've checked for error
+    
+    const currentItem = currentItemResult as Item; 
   
     const updatePayload: { [key: string]: any } = { status: newStatus };
     const now = new Date().toISOString();

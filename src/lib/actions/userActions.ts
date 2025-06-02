@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase/client';
 import { redirect } from 'next/navigation';
+import { cache } from 'react'; // Import React.cache
 
 const SESSION_COOKIE_NAME = 'stocksentry_custom_session';
 
@@ -84,40 +85,39 @@ export async function logoutUser(): Promise<{ success: boolean; message?: string
   }
 }
 
-export async function getCurrentUser(): Promise<GetCurrentUserResult> {
-  const timestamp = new Date().toISOString();
-  let debugMessage = `[GetCurrentUser (${timestamp})] Initializing.`;
+export const getCurrentUser = cache(async (): Promise<GetCurrentUserResult> => {
+  // const timestamp = new Date().toISOString();
+  // let debugMessage = `[GetCurrentUser (${timestamp})] Initializing (cached function).`;
 
   let rawCookie: ReturnType<typeof cookies>['get'] | undefined;
   let userId: string | undefined;
 
   try {
-    // console.log(`[GetCurrentUser (${timestamp})] Attempting to read cookie: ${SESSION_COOKIE_NAME}`);
-    const cookieStore = cookies();
-    rawCookie = cookieStore.get(SESSION_COOKIE_NAME);
-    // console.log(`[GetCurrentUser (${timestamp})] cookies().get() call completed. Raw cookie object:`, rawCookie);
+    // debugMessage += ` Attempting to read cookie: ${SESSION_COOKIE_NAME}.`;
+    const cookieStore = cookies(); // Get the cookie store
+    rawCookie = cookieStore.get(SESSION_COOKIE_NAME); // Use the store to get the cookie
   } catch (cookieAccessError: any) {
-    debugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
-    // console.error(`[GetCurrentUser (${timestamp})] ` + debugMessage);
-    return { user: null, debugMessage };
+    // debugMessage += ` CRITICAL: Failed to execute cookies().get("${SESSION_COOKIE_NAME}"): ${cookieAccessError.message}.`;
+    // console.error(debugMessage);
+    return { user: null, debugMessage: `Failed to access cookie store: ${cookieAccessError.message}` };
   }
 
   if (!rawCookie) {
-    debugMessage += ` Session cookie object "${SESSION_COOKIE_NAME}" not found by cookies().get().`;
-    // console.warn(`[GetCurrentUser (${timestamp})] ` + debugMessage);
-    return { user: null, debugMessage };
+    // debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" not found.`;
+    // console.warn(debugMessage);
+    return { user: null, debugMessage: `Session cookie "${SESSION_COOKIE_NAME}" not found.` };
   }
   
   userId = rawCookie.value;
-  debugMessage += ` Session cookie object "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
+  // debugMessage += ` Session cookie "${SESSION_COOKIE_NAME}" found: value='${userId}'.`;
 
   if (!userId || userId.trim() === "") {
-    debugMessage += ` Cookie value (userId) is empty/whitespace.`;
-    // console.warn(`[GetCurrentUser (${timestamp})] ` + debugMessage);
-    return { user: null, debugMessage };
+    // debugMessage += ` Cookie value (userId) is empty/whitespace.`;
+    // console.warn(debugMessage);
+    return { user: null, debugMessage: "Session cookie found, but user ID is empty." };
   }
 
-  // console.log(`[GetCurrentUser (${timestamp})] ` + debugMessage + ` Fetching from Supabase with userId: "${userId}".`);
+  // debugMessage += ` Fetching from Supabase with userId: "${userId}".`;
   const { data: dbUser, error: dbError } = await supabase
     .from('stock_sentry_users')
     .select('id, username, role')
@@ -125,21 +125,21 @@ export async function getCurrentUser(): Promise<GetCurrentUserResult> {
     .single();
 
   if (dbError) {
-    debugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
-    // console.error(`[GetCurrentUser (${timestamp})] ` + debugMessage);
-    return { user: null, debugMessage };
+    // debugMessage += ` Supabase error fetching user for ID "${userId}": ${dbError.message} (Code: ${dbError.code}).`;
+    // console.error(debugMessage);
+    return { user: null, debugMessage: `Database error fetching user: ${dbError.message}` };
   }
 
   if (!dbUser) {
-    debugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
-    // console.warn(`[GetCurrentUser (${timestamp})] ` + debugMessage);
-    return { user: null, debugMessage };
+    // debugMessage += ` No user found in Supabase for ID "${userId}". Cookie might be stale or user deleted.`;
+    // console.warn(debugMessage);
+    return { user: null, debugMessage: "User ID from cookie not found in database." };
   }
   
-  debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
-  // console.log(`[GetCurrentUser (${timestamp})] ` + debugMessage + " RETURNING USER.");
-  return { user: dbUser as CurrentUser, debugMessage };
-}
+  // debugMessage += ` Successfully fetched user: ${dbUser.username} (Role: ${dbUser.role}, ID: ${dbUser.id}).`;
+  // console.log(debugMessage);
+  return { user: dbUser as CurrentUser, debugMessage: "User successfully retrieved." };
+});
 
 
 export async function getUsers(): Promise<UserView[]> {
@@ -303,4 +303,3 @@ export async function getRoleForCurrentUser(): Promise<UserRole | null> {
   const { user } = await getCurrentUser(); 
   return user ? (user.role?.trim().toLowerCase() as UserRole) : null;
 }
-

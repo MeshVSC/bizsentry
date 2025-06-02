@@ -23,7 +23,7 @@ import { useState, useTransition } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UploadCloud, Image as ImageIcon, Link as LinkIcon, PackagePlus, PackageCheck, PackageX } from "lucide-react";
+import { Loader2, UploadCloud, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { SubmitButton } from "@/components/shared/SubmitButton";
 import {
   Select,
@@ -35,6 +35,7 @@ import {
 import NextImage from "next/image";
 import { DatePicker } from "@/components/shared/DatePicker"; 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useAuth } from "@/contexts/AuthContext"; // Import useAuth
 
 const itemStatuses: ItemStatus[] = ['in stock', 'in use', 'sold'];
 
@@ -43,17 +44,17 @@ const itemFormSchema = z.object({
   description: z.string().max(500).optional().default(""),
   quantity: z.coerce.number().min(0, { message: "Quantity must be non-negative." }),
   category: z.string().max(50).optional().default(""),
-  subcategory: z.string().max(50).optional().default(""), // New
+  subcategory: z.string().max(50).optional().default(""), 
   storageLocation: z.string().max(100).optional().default(""),
   binLocation: z.string().max(50).optional().default(""),
-  room: z.string().max(100).optional().default(""), // New
-  vendor: z.string().max(100).optional().default(""), // Will be dropdown
-  project: z.string().max(100).optional().default(""), // Will be dropdown
+  room: z.string().max(100).optional().default(""), 
+  vendor: z.string().max(100).optional().default(""), 
+  project: z.string().max(100).optional().default(""), 
   originalPrice: z.coerce.number().min(0).optional(),
   salesPrice: z.coerce.number().min(0).optional(),
   msrp: z.coerce.number().min(0).optional(), 
   sku: z.string().max(50).optional().default(""),
-  status: z.enum(itemStatuses, { required_error: "Status is required."}).default("in stock"), // Updated
+  status: z.enum(itemStatuses, { required_error: "Status is required."}).default("in stock"),
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
   productImageUrl: z.string().optional().default(""),
   productUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""),
@@ -69,12 +70,12 @@ interface ItemFormProps {
   onSubmitAction: (data: ItemInput) => Promise<Item | { error: string } | undefined>;
   isEditing?: boolean;
   availableCategories: string[];
-  availableSubcategories: string[]; // New
+  availableSubcategories: string[]; 
   availableStorageLocations: string[];
   availableBinLocations: string[];
-  availableRooms: string[]; // New
-  availableVendors: string[]; // New
-  availableProjects: string[]; // New
+  availableRooms: string[]; 
+  availableVendors: string[]; 
+  availableProjects: string[]; 
 }
 
 const MAX_IMAGE_SIZE_MB = 2;
@@ -96,6 +97,7 @@ export default function ItemForm({
   const [isPending, startTransition] = useTransition();
   const [isReceiptProcessing, setIsReceiptProcessing] = useState(false);
   const [isProductImageProcessing, setIsProductImageProcessing] = useState(false);
+  const { currentUser } = useAuth(); // Get currentUser from AuthContext
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -174,6 +176,15 @@ export default function ItemForm({
 
 
   async function onSubmit(data: ItemFormValues) {
+    if (!currentUser?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "Your session seems to have expired or is invalid. Please log in again to add/edit an item.",
+        variant: "destructive",
+      });
+      return; // Prevent submission
+    }
+
     const payload: ItemInput = {
         ...data,
         originalPrice: data.originalPrice === "" ? undefined : Number(data.originalPrice),
@@ -195,6 +206,7 @@ export default function ItemForm({
         purchaseDate: data.purchaseDate ? data.purchaseDate.toISOString() : undefined, 
         soldDate: data.soldDate ? data.soldDate.toISOString() : undefined, 
         inUseDate: data.inUseDate ? data.inUseDate.toISOString() : undefined,
+        invokedByUserId: currentUser.id, // Add invokedByUserId from context
     };
 
     startTransition(async () => {

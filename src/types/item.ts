@@ -52,6 +52,7 @@ export type ItemInput = {
   purchaseDate?: string;
   soldDate?: string; // Potentially set by form or action
   inUseDate?: string; // Potentially set by form or action
+  invokedByUserId?: string; // To help server actions identify the calling user if direct session reading is problematic
 };
 
 export interface ExtractedItemData {
