@@ -12,7 +12,10 @@ interface ApplicationSettingsPageProps {
 }
 
 export default async function ApplicationSettingsPage({ currentUser }: ApplicationSettingsPageProps) {
-  // DO NOT call getCurrentUser() here. Use the prop.
+  // --- TEMPORARY DEBUG DISPLAY ---
+  const debugCurrentUserDisplay = currentUser ? JSON.stringify(currentUser, null, 2) : "currentUser is null";
+  // --- END TEMPORARY DEBUG DISPLAY ---
+
   const userRole = currentUser?.role?.trim().toLowerCase();
 
   if (!currentUser || (userRole !== 'admin' && userRole !== 'manager')) {
@@ -23,6 +26,13 @@ export default async function ApplicationSettingsPage({ currentUser }: Applicati
         <p className="text-muted-foreground text-center">
           You do not have permission to view this page. Please contact an administrator.
         </p>
+        {/* Debug info displayed within the access denied block */}
+        <div className="mt-4 p-4 bg-muted rounded-md text-xs w-full max-w-lg shadow">
+          <h3 className="font-semibold mb-2 text-foreground">Debug Information (Access Denied Context):</h3>
+          <p className="text-foreground">Current User Object Received by Page:</p>
+          <pre className="whitespace-pre-wrap break-all bg-background p-2 rounded text-sm">{debugCurrentUserDisplay}</pre>
+          <p className="mt-2 text-foreground">Computed User Role for Check: <code className="bg-background p-1 rounded text-sm">{userRole || 'undefined'}</code></p>
+        </div>
       </div>
     );
   }
@@ -35,6 +45,13 @@ export default async function ApplicationSettingsPage({ currentUser }: Applicati
         title="Application Settings"
         description="Manage global behaviors of the application."
       />
+      {/* Debug info displayed if access is granted */}
+      <div className="mb-4 p-3 bg-yellow-900/20 border border-yellow-700/50 text-yellow-300 rounded-md text-xs shadow">
+          <h3 className="font-semibold mb-1">Debug Information (Access Granted Context):</h3>
+          <p>Current User Object Received by Page:</p>
+          <pre className="whitespace-pre-wrap break-all bg-background/30 p-2 rounded text-sm">{debugCurrentUserDisplay}</pre>
+          <p className="mt-1">Computed User Role for Check: <code className="bg-background/30 p-1 rounded text-sm">{userRole || 'undefined'}</code></p>
+      </div>
       <Card>
         <CardHeader>
             <CardTitle>General Application Settings</CardTitle>
