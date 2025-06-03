@@ -16,11 +16,14 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
     .eq('type', optionType);
 
   if (fetchError) {
-    // console.error(`Error fetching global ${optionType}:`, fetchError);
+    console.error(`Error fetching global ${optionType}:`, fetchError.message);
     return; 
   }
 
+  // console.log(`[Seed Check] Found ${existingOptions?.length || 0} existing global ${optionType} options.`);
+
   if (existingOptions && existingOptions.length === 0) {
+    // console.log(`[Seed Action] No global ${optionType} options found. Attempting to seed default options.`);
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
@@ -32,7 +35,10 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
       .insert(optionsToInsert);
 
     if (insertError) {
-      // console.error(`Error seeding global ${optionType}:`, insertError);
+      console.error(`Error seeding global ${optionType}:`, insertError.message);
+      // console.error(`Full seeding error for ${optionType}:`, insertError);
+    } else {
+      // console.log(`[Seed Success] Successfully seeded default global ${optionType} options.`);
     }
   }
 }
@@ -682,3 +688,6 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   return results;
 }
 
+
+
+    
