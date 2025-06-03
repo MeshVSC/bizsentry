@@ -6,28 +6,26 @@ import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client'; 
+
 // getCurrentUser import removed
 
 async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
     .select('name')
-    .is('user_id', null) // Check for global options
+    .is('user_id', null) 
     .eq('type', optionType);
 
   if (fetchError) {
-    console.error(`Error fetching global ${optionType}:`, fetchError.message);
+    console.error(`[Seed Error] Error fetching global ${optionType}:`, fetchError.message, fetchError.details);
     return; 
   }
 
-  // console.log(`[Seed Check] Found ${existingOptions?.length || 0} existing global ${optionType} options.`);
-
   if (existingOptions && existingOptions.length === 0) {
-    // console.log(`[Seed Action] No global ${optionType} options found. Attempting to seed default options.`);
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
-      user_id: null, // Explicitly set user_id to null for global options
+      user_id: null, 
     }));
 
     const { error: insertError } = await supabase
@@ -35,10 +33,7 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
       .insert(optionsToInsert);
 
     if (insertError) {
-      console.error(`Error seeding global ${optionType}:`, insertError.message);
-      // console.error(`Full seeding error for ${optionType}:`, insertError);
-    } else {
-      // console.log(`[Seed Success] Successfully seeded default global ${optionType} options.`);
+      console.error(`[Seed Error] Error seeding global ${optionType}:`, insertError.message, insertError.details);
     }
   }
 }
@@ -52,13 +47,10 @@ export interface ItemFilters {
 }
 
 export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
-  // No user context, fetch all items.
   let query = supabase
     .from('items')
     .select('*', { count: 'exact' })
-    .is('user_id', null); // Fetch only items with user_id = NULL (global items)
-                            // Or remove .is('user_id', null) if items can have user_id from before and you want to see all of them.
-                            // For a true "no-user" system, ideally items don't have user_ids or they are all NULL.
+    .is('user_id', null); 
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -71,11 +63,9 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
   query = query.order('created_at', { ascending: false });
   
-  // First, get the total count of matching items
   const { count: totalMatchingCount, error: countError } = await query;
 
   if (countError) {
-    // console.error("Error fetching item count:", countError);
     return { items: [], totalPages: 0, count: 0 };
   }
   
@@ -87,7 +77,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     const limit = filters.limit;
     const startIndex = (page - 1) * limit;
     totalPages = Math.ceil(totalItems / limit);
-    query = query.range(startIndex, startIndex + limit - 1); // Apply pagination to the original query object
+    query = query.range(startIndex, startIndex + limit - 1); 
   } else if (totalItems === 0) {
      return { items: [], totalPages: 0, count: 0 };
   }
@@ -96,7 +86,6 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   const { data, error } = await query;
 
   if (error) {
-    // console.error("Error fetching items:", error);
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -104,20 +93,17 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 }
 
 export async function getItemById(id: string): Promise<Item | undefined | { error: string }> {
-  // No user context, fetch item by ID.
-  // Assumes items are global or we are fetching an item with user_id = NULL
   const { data, error } = await supabase
     .from('items')
     .select('*')
     .eq('id', id)
-    .is('user_id', null) // Consider if this should be removed to find any item by ID
+    .is('user_id', null) 
     .single(); 
 
   if (error) {
     if (error.code === 'PGRST116') { 
         return { error: "Item not found." };
     }
-    // console.error("Error fetching item by ID:", error);
     return { error: error.message };
   }
   return data as Item | undefined;
@@ -127,7 +113,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: null, // Explicitly set user_id to null
+    user_id: null, 
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -153,7 +139,6 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     qr_code_data: itemData.sku ? `QR-${itemData.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
   };
   
-  // Ensure undefined optional fields are passed as null
   for (const key in newItemPayload) {
     if (newItemPayload[key] === undefined) {
       newItemPayload[key] = null;
@@ -167,7 +152,6 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     .single();
 
   if (error) {
-    // console.error("Error adding item:", error);
     let fullErrorMessage = `Failed to add item: ${error.message}.`;
     if (error.details) {
       fullErrorMessage += ` Details: ${error.details}.`;
@@ -232,7 +216,6 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     
     updatePayload.updated_at = now;
 
-    // Ensure undefined properties are nullified
     for (const key in updatePayload) {
       if (updatePayload[key] === undefined) {
         updatePayload[key] = null;
@@ -243,12 +226,11 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .is('user_id', null) // Assuming we only update global items
+        .is('user_id', null) 
         .select()
         .single();
 
     if (error) {
-        // console.error("Error updating item:", error);
         let fullErrorMessage = `Failed to update item: ${error.message}.`;
         if (error.details) {
           fullErrorMessage += ` Details: ${error.details}.`;
@@ -274,10 +256,9 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .from('items')
     .delete()
     .eq('id', id)
-    .is('user_id', null); // Assuming we only delete global items
+    .is('user_id', null); 
 
   if (error) {
-    // console.error("Error deleting item:", error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -295,7 +276,6 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     }
     return extractedData;
   } catch (error) {
-    // console.error("Error processing receipt:", error);
     return { error: "Failed to extract data from receipt. Please try again or enter manually." };
   }
 }
@@ -326,12 +306,11 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .is('user_id', null) // Assuming we only update global items
+      .is('user_id', null) 
       .select()
       .single();
     
     if (error) {
-      // console.error("Error updating item status:", error);
       return { error: error.message };
     }
   
@@ -352,10 +331,9 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .is('user_id', null); // Assuming we only delete global items
+    .is('user_id', null); 
 
   if (error) {
-    // console.error("Error bulk deleting items:", error);
     return { success: false, message: error.message };
   }
   if (count && count > 0) {
@@ -389,11 +367,10 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .is('user_id', null) // Assuming we only update global items
+    .is('user_id', null) 
     .select({count: 'exact'}); 
 
   if (error) {
-    // console.error("Error bulk updating item statuses:", error);
     return { success: false, message: error.message };
   }
 
@@ -411,10 +388,9 @@ export async function getUniqueCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .is('user_id', null); // Only consider global items for categories
+    .is('user_id', null); 
 
   if (error) {
-    // console.error("Error fetching unique categories:", error);
     return [];
   }
   if (!data) return [];
@@ -432,7 +408,7 @@ const defaultManagedVendors = ['TechSupply Co.', 'Keychron', 'Accessory King', '
 const defaultManagedProjects = ['Office Upgrade', 'Gaming Setup', 'General Stock', 'Ergonomics Improvement', 'New Office Setup', 'Client Project X', 'Internal R&D'];
 
 
-type OptionType = 'category' | 'subcategory' | 'storage_location' | 'bin_location' | 'room' | 'vendor' | 'project';
+export type OptionType = 'category' | 'subcategory' | 'storage_location' | 'bin_location' | 'room' | 'vendor' | 'project';
 
 const optionTypeToDefaultsMap: Record<OptionType, string[]> = {
   'category': defaultManagedCategories,
@@ -461,11 +437,10 @@ async function getManagedOptions(optionType: OptionType): Promise<string[]> {
     .from('managed_options')
     .select('name')
     .eq('type', optionType)
-    .is('user_id', null) // Fetch only global options
+    .is('user_id', null) 
     .order('name', { ascending: true });
 
   if (error) {
-    // console.error(`Error fetching managed ${optionType} options:`, error);
     return [];
   }
   return data ? data.map(opt => opt.name) : [];
@@ -496,7 +471,6 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
-      // console.error(`Error checking existing ${singularName}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
@@ -512,7 +486,6 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     });
 
   if (insertError) {
-    // console.error(`Error adding ${singularName}:`, insertError);
     let fullErrorMessage = `Failed to add ${singularName}: ${insertError.message}.`;
     if (insertError.details) {
       fullErrorMessage += ` Details: ${insertError.details}.`;
@@ -542,7 +515,6 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .is('user_id', null); 
 
   if (error) {
-    // console.error(`Error deleting ${singularName}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
@@ -568,6 +540,38 @@ export async function addManagedVendorOption(name: string) { return addManagedOp
 export async function deleteManagedVendorOption(name: string) { return deleteManagedOption(name, 'vendor'); }
 export async function addManagedProjectOption(name: string) { return addManagedOption(name, 'project'); }
 export async function deleteManagedProjectOption(name: string) { return deleteManagedOption(name, 'project'); }
+
+export async function bulkDeleteManagedOptions(names: string[], optionType: OptionType): Promise<{ success: boolean; message?: string; count?: number }> {
+  const singularName = optionTypeToSingularName[optionType];
+  if (!names || names.length === 0) {
+    return { success: false, message: `No ${singularName.toLowerCase()}s selected for deletion.` };
+  }
+
+  const { error, count } = await supabase
+    .from('managed_options')
+    .delete({ count: 'exact' })
+    .in('name', names)
+    .eq('type', optionType)
+    .is('user_id', null);
+
+  if (error) {
+    return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
+  }
+
+  const updatedOptions = await getManagedOptions(optionType); // To refresh the list on the client
+  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
+  revalidatePath(settingsPagePath, "page");
+  revalidatePath("/inventory/add", "layout");
+  revalidatePath("/inventory/[id]/edit", "layout");
+
+  if (count !== null && count > 0) {
+    return { success: true, message: `${count} ${singularName.toLowerCase()}(s) deleted successfully.`, count };
+  } else if (count === 0) {
+    return { success: false, message: `No matching ${singularName.toLowerCase()}s found for deletion.` };
+  }
+  return { success: false, message: `An issue occurred while deleting ${singularName.toLowerCase()}s.` };
+}
+
 
 export interface BulkImportResult {
   successCount: number;
@@ -688,6 +692,3 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   return results;
 }
 
-
-
-    
