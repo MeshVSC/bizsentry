@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
@@ -161,7 +162,14 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 
   if (error) {
     // console.error("Error adding item:", error);
-    return { error: `Failed to add item: ${error.message}. Details: ${error.details}.` };
+    let fullErrorMessage = `Failed to add item: ${error.message}.`;
+    if (error.details) {
+      fullErrorMessage += ` Details: ${error.details}.`;
+    }
+    if (error.hint) {
+      fullErrorMessage += ` Hint: ${error.hint}.`;
+    }
+    return { error: fullErrorMessage };
   }
 
   if (insertedItem) {
@@ -235,7 +243,14 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
 
     if (error) {
         // console.error("Error updating item:", error);
-        return { error: `Failed to update item: ${error.message}. Details: ${error.details}` };
+        let fullErrorMessage = `Failed to update item: ${error.message}.`;
+        if (error.details) {
+          fullErrorMessage += ` Details: ${error.details}.`;
+        }
+        if (error.hint) {
+          fullErrorMessage += ` Hint: ${error.hint}.`;
+        }
+        return { error: fullErrorMessage };
     }
     if (updatedItem) {
         revalidatePath("/inventory", "layout");
@@ -471,7 +486,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .select('id')
     .eq('type', optionType)
     .ilike('name', name.trim())
-    .is('user_id', null) // Check against global options
+    .is('user_id', null) 
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
@@ -487,12 +502,19 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: null, // Explicitly set user_id to null
+      user_id: null, 
     });
 
   if (insertError) {
     // console.error(`Error adding ${singularName}:`, insertError);
-    return { success: false, message: `Failed to add ${singularName}: ${insertError.message}.` };
+    let fullErrorMessage = `Failed to add ${singularName}: ${insertError.message}.`;
+    if (insertError.details) {
+      fullErrorMessage += ` Details: ${insertError.details}.`;
+    }
+    if (insertError.hint) {
+      fullErrorMessage += ` Hint: ${insertError.hint}.`;
+    }
+    return { success: false, message: fullErrorMessage };
   }
 
   const updatedOptions = await getManagedOptions(optionType);
@@ -511,7 +533,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .delete()
     .eq('type', optionType)
     .eq('name', name)
-    .is('user_id', null); // Delete only global options
+    .is('user_id', null); 
 
   if (error) {
     // console.error(`Error deleting ${singularName}:`, error);
@@ -639,7 +661,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         itemInput.purchaseDate = undefined;
       }
 
-      const addResult = await addItem(itemInput); // addItem will now handle user_id as null
+      const addResult = await addItem(itemInput); 
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
@@ -659,3 +681,4 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
   return results;
 }
+
