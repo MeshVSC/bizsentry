@@ -48,7 +48,7 @@ export default function SubcategoriesSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading subcategories...</p> : (
             <ManageOptionsSection
-              optionType="Subcategory"
+              optionType="subcategory" // Corrected from "Subcategory"
               initialOptions={initialSubcategories}
               addOptionAction={addManagedSubcategoryOption}
               deleteOptionAction={deleteManagedSubcategoryOption}

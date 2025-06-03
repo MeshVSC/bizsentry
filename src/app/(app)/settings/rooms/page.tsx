@@ -48,7 +48,7 @@ export default function RoomsSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading rooms...</p> : (
             <ManageOptionsSection
-              optionType="Room"
+              optionType="room" // Corrected from "Room"
               initialOptions={initialRooms}
               addOptionAction={addManagedRoomOption}
               deleteOptionAction={deleteManagedRoomOption}

@@ -48,7 +48,7 @@ export default function VendorsSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading vendors...</p> : (
             <ManageOptionsSection
-              optionType="Vendor"
+              optionType="vendor" // Corrected from "Vendor"
               initialOptions={initialVendors}
               addOptionAction={addManagedVendorOption}
               deleteOptionAction={deleteManagedVendorOption}

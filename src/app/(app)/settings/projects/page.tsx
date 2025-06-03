@@ -48,7 +48,7 @@ export default function ProjectsSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading projects...</p> : (
             <ManageOptionsSection
-              optionType="Project"
+              optionType="project" // Corrected from "Project"
               initialOptions={initialProjects}
               addOptionAction={addManagedProjectOption}
               deleteOptionAction={deleteManagedProjectOption}

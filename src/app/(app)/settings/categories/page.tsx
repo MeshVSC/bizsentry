@@ -48,7 +48,7 @@ export default function CategoriesSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading categories...</p> : (
             <ManageOptionsSection
-              optionType="Category"
+              optionType="category" // Corrected from "Category"
               initialOptions={initialCategories}
               addOptionAction={addManagedCategoryOption}
               deleteOptionAction={deleteManagedCategoryOption}

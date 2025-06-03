@@ -48,7 +48,7 @@ export default function StorageLocationsSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading storage locations...</p> : (
             <ManageOptionsSection
-              optionType="Storage Location"
+              optionType="storage_location" // Corrected from "Storage Location"
               initialOptions={initialStorageLocations}
               addOptionAction={addManagedStorageLocationOption}
               deleteOptionAction={deleteManagedStorageLocationOption}

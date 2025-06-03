@@ -48,7 +48,7 @@ export default function BinLocationsSettingsPage() {
         <CardContent className="pt-6">
           {loading ? <p>Loading bin locations...</p> : (
             <ManageOptionsSection
-              optionType="Bin Location"
+              optionType="bin_location" // Corrected from "Bin Location"
               initialOptions={initialBinLocations}
               addOptionAction={addManagedBinLocationOption}
               deleteOptionAction={deleteManagedBinLocationOption}
