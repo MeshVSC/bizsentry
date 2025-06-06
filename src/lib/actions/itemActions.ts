@@ -6,18 +6,17 @@ import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client';
 
-// Note: User authentication is removed. All item operations will use user_id = NULL.
-// Ensure items.user_id and managed_options.user_id columns are nullable in Supabase.
+const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c';
 
-async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
+async function seedAdminUserOptions(optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
     .select('name', { count: 'exact' })
-    .is('user_id', null)
+    .eq('user_id', ADMIN_USER_ID)
     .eq('type', optionType);
 
   if (fetchError) {
-    let fullErrorMessage = `[Seed Error] Error fetching global ${optionType}: ${fetchError.message}.`;
+    let fullErrorMessage = `[Seed Error] Error fetching options for admin user ${ADMIN_USER_ID}, type ${optionType}: ${fetchError.message}.`;
     if (fetchError.details) fullErrorMessage += ` Details: ${fetchError.details}.`;
     if (fetchError.code) fullErrorMessage += ` Code: ${fetchError.code}.`;
     // console.error(fullErrorMessage);
@@ -30,7 +29,7 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
-      user_id: null, // Managed options are global
+      user_id: ADMIN_USER_ID,
     }));
 
     if (optionsToInsert.length > 0) {
@@ -39,12 +38,12 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
         .insert(optionsToInsert);
 
         if (insertError) {
-          let fullInsertErrorMessage = `[Seed Error] Error seeding global ${optionType}: ${insertError.message}.`;
+          let fullInsertErrorMessage = `[Seed Error] Error seeding options for admin user ${ADMIN_USER_ID}, type ${optionType}: ${insertError.message}.`;
           if (insertError.details) fullInsertErrorMessage += ` Details: ${insertError.details}.`;
           if (insertError.code) fullInsertErrorMessage += ` Code: ${insertError.code}.`;
           // console.error(fullInsertErrorMessage);
         } else {
-        // console.log(`[Seed Info] Successfully seeded ${optionsToInsert.length} global ${optionType}(s).`);
+        // console.log(`[Seed Info] Successfully seeded ${optionsToInsert.length} options for admin user ${ADMIN_USER_ID}, type ${optionType}.`);
         }
     }
   }
@@ -62,7 +61,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   let query = supabase
     .from('items')
     .select('*', { count: 'exact' })
-    .is('user_id', null); // Items are global
+    .eq('user_id', ADMIN_USER_ID);
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -80,7 +79,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
 
   if (countError) {
-    // console.error("Error fetching items count:", countError.message);
+    // console.error(`Error fetching items count for admin user ${ADMIN_USER_ID}:`, countError.message);
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -101,7 +100,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   const { data, error: dataError } = await query.select();
 
   if (dataError) {
-    // console.error("Error fetching items data:", dataError.message);
+    // console.error(`Error fetching items data for admin user ${ADMIN_USER_ID}:`, dataError.message);
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -113,11 +112,11 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     .from('items')
     .select('*', { count: 'exact' })
     .eq('id', id)
-    .is('user_id', null) // Item is global
+    .eq('user_id', ADMIN_USER_ID)
     .maybeSingle();
 
   if (error) {
-    let message = `Error fetching item by ID '${id}' (user_id IS NULL). DB message: ${error.message}.`;
+    let message = `Error fetching item by ID '${id}' for admin user ${ADMIN_USER_ID}. DB message: ${error.message}.`;
     if (error.code) message += ` Code: ${error.code}.`;
     if (error.details) message += ` Details: ${error.details}.`;
     if (count !== null) message += ` Initial query indicated ${count} potential matches.`;
@@ -126,13 +125,13 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
   }
 
   if (data === null) {
-    const message = `Item with ID '${id}' (user_id IS NULL) not found. Query matched 0 rows.`;
+    const message = `Item with ID '${id}' for admin user ${ADMIN_USER_ID} not found. Query matched 0 rows.`;
     // console.log(`getItemById debug: ${message}`);
     return { error: message };
   }
 
   if (count !== null && count > 1) {
-    const message = `CRITICAL: getItemById for ID '${id}' (user_id IS NULL) returned data BUT count is ${count}. This indicates a data integrity or query issue.`;
+    const message = `CRITICAL: getItemById for ID '${id}' (admin user ${ADMIN_USER_ID}) returned data BUT count is ${count}. This indicates a data integrity or query issue.`;
     // console.error(message);
     return { error: message };
   }
@@ -145,7 +144,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: null, // Item is global
+    user_id: ADMIN_USER_ID,
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -184,7 +183,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     .single();
 
   if (error) {
-    let fullErrorMessage = `Failed to add item: ${error.message}.`;
+    let fullErrorMessage = `Failed to add item for admin user ${ADMIN_USER_ID}: ${error.message}.`;
     if (error.details) fullErrorMessage += ` Details: ${error.details}.`;
     if (error.hint) fullErrorMessage += ` Hint: ${error.hint}.`;
     // console.error("Error in addItem:", fullErrorMessage, "Payload:", newItemPayload);
@@ -202,16 +201,15 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    // console.log(`[updateItem] Initiating update for ID: '${id}', user_id IS NULL with data:`, itemData);
     const currentItemResult = await getItemById(id); 
 
     if ('error' in currentItemResult) {
-        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id IS NULL. Error: ${currentItemResult.error}`);
+        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id ${ADMIN_USER_ID}. Error: ${currentItemResult.error}`);
         return { error: `Cannot update item. Initial fetch failed: ${currentItemResult.error}` };
     }
     if (!currentItemResult) {
-        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}'. No item data returned (getItemById returned undefined).`);
-        return { error: `Item with ID '${id}' (user_id IS NULL) not found by getItemById (returned undefined). Cannot update.` };
+        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id ${ADMIN_USER_ID}. No item data returned (getItemById returned undefined).`);
+        return { error: `Item with ID '${id}' (user_id ${ADMIN_USER_ID}) not found by getItemById (returned undefined). Cannot update.` };
     }
 
     const currentItem = currentItemResult as Item;
@@ -246,13 +244,16 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload.in_use_date = null;
         }
     } else if (itemData.status === currentItem.status) {
+        // Only update dates if they are explicitly provided in itemData
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
     } else {
+        // Handle cases where status is not changing but dates might be
         if (itemData.hasOwnProperty('status')) updatePayload.status = itemData.status;
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
     }
+    
 
     updatePayload.updated_at = now;
 
@@ -261,31 +262,30 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         updatePayload[key] = null;
       }
     }
-    // console.log(`[updateItem] Attempting Supabase update for ID: '${id}', user_id IS NULL. Payload:`, updatePayload);
 
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .is('user_id', null) 
+        .eq('user_id', ADMIN_USER_ID) 
         .select()
         .single();
 
     if (updateError) {
-        let fullErrorMessage = `Failed to update item ID '${id}': ${updateError.message}.`;
+        let fullErrorMessage = `Failed to update item ID '${id}' for admin user ${ADMIN_USER_ID}: ${updateError.message}.`;
         if (updateError.details) fullErrorMessage += ` Details: ${updateError.details}.`;
         if (updateError.hint) fullErrorMessage += ` Hint: ${updateError.hint}.`;
         if (updateError.code) fullErrorMessage += ` Code: ${updateError.code}.`;
 
-        if (updateError.code === 'PGRST116') { // .single() error
-             fullErrorMessage += ` This usually means multiple items match the ID '${id}' and user_id IS NULL, or no items match this condition. Please check data integrity in the 'items' table for duplicate IDs where user_id IS NULL.`;
+        if (updateError.code === 'PGRST116') { 
+             fullErrorMessage += ` This usually means multiple items match the ID '${id}' and user_id '${ADMIN_USER_ID}', or no items match this condition. Please check data integrity in the 'items' table.`;
         }
         // console.error("[updateItem] Supabase update error:", fullErrorMessage, "Payload:", updatePayload, "ID:", id);
         return { error: fullErrorMessage };
     }
 
     if (!updatedItem) {
-        // console.error(`[updateItem] Supabase update for ID '${id}' (user_id IS NULL) returned no data and no error.`);
+        // console.error(`[updateItem] Supabase update for ID '${id}' (user_id ${ADMIN_USER_ID}) returned no data and no error.`);
         return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error. Check database logs.` };
     }
 
@@ -303,10 +303,10 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .from('items')
     .delete()
     .eq('id', id)
-    .is('user_id', null); // Item is global
+    .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
-    // console.error(`Error deleting item ${id} for global user:`, error);
+    // console.error(`Error deleting item ${id} for admin user ${ADMIN_USER_ID}:`, error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -332,7 +332,7 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
-      // console.error(`Update status failed: Item with ID ${id} (user_id IS NULL) not found or error fetching:`, (currentItemResult as {error: string})?.error);
+      // console.error(`Update status failed: Item with ID ${id} (user_id ${ADMIN_USER_ID}) not found or error fetching:`, (currentItemResult as {error: string})?.error);
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
 
@@ -346,7 +346,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     } else if (newStatus === 'in use') {
       updatePayload.in_use_date = currentItem.in_use_date || now;
       updatePayload.sold_date = null;
-    } else {
+    } else { // 'in stock'
       updatePayload.sold_date = null;
       updatePayload.in_use_date = null;
     }
@@ -356,12 +356,12 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .is('user_id', null) 
+      .eq('user_id', ADMIN_USER_ID) 
       .select()
       .single();
 
     if (error) {
-      // console.error(`Error updating item status for ${id} (user_id IS NULL):`, error);
+      // console.error(`Error updating item status for ${id} (user_id ${ADMIN_USER_ID}):`, error);
       return { error: error.message };
     }
 
@@ -372,7 +372,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    // console.error(`Error updating item status for ${id} (user_id IS NULL): No item returned but no DB error.`);
+    // console.error(`Error updating item status for ${id} (user_id ${ADMIN_USER_ID}): No item returned but no DB error.`);
     return { error: "Failed to update item status or item not found (no data returned)." };
 }
 
@@ -383,7 +383,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .is('user_id', null); // Items are global
+    .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
     // console.error("Error in bulkDeleteItems:", error);
@@ -393,9 +393,9 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
-    return { success: true, message: `${count} global item(s) deleted successfully.` };
+    return { success: true, message: `${count} item(s) for admin user ${ADMIN_USER_ID} deleted successfully.` };
   }
-  return { success: false, message: `No matching global items found to delete or none selected.` };
+  return { success: false, message: `No matching items for admin user ${ADMIN_USER_ID} found to delete or none selected.` };
 }
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
@@ -410,7 +410,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   } else if (newStatus === 'in use') {
     updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
-  } else {
+  } else { // 'in stock'
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
@@ -420,7 +420,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .is('user_id', null) // Items are global
+    .eq('user_id', ADMIN_USER_ID)
     .select({count: 'exact'});
 
   if (error) {
@@ -435,19 +435,19 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout"));
-    return { success: true, message: `${updatedCount} global item(s) status updated to ${newStatus}.` };
+    return { success: true, message: `${updatedCount} item(s) for admin user ${ADMIN_USER_ID} status updated to ${newStatus}.` };
   }
-  return { success: false, message: `No matching global items found to update or none selected.` };
+  return { success: false, message: `No matching items for admin user ${ADMIN_USER_ID} found to update or none selected.` };
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .is('user_id', null); // Categories from global items
+    .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
-    // console.error("Error fetching unique categories:", error);
+    // console.error(`Error fetching unique categories for admin user ${ADMIN_USER_ID}:`, error);
     return [];
   }
   if (!data) return [];
@@ -488,17 +488,17 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
-  await seedGlobalOptions(optionType, optionTypeToDefaultsMap[optionType]);
+  await seedAdminUserOptions(optionType, optionTypeToDefaultsMap[optionType]);
 
   const { data, error } = await supabase
     .from('managed_options')
     .select('name')
     .eq('type', optionType)
-    .is('user_id', null) 
+    .eq('user_id', ADMIN_USER_ID) 
     .order('name', { ascending: true });
 
   if (error) {
-    // console.error(`Error fetching managed options for ${optionType}:`, error);
+    // console.error(`Error fetching managed options for admin user ${ADMIN_USER_ID}, type ${optionType}:`, error);
     return [];
   }
   return data ? data.map(opt => opt.name) : [];
@@ -525,16 +525,16 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .select('id')
     .eq('type', optionType)
     .ilike('name', name.trim())
-    .is('user_id', null) 
+    .eq('user_id', ADMIN_USER_ID) 
     .limit(1)
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
-      // console.error(`Error checking existing ${singularName} "${name.trim()}":`, selectError);
+      // console.error(`Error checking existing ${singularName} "${name.trim()}" for admin user ${ADMIN_USER_ID}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
-    return { success: false, message: `${singularName} "${name.trim()}" already exists as a global option.` };
+    return { success: false, message: `${singularName} "${name.trim()}" already exists for this user.` };
   }
 
   const { error: insertError } = await supabase
@@ -542,11 +542,11 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: null, 
+      user_id: ADMIN_USER_ID, 
     });
 
   if (insertError) {
-    let fullErrorMessage = `Failed to add ${singularName}: ${insertError.message}.`;
+    let fullErrorMessage = `Failed to add ${singularName} for admin user ${ADMIN_USER_ID}: ${insertError.message}.`;
     if (insertError.details) fullErrorMessage += ` Details: ${insertError.details}.`;
     if (insertError.hint) fullErrorMessage += ` Hint: ${insertError.hint}.`;
     // console.error("Error in addManagedOption:", fullErrorMessage, "Name:", name.trim(), "Type:", optionType);
@@ -569,15 +569,15 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .delete({ count: 'exact' })
     .eq('type', optionType)
     .eq('name', name)
-    .is('user_id', null); 
+    .eq('user_id', ADMIN_USER_ID); 
 
   if (error) {
-    // console.error(`Error deleting managed option "${name}" of type ${optionType}:`, error);
+    // console.error(`Error deleting managed option "${name}" of type ${optionType} for admin user ${ADMIN_USER_ID}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
   if (count === 0) {
-     return { success: false, message: `${singularName} "${name}" not found for deletion.` };
+     return { success: false, message: `${singularName} "${name}" not found for deletion for this user.` };
   }
 
   const updatedOptions = await getManagedOptions(optionType);
@@ -614,25 +614,25 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     .delete({ count: 'exact' })
     .in('name', names)
     .eq('type', optionType)
-    .is('user_id', null); 
+    .eq('user_id', ADMIN_USER_ID); 
 
   if (error) {
-    // console.error(`Error bulk deleting managed options of type ${optionType}:`, error);
+    // console.error(`Error bulk deleting managed options of type ${optionType} for admin user ${ADMIN_USER_ID}:`, error);
     return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
   }
 
-  const updatedOptions = await getManagedOptions(optionType);
+  // No need to call getManagedOptions here for returning, already revalidated below.
   const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
   revalidatePath("/inventory/[id]/edit", "layout");
 
   if (count !== null && count > 0) {
-    return { success: true, message: `${count} ${singularName.toLowerCase()}(s) deleted successfully.`, count };
+    return { success: true, message: `${count} ${singularName.toLowerCase()}(s) deleted successfully for this user.`, count };
   } else if (count === 0) {
-    return { success: false, message: `No matching ${singularName.toLowerCase()}s found for deletion.` };
+    return { success: false, message: `No matching ${singularName.toLowerCase()}s found for deletion for this user.` };
   }
-  // console.error(`Bulk delete of ${optionType} reported count ${count} but no error.`);
+  // console.error(`Bulk delete of ${optionType} for admin user ${ADMIN_USER_ID} reported count ${count} but no error.`);
   return { success: false, message: `An issue occurred while deleting ${singularName.toLowerCase()}s (count: ${count}).` };
 }
 
@@ -726,7 +726,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         receiptImageUrl: getValue("receiptImageUrl") || undefined,
         productUrl: getValue("productUrl") || undefined,
         status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
-        // user_id will be set to NULL by the addItem function
+        // user_id will be set to ADMIN_USER_ID by the addItem function
       };
 
       if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
