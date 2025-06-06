@@ -4,32 +4,34 @@
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
-import { supabase } from '@/lib/supabase/client'; 
+import { supabase } from '@/lib/supabase/client';
 
-// getCurrentUser import removed
+// TODO: Replace this placeholder with a real mechanism to get the current authenticated user's ID.
+// This ID MUST exist in your 'stock_sentry_users' table for item operations to work.
+const CURRENT_USER_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001';
 
 async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
-    .select('name', { count: 'exact' }) 
-    .is('user_id', null) 
+    .select('name', { count: 'exact' })
+    .is('user_id', null)
     .eq('type', optionType);
 
   if (fetchError) {
     let fullErrorMessage = `[Seed Error] Error fetching global ${optionType}: ${fetchError.message}.`;
     if (fetchError.details) fullErrorMessage += ` Details: ${fetchError.details}.`;
     if (fetchError.code) fullErrorMessage += ` Code: ${fetchError.code}.`;
-    // console.error(fullErrorMessage);
-    return; 
+    // console.error(fullErrorMessage); // Enhanced logging
+    return;
   }
-  
+
   const currentCount = existingOptions?.length || 0;
 
   if (currentCount === 0) {
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
-      user_id: null, 
+      user_id: null, // Managed options remain global
     }));
 
     if (optionsToInsert.length > 0) {
@@ -41,7 +43,7 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
           let fullInsertErrorMessage = `[Seed Error] Error seeding global ${optionType}: ${insertError.message}.`;
           if (insertError.details) fullInsertErrorMessage += ` Details: ${insertError.details}.`;
           if (insertError.code) fullInsertErrorMessage += ` Code: ${insertError.code}.`;
-          // console.error(fullInsertErrorMessage);
+          // console.error(fullInsertErrorMessage); // Enhanced logging
         } else {
         // console.log(`[Seed Info] Successfully seeded ${optionsToInsert.length} global ${optionType}(s).`);
         }
@@ -61,7 +63,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   let query = supabase
     .from('items')
     .select('*', { count: 'exact' })
-    .is('user_id', null); 
+    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Use placeholder user ID
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -73,8 +75,8 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   }
 
   query = query.order('created_at', { ascending: false });
-  
-  const countQuery = query.select('*', { count: 'exact', head: true }); 
+
+  const countQuery = query.select('*', { count: 'exact', head: true });
   const { count: totalMatchingCount, error: countError } = await countQuery;
 
 
@@ -82,7 +84,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     // console.error("Error fetching items count:", countError.message);
     return { items: [], totalPages: 0, count: 0 };
   }
-  
+
   const totalItems = totalMatchingCount || 0;
   let totalPages = 1;
 
@@ -91,13 +93,13 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     const limit = filters.limit;
     const startIndex = (page - 1) * limit;
     totalPages = Math.ceil(totalItems / limit);
-    query = query.range(startIndex, startIndex + limit - 1); 
+    query = query.range(startIndex, startIndex + limit - 1);
   } else if (totalItems === 0) {
      return { items: [], totalPages: 0, count: 0 };
   }
 
 
-  const { data, error: dataError } = await query.select(); 
+  const { data, error: dataError } = await query.select();
 
   if (dataError) {
     // console.error("Error fetching items data:", dataError.message);
@@ -112,30 +114,31 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     .from('items')
     .select('*', { count: 'exact' })
     .eq('id', id)
-    .is('user_id', null) 
-    .maybeSingle(); 
+    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Use placeholder user ID
+    .maybeSingle();
 
   if (error) {
-    let message = `Error fetching item by ID '${id}' (user_id IS NULL). DB message: ${error.message}.`;
+    let message = `Error fetching item by ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}). DB message: ${error.message}.`;
     if (error.code) message += ` Code: ${error.code}.`;
     if (error.details) message += ` Details: ${error.details}.`;
     if (count !== null) message += ` Initial query indicated ${count} potential matches.`;
     // console.error(`getItemById debug: ${message}`, error);
     return { error: message };
   }
-  
-  if (data === null) { 
-    const message = `Item with ID '${id}' (user_id IS NULL) not found. Query matched 0 rows.`;
+
+  if (data === null) {
+    const message = `Item with ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) not found. Query matched 0 rows. Ensure this user ID exists in 'stock_sentry_users' and owns this item.`;
     // console.log(`getItemById debug: ${message}`);
     return { error: message };
   }
 
+  // This check is less likely if ID is PK, but kept for safety after .maybeSingle()
   if (count !== null && count > 1) {
-    const message = `CRITICAL: getItemById for ID '${id}' (user_id IS NULL) returned data BUT count is ${count}. This indicates a serious data integrity or query issue.`;
+    const message = `CRITICAL: getItemById for ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) returned data BUT count is ${count}. This indicates a data integrity or query issue.`;
     // console.error(message);
     return { error: message };
   }
-  
+
   return data as Item;
 }
 
@@ -144,7 +147,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: null, 
+    user_id: CURRENT_USER_ID_PLACEHOLDER, // Use placeholder user ID
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -169,23 +172,23 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     barcode_data: itemData.sku ? `BARCODE-${itemData.sku.substring(0,8).toUpperCase()}` : `BARCODE-${crypto.randomUUID().substring(0,8).toUpperCase()}`,
     qr_code_data: itemData.sku ? `QR-${itemData.sku.toUpperCase()}` : `QR-${crypto.randomUUID().toUpperCase()}`,
   };
-  
+
   for (const key in newItemPayload) {
     if (newItemPayload[key] === undefined) {
       newItemPayload[key] = null;
     }
   }
-  
+
   const { data: insertedItem, error } = await supabase
     .from('items')
-    .insert([newItemPayload]) 
+    .insert([newItemPayload])
     .select()
     .single();
 
   if (error) {
     let fullErrorMessage = `Failed to add item: ${error.message}.`;
     if (error.details) fullErrorMessage += ` Details: ${error.details}.`;
-    if (error.hint) fullErrorMessage += ` Hint: ${error.hint}.`;
+    if (error.hint) fullErrorMessage += ` Hint: ${error.hint}. Check if user ID '${CURRENT_USER_ID_PLACEHOLDER}' exists in 'stock_sentry_users' and foreign key constraints.`;
     // console.error("Error in addItem:", fullErrorMessage, "Payload:", newItemPayload);
     return { error: fullErrorMessage };
   }
@@ -201,25 +204,24 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    // console.log(`[updateItem] Initiating update for ID: '${id}', with data:`, itemData);
-    const currentItemResult = await getItemById(id); 
-    
+    // console.log(`[updateItem] Initiating update for ID: '${id}', user_id: ${CURRENT_USER_ID_PLACEHOLDER} with data:`, itemData);
+    const currentItemResult = await getItemById(id); // getItemById now uses CURRENT_USER_ID_PLACEHOLDER
+
     if ('error' in currentItemResult) {
-        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}'. Error: ${currentItemResult.error}`);
+        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id: ${CURRENT_USER_ID_PLACEHOLDER}. Error: ${currentItemResult.error}`);
         return { error: `Cannot update item. Initial fetch failed: ${currentItemResult.error}` };
     }
-     // This case should technically be covered by the 'error' in currentItemResult if getItemById is robust (e.g. returns {error: "not found"})
-    if (!currentItemResult) { 
+    if (!currentItemResult) {
         // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}'. No item data returned (getItemById returned undefined).`);
-        return { error: `Item with ID '${id}' (user_id IS NULL) not found by getItemById (returned undefined). Cannot update.` };
+        return { error: `Item with ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) not found by getItemById (returned undefined). Cannot update.` };
     }
-    
-    const currentItem = currentItemResult as Item; 
+
+    const currentItem = currentItemResult as Item;
     const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
 
     const directFields: (keyof ItemInput)[] = [
-        'name', 'description', 'quantity', 'category', 'subcategory', 'room', 
+        'name', 'description', 'quantity', 'category', 'subcategory', 'room',
         'vendor', 'project', 'msrp', 'sku'
     ];
     directFields.forEach(field => {
@@ -227,7 +229,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload[field] = itemData[field] === undefined ? null : itemData[field];
         }
     });
-    
+
     if (itemData.hasOwnProperty('originalPrice')) updatePayload.original_price = itemData.originalPrice === undefined ? null : itemData.originalPrice;
     if (itemData.hasOwnProperty('salesPrice')) updatePayload.sales_price = itemData.salesPrice === undefined ? null : itemData.salesPrice;
     if (itemData.hasOwnProperty('receiptImageUrl')) updatePayload.receipt_image_url = itemData.receiptImageUrl === undefined || itemData.receiptImageUrl === "" ? null : itemData.receiptImageUrl;
@@ -236,7 +238,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if (itemData.hasOwnProperty('purchaseDate')) updatePayload.purchase_date = itemData.purchaseDate === undefined ? null : itemData.purchaseDate;
     if (itemData.hasOwnProperty('storageLocation')) updatePayload.storage_location = itemData.storageLocation === undefined ? null : itemData.storageLocation;
     if (itemData.hasOwnProperty('binLocation')) updatePayload.bin_location = itemData.binLocation === undefined ? null : itemData.binLocation;
-    
+
     if (itemData.status && itemData.status !== currentItem.status) {
         updatePayload.status = itemData.status;
         updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
@@ -245,52 +247,52 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload.sold_date = null;
             updatePayload.in_use_date = null;
         }
-    } else if (itemData.status === currentItem.status) { 
+    } else if (itemData.status === currentItem.status) {
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
-    } else { 
+    } else {
         if (itemData.hasOwnProperty('status')) updatePayload.status = itemData.status;
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
     }
-    
-    updatePayload.updated_at = now; 
+
+    updatePayload.updated_at = now;
 
     for (const key in updatePayload) {
       if (updatePayload[key] === undefined) {
         updatePayload[key] = null;
       }
     }
-    // console.log(`[updateItem] Attempting Supabase update for ID: '${id}'. Payload:`, updatePayload);
+    // console.log(`[updateItem] Attempting Supabase update for ID: '${id}', user_id: ${CURRENT_USER_ID_PLACEHOLDER}. Payload:`, updatePayload);
 
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .is('user_id', null) 
-        .select() 
-        .single(); 
+        .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Ensure update targets the specific user's item
+        .select()
+        .single();
 
     if (updateError) {
         let fullErrorMessage = `Failed to update item ID '${id}': ${updateError.message}.`;
         if (updateError.details) fullErrorMessage += ` Details: ${updateError.details}.`;
         if (updateError.hint) fullErrorMessage += ` Hint: ${updateError.hint}.`;
         if (updateError.code) fullErrorMessage += ` Code: ${updateError.code}.`;
-        
-        if (updateError.code === 'PGRST116') { 
-             fullErrorMessage += ` The .single() call failed. This means the UPDATE combined with 'user_id IS NULL' for ID '${id}' did not result in exactly one row being selected/returned after the update.`;
-             fullErrorMessage += ` This is highly unusual if ID is a primary key and getItemById confirmed a single item initially.`;
-             fullErrorMessage += ` Please re-verify that the 'id' column in 'items' table is the sole PRIMARY KEY and that there are no other unique constraints or data issues allowing multiple rows to match 'id = ${id} AND user_id IS NULL'.`;
+
+        if (updateError.code === 'PGRST116' && updateError.message.includes("multiple rows returned")) {
+             fullErrorMessage += ` This usually means multiple items match the ID '${id}' and user_id '${CURRENT_USER_ID_PLACEHOLDER}'. Please check data integrity in the 'items' table. There might be duplicate IDs for this user.`;
+        } else if (updateError.code === 'PGRST116') {
+             fullErrorMessage += ` The .single() call failed. This means the UPDATE combined with user_id '${CURRENT_USER_ID_PLACEHOLDER}' for ID '${id}' did not result in exactly one row being selected/returned. Ensure the item exists for this user.`;
         }
         // console.error("[updateItem] Supabase update error:", fullErrorMessage, "Payload:", updatePayload, "ID:", id);
         return { error: fullErrorMessage };
     }
 
     if (!updatedItem) {
-        // console.error(`[updateItem] Supabase update for ID '${id}' returned no data and no error. This is unexpected.`);
+        // console.error(`[updateItem] Supabase update for ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) returned no data and no error.`);
         return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error. Check database logs.` };
     }
-    
+
     revalidatePath("/inventory", "layout");
     revalidatePath(`/inventory/${id}`, "layout");
     revalidatePath(`/inventory/${id}/edit`, "layout");
@@ -305,10 +307,10 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .from('items')
     .delete()
     .eq('id', id)
-    .is('user_id', null); 
+    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Ensure delete targets the specific user's item
 
   if (error) {
-    // console.error(`Error deleting item ${id}:`, error);
+    // console.error(`Error deleting item ${id} for user ${CURRENT_USER_ID_PLACEHOLDER}:`, error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -332,41 +334,41 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const currentItemResult = await getItemById(id); 
+    const currentItemResult = await getItemById(id); // getItemById now uses CURRENT_USER_ID_PLACEHOLDER
     if (!currentItemResult || 'error' in currentItemResult) {
-      // console.error(`Update status failed: Item with ID ${id} not found or error fetching:`, (currentItemResult as {error: string})?.error);
+      // console.error(`Update status failed: Item with ID ${id} (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) not found or error fetching:`, (currentItemResult as {error: string})?.error);
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
-    
-    const currentItem = currentItemResult as Item; 
+
+    const currentItem = currentItemResult as Item;
     const updatePayload: { [key: string]: any } = { status: newStatus };
     const now = new Date().toISOString();
-  
+
     if (newStatus === 'sold') {
-      updatePayload.sold_date = currentItem.sold_date || now; 
+      updatePayload.sold_date = currentItem.sold_date || now;
       updatePayload.in_use_date = null;
     } else if (newStatus === 'in use') {
-      updatePayload.in_use_date = currentItem.in_use_date || now; 
+      updatePayload.in_use_date = currentItem.in_use_date || now;
       updatePayload.sold_date = null;
-    } else { 
+    } else {
       updatePayload.sold_date = null;
       updatePayload.in_use_date = null;
     }
     updatePayload.updated_at = now;
-  
+
     const { data: updatedItem, error } = await supabase
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .is('user_id', null) 
+      .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Ensure update targets the specific user's item
       .select()
       .single();
-    
+
     if (error) {
-      // console.error(`Error updating item status for ${id}:`, error);
+      // console.error(`Error updating item status for ${id} (user_id: ${CURRENT_USER_ID_PLACEHOLDER}):`, error);
       return { error: error.message };
     }
-  
+
     if (updatedItem) {
       revalidatePath("/inventory", "layout");
       revalidatePath(`/inventory/${id}`, "layout");
@@ -374,7 +376,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    // console.error(`Error updating item status for ${id}: No item returned but no DB error.`);
+    // console.error(`Error updating item status for ${id} (user_id: ${CURRENT_USER_ID_PLACEHOLDER}): No item returned but no DB error.`);
     return { error: "Failed to update item status or item not found (no data returned)." };
 }
 
@@ -385,7 +387,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .is('user_id', null); 
+    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Ensure bulk delete targets the specific user's items
 
   if (error) {
     // console.error("Error in bulkDeleteItems:", error);
@@ -395,9 +397,9 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
-    return { success: true, message: `${count} item(s) deleted successfully.` };
+    return { success: true, message: `${count} item(s) for user ${CURRENT_USER_ID_PLACEHOLDER} deleted successfully.` };
   }
-  return { success: false, message: "No matching global items found to delete or none selected." };
+  return { success: false, message: `No matching items found for user ${CURRENT_USER_ID_PLACEHOLDER} to delete or none selected.` };
 }
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
@@ -407,23 +409,23 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now; 
+    updatePayload.sold_date = now;
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
     updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
-  } else { 
+  } else {
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
   updatePayload.updated_at = now;
-  
+
   const { error, count } = await supabase
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .is('user_id', null) 
-    .select({count: 'exact'}); 
+    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Ensure bulk update targets the specific user's items
+    .select({count: 'exact'});
 
   if (error) {
     // console.error("Error in bulkUpdateItemStatus:", error);
@@ -436,17 +438,17 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
-    itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout")); 
-    return { success: true, message: `${updatedCount} global item(s) status updated to ${newStatus}.` };
+    itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout"));
+    return { success: true, message: `${updatedCount} item(s) for user ${CURRENT_USER_ID_PLACEHOLDER} status updated to ${newStatus}.` };
   }
-  return { success: false, message: "No matching global items found to update or none selected." };
+  return { success: false, message: `No matching items found for user ${CURRENT_USER_ID_PLACEHOLDER} to update or none selected.` };
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .is('user_id', null); 
+    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Filter categories by the specific user ID
 
   if (error) {
     // console.error("Error fetching unique categories:", error);
@@ -490,13 +492,14 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
+  // Managed options are global, so user_id is NULL
   await seedGlobalOptions(optionType, optionTypeToDefaultsMap[optionType]);
 
   const { data, error } = await supabase
     .from('managed_options')
     .select('name')
     .eq('type', optionType)
-    .is('user_id', null) 
+    .is('user_id', null) // Managed options are global
     .order('name', { ascending: true });
 
   if (error) {
@@ -522,16 +525,17 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     return { success: false, message: `${singularName} name cannot be empty.` };
   }
 
+  // Check for existing global option
   const { data: existing, error: selectError } = await supabase
     .from('managed_options')
     .select('id')
     .eq('type', optionType)
-    .ilike('name', name.trim()) 
-    .is('user_id', null) 
-    .limit(1) 
-    .single(); 
+    .ilike('name', name.trim())
+    .is('user_id', null) // Managed options are global
+    .limit(1)
+    .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { 
+  if (selectError && selectError.code !== 'PGRST116') {
       // console.error(`Error checking existing ${singularName} "${name.trim()}":`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
@@ -544,7 +548,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: null, 
+      user_id: null, // Managed options are global
     });
 
   if (insertError) {
@@ -556,10 +560,10 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
   }
 
   const updatedOptions = await getManagedOptions(optionType);
-  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`; 
+  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
   revalidatePath(settingsPagePath, "page");
-  revalidatePath("/inventory/add", "layout"); 
-  revalidatePath("/inventory/[id]/edit", "layout"); 
+  revalidatePath("/inventory/add", "layout");
+  revalidatePath("/inventory/[id]/edit", "layout");
   return { success: true, message: `${singularName} "${name.trim()}" added.`, options: updatedOptions };
 }
 
@@ -571,13 +575,13 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .delete({ count: 'exact' })
     .eq('type', optionType)
     .eq('name', name)
-    .is('user_id', null); 
+    .is('user_id', null); // Managed options are global
 
   if (error) {
     // console.error(`Error deleting managed option "${name}" of type ${optionType}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
-  
+
   if (count === 0) {
      return { success: false, message: `${singularName} "${name}" not found for deletion.` };
   }
@@ -616,14 +620,14 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     .delete({ count: 'exact' })
     .in('name', names)
     .eq('type', optionType)
-    .is('user_id', null);
+    .is('user_id', null); // Managed options are global
 
   if (error) {
     // console.error(`Error bulk deleting managed options of type ${optionType}:`, error);
     return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
   }
 
-  const updatedOptions = await getManagedOptions(optionType); 
+  const updatedOptions = await getManagedOptions(optionType);
   const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
@@ -653,7 +657,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
 
   const headerLine = lines[0];
   const expectedHeaders = [
-    "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku", 
+    "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku",
     "category", "subcategory", "description", "vendor", "storageLocation", "binLocation", "room", "project",
     "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl", "status"
   ];
@@ -665,12 +669,12 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
       headerMap[expectedHeader] = index;
     }
   });
-  
+
   if (headerMap["name"] === undefined || headerMap["quantity"] === undefined) {
-      return { 
-          successCount: 0, 
-          errorCount: lines.length -1, 
-          errors: [{ rowNumber: 1, message: "CSV must contain 'name' and 'quantity' columns.", rowData: headerLine }] 
+      return {
+          successCount: 0,
+          errorCount: lines.length -1,
+          errors: [{ rowNumber: 1, message: "CSV must contain 'name' and 'quantity' columns.", rowData: headerLine }]
       };
   }
 
@@ -685,7 +689,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         const index = headerMap[headerName];
         return (index !== undefined && index < values.length) ? values[index] : undefined;
     }
-    
+
     try {
       const name = getValue("name");
       if (!name) {
@@ -701,7 +705,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         results.errorCount++;
         continue;
       }
-      
+
       const originalPriceStr = getValue("purchasePrice");
       const salesPriceStr = getValue("salesPrice");
       const msrpStr = getValue("msrp");
@@ -728,8 +732,9 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         receiptImageUrl: getValue("receiptImageUrl") || undefined,
         productUrl: getValue("productUrl") || undefined,
         status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
+        // user_id will be set to CURRENT_USER_ID_PLACEHOLDER by the addItem function
       };
-      
+
       if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
       if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) itemInput.salesPrice = undefined;
       if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) itemInput.msrp = undefined;
@@ -737,7 +742,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         itemInput.purchaseDate = undefined;
       }
 
-      const addResult = await addItem(itemInput); 
+      const addResult = await addItem(itemInput); // addItem now uses CURRENT_USER_ID_PLACEHOLDER
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
@@ -758,3 +763,4 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   return results;
 }
 
+    
