@@ -2,6 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unstable_noStore as noStore } from 'next/cache';
 
 export interface AppSettings {
   defaultItemsPerPage: number;
@@ -15,11 +16,14 @@ if (typeof globalThis._appSettingsStore === 'undefined') {
 }
 
 export async function getAppSettings(): Promise<AppSettings> {
-  await new Promise(resolve => setTimeout(resolve, 50)); // Simulate async
+  noStore(); // Opt out of caching for this function to ensure fresh reads
+  // The setTimeout was for simulation and isn't needed for functionality.
+  // await new Promise(resolve => setTimeout(resolve, 50)); 
   return JSON.parse(JSON.stringify(globalThis._appSettingsStore));
 }
 
 export async function updateDefaultItemsPerPage(value: number): Promise<{ success: boolean; settings?: AppSettings; message?: string }> {
+  noStore(); // Ensure this action also operates with fresh data if it reads before writing
   if (typeof value !== 'number' || value < 1 || value > 100) {
     return { success: false, message: "Items per page must be a number between 1 and 100." };
   }
@@ -28,7 +32,7 @@ export async function updateDefaultItemsPerPage(value: number): Promise<{ succes
   
   // Revalidate paths that depend on this setting
   revalidatePath("/inventory", "layout");
-  revalidatePath("/settings/options", "page"); // Revalidate the settings page itself
+  revalidatePath("/settings/application", "page"); // Revalidate the settings page itself
 
   return { 
     success: true, 
@@ -36,3 +40,4 @@ export async function updateDefaultItemsPerPage(value: number): Promise<{ succes
     settings: JSON.parse(JSON.stringify(globalThis._appSettingsStore))
   };
 }
+
