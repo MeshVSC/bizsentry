@@ -6,9 +6,8 @@ import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client';
 
-// TODO: Replace this placeholder with a real mechanism to get the current authenticated user's ID.
-// This ID MUST exist in your 'stock_sentry_users' table for item operations to work.
-const CURRENT_USER_ID_PLACEHOLDER = '00000000-0000-0000-0000-000000000001';
+// Note: User authentication is removed. All item operations will use user_id = NULL.
+// Ensure items.user_id and managed_options.user_id columns are nullable in Supabase.
 
 async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
@@ -21,7 +20,7 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
     let fullErrorMessage = `[Seed Error] Error fetching global ${optionType}: ${fetchError.message}.`;
     if (fetchError.details) fullErrorMessage += ` Details: ${fetchError.details}.`;
     if (fetchError.code) fullErrorMessage += ` Code: ${fetchError.code}.`;
-    // console.error(fullErrorMessage); // Enhanced logging
+    // console.error(fullErrorMessage);
     return;
   }
 
@@ -31,7 +30,7 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
-      user_id: null, // Managed options remain global
+      user_id: null, // Managed options are global
     }));
 
     if (optionsToInsert.length > 0) {
@@ -43,7 +42,7 @@ async function seedGlobalOptions(optionType: string, defaultOptions: string[]) {
           let fullInsertErrorMessage = `[Seed Error] Error seeding global ${optionType}: ${insertError.message}.`;
           if (insertError.details) fullInsertErrorMessage += ` Details: ${insertError.details}.`;
           if (insertError.code) fullInsertErrorMessage += ` Code: ${insertError.code}.`;
-          // console.error(fullInsertErrorMessage); // Enhanced logging
+          // console.error(fullInsertErrorMessage);
         } else {
         // console.log(`[Seed Info] Successfully seeded ${optionsToInsert.length} global ${optionType}(s).`);
         }
@@ -63,7 +62,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   let query = supabase
     .from('items')
     .select('*', { count: 'exact' })
-    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Use placeholder user ID
+    .is('user_id', null); // Items are global
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -114,11 +113,11 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     .from('items')
     .select('*', { count: 'exact' })
     .eq('id', id)
-    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Use placeholder user ID
+    .is('user_id', null) // Item is global
     .maybeSingle();
 
   if (error) {
-    let message = `Error fetching item by ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}). DB message: ${error.message}.`;
+    let message = `Error fetching item by ID '${id}' (user_id IS NULL). DB message: ${error.message}.`;
     if (error.code) message += ` Code: ${error.code}.`;
     if (error.details) message += ` Details: ${error.details}.`;
     if (count !== null) message += ` Initial query indicated ${count} potential matches.`;
@@ -127,14 +126,13 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
   }
 
   if (data === null) {
-    const message = `Item with ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) not found. Query matched 0 rows. Ensure this user ID exists in 'stock_sentry_users' and owns this item.`;
+    const message = `Item with ID '${id}' (user_id IS NULL) not found. Query matched 0 rows.`;
     // console.log(`getItemById debug: ${message}`);
     return { error: message };
   }
 
-  // This check is less likely if ID is PK, but kept for safety after .maybeSingle()
   if (count !== null && count > 1) {
-    const message = `CRITICAL: getItemById for ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) returned data BUT count is ${count}. This indicates a data integrity or query issue.`;
+    const message = `CRITICAL: getItemById for ID '${id}' (user_id IS NULL) returned data BUT count is ${count}. This indicates a data integrity or query issue.`;
     // console.error(message);
     return { error: message };
   }
@@ -147,7 +145,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: CURRENT_USER_ID_PLACEHOLDER, // Use placeholder user ID
+    user_id: null, // Item is global
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -188,7 +186,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   if (error) {
     let fullErrorMessage = `Failed to add item: ${error.message}.`;
     if (error.details) fullErrorMessage += ` Details: ${error.details}.`;
-    if (error.hint) fullErrorMessage += ` Hint: ${error.hint}. Check if user ID '${CURRENT_USER_ID_PLACEHOLDER}' exists in 'stock_sentry_users' and foreign key constraints.`;
+    if (error.hint) fullErrorMessage += ` Hint: ${error.hint}.`;
     // console.error("Error in addItem:", fullErrorMessage, "Payload:", newItemPayload);
     return { error: fullErrorMessage };
   }
@@ -204,16 +202,16 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    // console.log(`[updateItem] Initiating update for ID: '${id}', user_id: ${CURRENT_USER_ID_PLACEHOLDER} with data:`, itemData);
-    const currentItemResult = await getItemById(id); // getItemById now uses CURRENT_USER_ID_PLACEHOLDER
+    // console.log(`[updateItem] Initiating update for ID: '${id}', user_id IS NULL with data:`, itemData);
+    const currentItemResult = await getItemById(id); 
 
     if ('error' in currentItemResult) {
-        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id: ${CURRENT_USER_ID_PLACEHOLDER}. Error: ${currentItemResult.error}`);
+        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id IS NULL. Error: ${currentItemResult.error}`);
         return { error: `Cannot update item. Initial fetch failed: ${currentItemResult.error}` };
     }
     if (!currentItemResult) {
         // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}'. No item data returned (getItemById returned undefined).`);
-        return { error: `Item with ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) not found by getItemById (returned undefined). Cannot update.` };
+        return { error: `Item with ID '${id}' (user_id IS NULL) not found by getItemById (returned undefined). Cannot update.` };
     }
 
     const currentItem = currentItemResult as Item;
@@ -263,13 +261,13 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         updatePayload[key] = null;
       }
     }
-    // console.log(`[updateItem] Attempting Supabase update for ID: '${id}', user_id: ${CURRENT_USER_ID_PLACEHOLDER}. Payload:`, updatePayload);
+    // console.log(`[updateItem] Attempting Supabase update for ID: '${id}', user_id IS NULL. Payload:`, updatePayload);
 
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Ensure update targets the specific user's item
+        .is('user_id', null) 
         .select()
         .single();
 
@@ -279,17 +277,15 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         if (updateError.hint) fullErrorMessage += ` Hint: ${updateError.hint}.`;
         if (updateError.code) fullErrorMessage += ` Code: ${updateError.code}.`;
 
-        if (updateError.code === 'PGRST116' && updateError.message.includes("multiple rows returned")) {
-             fullErrorMessage += ` This usually means multiple items match the ID '${id}' and user_id '${CURRENT_USER_ID_PLACEHOLDER}'. Please check data integrity in the 'items' table. There might be duplicate IDs for this user.`;
-        } else if (updateError.code === 'PGRST116') {
-             fullErrorMessage += ` The .single() call failed. This means the UPDATE combined with user_id '${CURRENT_USER_ID_PLACEHOLDER}' for ID '${id}' did not result in exactly one row being selected/returned. Ensure the item exists for this user.`;
+        if (updateError.code === 'PGRST116') { // .single() error
+             fullErrorMessage += ` This usually means multiple items match the ID '${id}' and user_id IS NULL, or no items match this condition. Please check data integrity in the 'items' table for duplicate IDs where user_id IS NULL.`;
         }
         // console.error("[updateItem] Supabase update error:", fullErrorMessage, "Payload:", updatePayload, "ID:", id);
         return { error: fullErrorMessage };
     }
 
     if (!updatedItem) {
-        // console.error(`[updateItem] Supabase update for ID '${id}' (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) returned no data and no error.`);
+        // console.error(`[updateItem] Supabase update for ID '${id}' (user_id IS NULL) returned no data and no error.`);
         return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error. Check database logs.` };
     }
 
@@ -307,10 +303,10 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .from('items')
     .delete()
     .eq('id', id)
-    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Ensure delete targets the specific user's item
+    .is('user_id', null); // Item is global
 
   if (error) {
-    // console.error(`Error deleting item ${id} for user ${CURRENT_USER_ID_PLACEHOLDER}:`, error);
+    // console.error(`Error deleting item ${id} for global user:`, error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -334,9 +330,9 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const currentItemResult = await getItemById(id); // getItemById now uses CURRENT_USER_ID_PLACEHOLDER
+    const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
-      // console.error(`Update status failed: Item with ID ${id} (user_id: ${CURRENT_USER_ID_PLACEHOLDER}) not found or error fetching:`, (currentItemResult as {error: string})?.error);
+      // console.error(`Update status failed: Item with ID ${id} (user_id IS NULL) not found or error fetching:`, (currentItemResult as {error: string})?.error);
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
 
@@ -360,12 +356,12 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Ensure update targets the specific user's item
+      .is('user_id', null) 
       .select()
       .single();
 
     if (error) {
-      // console.error(`Error updating item status for ${id} (user_id: ${CURRENT_USER_ID_PLACEHOLDER}):`, error);
+      // console.error(`Error updating item status for ${id} (user_id IS NULL):`, error);
       return { error: error.message };
     }
 
@@ -376,7 +372,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    // console.error(`Error updating item status for ${id} (user_id: ${CURRENT_USER_ID_PLACEHOLDER}): No item returned but no DB error.`);
+    // console.error(`Error updating item status for ${id} (user_id IS NULL): No item returned but no DB error.`);
     return { error: "Failed to update item status or item not found (no data returned)." };
 }
 
@@ -387,7 +383,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Ensure bulk delete targets the specific user's items
+    .is('user_id', null); // Items are global
 
   if (error) {
     // console.error("Error in bulkDeleteItems:", error);
@@ -397,9 +393,9 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
-    return { success: true, message: `${count} item(s) for user ${CURRENT_USER_ID_PLACEHOLDER} deleted successfully.` };
+    return { success: true, message: `${count} global item(s) deleted successfully.` };
   }
-  return { success: false, message: `No matching items found for user ${CURRENT_USER_ID_PLACEHOLDER} to delete or none selected.` };
+  return { success: false, message: `No matching global items found to delete or none selected.` };
 }
 
 export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
@@ -424,7 +420,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER) // Ensure bulk update targets the specific user's items
+    .is('user_id', null) // Items are global
     .select({count: 'exact'});
 
   if (error) {
@@ -439,16 +435,16 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout"));
-    return { success: true, message: `${updatedCount} item(s) for user ${CURRENT_USER_ID_PLACEHOLDER} status updated to ${newStatus}.` };
+    return { success: true, message: `${updatedCount} global item(s) status updated to ${newStatus}.` };
   }
-  return { success: false, message: `No matching items found for user ${CURRENT_USER_ID_PLACEHOLDER} to update or none selected.` };
+  return { success: false, message: `No matching global items found to update or none selected.` };
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .eq('user_id', CURRENT_USER_ID_PLACEHOLDER); // Filter categories by the specific user ID
+    .is('user_id', null); // Categories from global items
 
   if (error) {
     // console.error("Error fetching unique categories:", error);
@@ -492,14 +488,13 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
-  // Managed options are global, so user_id is NULL
   await seedGlobalOptions(optionType, optionTypeToDefaultsMap[optionType]);
 
   const { data, error } = await supabase
     .from('managed_options')
     .select('name')
     .eq('type', optionType)
-    .is('user_id', null) // Managed options are global
+    .is('user_id', null) 
     .order('name', { ascending: true });
 
   if (error) {
@@ -525,17 +520,16 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     return { success: false, message: `${singularName} name cannot be empty.` };
   }
 
-  // Check for existing global option
   const { data: existing, error: selectError } = await supabase
     .from('managed_options')
     .select('id')
     .eq('type', optionType)
     .ilike('name', name.trim())
-    .is('user_id', null) // Managed options are global
+    .is('user_id', null) 
     .limit(1)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') {
+  if (selectError && selectError.code !== 'PGRST116') { 
       // console.error(`Error checking existing ${singularName} "${name.trim()}":`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
@@ -548,7 +542,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: null, // Managed options are global
+      user_id: null, 
     });
 
   if (insertError) {
@@ -575,7 +569,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .delete({ count: 'exact' })
     .eq('type', optionType)
     .eq('name', name)
-    .is('user_id', null); // Managed options are global
+    .is('user_id', null); 
 
   if (error) {
     // console.error(`Error deleting managed option "${name}" of type ${optionType}:`, error);
@@ -620,7 +614,7 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     .delete({ count: 'exact' })
     .in('name', names)
     .eq('type', optionType)
-    .is('user_id', null); // Managed options are global
+    .is('user_id', null); 
 
   if (error) {
     // console.error(`Error bulk deleting managed options of type ${optionType}:`, error);
@@ -732,7 +726,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         receiptImageUrl: getValue("receiptImageUrl") || undefined,
         productUrl: getValue("productUrl") || undefined,
         status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
-        // user_id will be set to CURRENT_USER_ID_PLACEHOLDER by the addItem function
+        // user_id will be set to NULL by the addItem function
       };
 
       if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
@@ -742,7 +736,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         itemInput.purchaseDate = undefined;
       }
 
-      const addResult = await addItem(itemInput); // addItem now uses CURRENT_USER_ID_PLACEHOLDER
+      const addResult = await addItem(itemInput); 
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
@@ -762,5 +756,4 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
   return results;
 }
-
     
