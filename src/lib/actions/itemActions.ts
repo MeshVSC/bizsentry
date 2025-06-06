@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client';
 
+// Use this specific admin user ID for all operations
 const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c';
 
 async function seedAdminUserOptions(optionType: string, defaultOptions: string[]) {
@@ -17,8 +18,6 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
 
   if (fetchError) {
     let fullErrorMessage = `[Seed Error] Error fetching options for admin user ${ADMIN_USER_ID}, type ${optionType}: ${fetchError.message}.`;
-    if (fetchError.details) fullErrorMessage += ` Details: ${fetchError.details}.`;
-    if (fetchError.code) fullErrorMessage += ` Code: ${fetchError.code}.`;
     // console.error(fullErrorMessage);
     return;
   }
@@ -39,8 +38,6 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
 
         if (insertError) {
           let fullInsertErrorMessage = `[Seed Error] Error seeding options for admin user ${ADMIN_USER_ID}, type ${optionType}: ${insertError.message}.`;
-          if (insertError.details) fullInsertErrorMessage += ` Details: ${insertError.details}.`;
-          if (insertError.code) fullInsertErrorMessage += ` Code: ${insertError.code}.`;
           // console.error(fullInsertErrorMessage);
         } else {
         // console.log(`[Seed Info] Successfully seeded ${optionsToInsert.length} options for admin user ${ADMIN_USER_ID}, type ${optionType}.`);
@@ -61,7 +58,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   let query = supabase
     .from('items')
     .select('*', { count: 'exact' })
-    .eq('user_id', ADMIN_USER_ID);
+    .eq('user_id', ADMIN_USER_ID); // user_id IS ESSENTIAL for listing items for the admin
 
   if (filters) {
     if (filters.name && filters.name.trim() !== '') {
@@ -108,31 +105,36 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 }
 
 export async function getItemById(id: string): Promise<Item | { error: string }> {
+  // If item.id is globally unique (e.g., UUID and PK), user_id is not strictly needed for lookup
+  // but implies ownership. For direct ID lookup, id should suffice if unique.
+  // The error "multiple rows" implies id is NOT unique OR the query is flawed.
+  // Assuming id IS the unique PK for an item.
   const { data, error, count } = await supabase
     .from('items')
-    .select('*', { count: 'exact' })
+    .select('*') // No count needed here as we expect 0 or 1.
     .eq('id', id)
-    .eq('user_id', ADMIN_USER_ID)
-    .maybeSingle();
+    // .eq('user_id', ADMIN_USER_ID) // Removed as 'id' should be globally unique for an item
+    .maybeSingle(); // Expects 0 or 1 row. Throws error if more than 1.
 
   if (error) {
-    let message = `Error fetching item by ID '${id}' for admin user ${ADMIN_USER_ID}. DB message: ${error.message}.`;
+    let message = `Error fetching item by ID '${id}'. DB message: ${error.message}.`;
     if (error.code) message += ` Code: ${error.code}.`;
     if (error.details) message += ` Details: ${error.details}.`;
-    if (count !== null) message += ` Initial query indicated ${count} potential matches.`;
     // console.error(`getItemById debug: ${message}`, error);
     return { error: message };
   }
 
   if (data === null) {
-    const message = `Item with ID '${id}' for admin user ${ADMIN_USER_ID} not found. Query matched 0 rows.`;
+    const message = `Item with ID '${id}' not found. Query matched 0 rows.`;
     // console.log(`getItemById debug: ${message}`);
     return { error: message };
   }
-
-  if (count !== null && count > 1) {
-    const message = `CRITICAL: getItemById for ID '${id}' (admin user ${ADMIN_USER_ID}) returned data BUT count is ${count}. This indicates a data integrity or query issue.`;
-    // console.error(message);
+  
+  // If data is not null, it means .maybeSingle() found one row.
+  // We must also ensure it belongs to the admin user if that's a strict application rule not just DB rule.
+  if (data.user_id !== ADMIN_USER_ID) {
+    const message = `Item with ID '${id}' found, but it does not belong to the admin user (${ADMIN_USER_ID}). Access denied.`;
+    // console.warn(`getItemById security: ${message}`);
     return { error: message };
   }
 
@@ -144,7 +146,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: ADMIN_USER_ID,
+    user_id: ADMIN_USER_ID, // ESSENTIAL: Set ownership to admin user
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -201,18 +203,15 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
+    // First, verify the item exists and belongs to the admin user
     const currentItemResult = await getItemById(id); 
 
     if ('error' in currentItemResult) {
-        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id ${ADMIN_USER_ID}. Error: ${currentItemResult.error}`);
-        return { error: `Cannot update item. Initial fetch failed: ${currentItemResult.error}` };
+        // console.error(`[updateItem] Pre-check failed. Item ID: '${id}'. Error: ${currentItemResult.error}`);
+        return { error: `Cannot update item. Pre-check failed: ${currentItemResult.error}` };
     }
-    if (!currentItemResult) {
-        // console.error(`[updateItem] Failed to fetch item for update. ID: '${id}', user_id ${ADMIN_USER_ID}. No item data returned (getItemById returned undefined).`);
-        return { error: `Item with ID '${id}' (user_id ${ADMIN_USER_ID}) not found by getItemById (returned undefined). Cannot update.` };
-    }
+    // currentItemResult is guaranteed to be an Item here and belong to ADMIN_USER_ID due to getItemById logic
 
-    const currentItem = currentItemResult as Item;
     const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
 
@@ -235,7 +234,8 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if (itemData.hasOwnProperty('storageLocation')) updatePayload.storage_location = itemData.storageLocation === undefined ? null : itemData.storageLocation;
     if (itemData.hasOwnProperty('binLocation')) updatePayload.bin_location = itemData.binLocation === undefined ? null : itemData.binLocation;
 
-    if (itemData.status && itemData.status !== currentItem.status) {
+    const currentItemStatus = (currentItemResult as Item).status; // Status from pre-fetched item
+    if (itemData.status && itemData.status !== currentItemStatus) {
         updatePayload.status = itemData.status;
         updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
         updatePayload.in_use_date = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
@@ -243,18 +243,15 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload.sold_date = null;
             updatePayload.in_use_date = null;
         }
-    } else if (itemData.status === currentItem.status) {
-        // Only update dates if they are explicitly provided in itemData
+    } else if (itemData.status === currentItemStatus) {
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
     } else {
-        // Handle cases where status is not changing but dates might be
         if (itemData.hasOwnProperty('status')) updatePayload.status = itemData.status;
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
     }
     
-
     updatePayload.updated_at = now;
 
     for (const key in updatePayload) {
@@ -263,29 +260,32 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
       }
     }
 
+    // The item's ownership (user_id) should not change during an update by this function.
+    // We ensure we are updating the item for the correct admin user by querying only by 'id',
+    // because getItemById already confirmed it belongs to the admin user.
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
-        .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID) 
+        .eq('id', id) // Update item by its globally unique ID
+        // .eq('user_id', ADMIN_USER_ID) // Redundant if id is globally unique and ownership confirmed by getItemById
         .select()
-        .single();
+        .single(); // Expect a single row because 'id' is PK
 
     if (updateError) {
-        let fullErrorMessage = `Failed to update item ID '${id}' for admin user ${ADMIN_USER_ID}: ${updateError.message}.`;
+        let fullErrorMessage = `Failed to update item ID '${id}': ${updateError.message}.`;
         if (updateError.details) fullErrorMessage += ` Details: ${updateError.details}.`;
         if (updateError.hint) fullErrorMessage += ` Hint: ${updateError.hint}.`;
         if (updateError.code) fullErrorMessage += ` Code: ${updateError.code}.`;
 
-        if (updateError.code === 'PGRST116') { 
-             fullErrorMessage += ` This usually means multiple items match the ID '${id}' and user_id '${ADMIN_USER_ID}', or no items match this condition. Please check data integrity in the 'items' table.`;
+        if (updateError.code === 'PGRST116' || updateError.message.includes("multiple rows")) { 
+             fullErrorMessage += ` This usually means item ID '${id}' is duplicated in the database. Please check data integrity.`;
         }
         // console.error("[updateItem] Supabase update error:", fullErrorMessage, "Payload:", updatePayload, "ID:", id);
         return { error: fullErrorMessage };
     }
 
     if (!updatedItem) {
-        // console.error(`[updateItem] Supabase update for ID '${id}' (user_id ${ADMIN_USER_ID}) returned no data and no error.`);
+        // console.error(`[updateItem] Supabase update for ID '${id}' returned no data and no error.`);
         return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error. Check database logs.` };
     }
 
@@ -299,14 +299,21 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
 
 
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
+  // First, confirm the item exists and belongs to the admin user to prevent accidental deletion if id was somehow reused.
+  const itemCheck = await getItemById(id);
+  if ('error' in itemCheck) {
+      // console.error(`[deleteItem] Pre-check failed for item ID '${id}'. Error: ${itemCheck.error}`);
+      return { error: `Cannot delete item. Pre-check failed: ${itemCheck.error}` };
+  }
+
   const { error } = await supabase
     .from('items')
     .delete()
-    .eq('id', id)
-    .eq('user_id', ADMIN_USER_ID);
+    .eq('id', id); // Delete by globally unique item ID
+    // .eq('user_id', ADMIN_USER_ID); // Redundant if id is globally unique and ownership confirmed
 
   if (error) {
-    // console.error(`Error deleting item ${id} for admin user ${ADMIN_USER_ID}:`, error);
+    // console.error(`Error deleting item ${id}:`, error);
     return { error: error.message };
   }
   revalidatePath("/inventory", "layout");
@@ -332,9 +339,10 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
     const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
-      // console.error(`Update status failed: Item with ID ${id} (user_id ${ADMIN_USER_ID}) not found or error fetching:`, (currentItemResult as {error: string})?.error);
+      // console.error(`Update status failed: Item with ID ${id} not found or error fetching:`, (currentItemResult as {error: string})?.error);
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
+    // getItemById ensures the item belongs to ADMIN_USER_ID
 
     const currentItem = currentItemResult as Item;
     const updatePayload: { [key: string]: any } = { status: newStatus };
@@ -355,14 +363,18 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     const { data: updatedItem, error } = await supabase
       .from('items')
       .update(updatePayload)
-      .eq('id', id)
-      .eq('user_id', ADMIN_USER_ID) 
+      .eq('id', id) // Update by globally unique item ID
+      // .eq('user_id', ADMIN_USER_ID) // Redundant if id is unique and ownership confirmed
       .select()
-      .single();
+      .single(); // Expect single row
 
     if (error) {
-      // console.error(`Error updating item status for ${id} (user_id ${ADMIN_USER_ID}):`, error);
-      return { error: error.message };
+      // console.error(`Error updating item status for ${id}:`, error);
+       let message = error.message;
+       if (error.code === 'PGRST116' || error.message.includes("multiple rows")) {
+           message = `Failed to update status for item ID '${id}'. This usually means the item ID is duplicated. Please check data integrity.`;
+       }
+      return { error: message };
     }
 
     if (updatedItem) {
@@ -372,7 +384,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    // console.error(`Error updating item status for ${id} (user_id ${ADMIN_USER_ID}): No item returned but no DB error.`);
+    // console.error(`Error updating item status for ${id}: No item returned but no DB error.`);
     return { error: "Failed to update item status or item not found (no data returned)." };
 }
 
@@ -383,7 +395,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .from('items')
     .delete({ count: 'exact' })
     .in('id', itemIds)
-    .eq('user_id', ADMIN_USER_ID);
+    .eq('user_id', ADMIN_USER_ID); // ESSENTIAL: Ensure bulk delete is scoped to admin user
 
   if (error) {
     // console.error("Error in bulkDeleteItems:", error);
@@ -420,7 +432,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .from('items')
     .update(updatePayload)
     .in('id', itemIds)
-    .eq('user_id', ADMIN_USER_ID)
+    .eq('user_id', ADMIN_USER_ID) // ESSENTIAL: Ensure bulk update is scoped to admin user
     .select({count: 'exact'});
 
   if (error) {
@@ -444,7 +456,7 @@ export async function getUniqueCategories(): Promise<string[]> {
   const { data, error } = await supabase
     .from('items')
     .select('category')
-    .eq('user_id', ADMIN_USER_ID);
+    .eq('user_id', ADMIN_USER_ID); // ESSENTIAL: Categories for the admin user
 
   if (error) {
     // console.error(`Error fetching unique categories for admin user ${ADMIN_USER_ID}:`, error);
@@ -621,7 +633,6 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
   }
 
-  // No need to call getManagedOptions here for returning, already revalidated below.
   const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
@@ -632,7 +643,6 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
   } else if (count === 0) {
     return { success: false, message: `No matching ${singularName.toLowerCase()}s found for deletion for this user.` };
   }
-  // console.error(`Bulk delete of ${optionType} for admin user ${ADMIN_USER_ID} reported count ${count} but no error.`);
   return { success: false, message: `An issue occurred while deleting ${singularName.toLowerCase()}s (count: ${count}).` };
 }
 
@@ -726,7 +736,6 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         receiptImageUrl: getValue("receiptImageUrl") || undefined,
         productUrl: getValue("productUrl") || undefined,
         status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
-        // user_id will be set to ADMIN_USER_ID by the addItem function
       };
 
       if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
