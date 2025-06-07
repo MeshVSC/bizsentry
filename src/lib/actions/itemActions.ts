@@ -11,9 +11,9 @@ const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c';
 
 async function logAuditAction(
   action_type: string,
-  { target_table, target_record_id, details, description }: {
+  params: {
     target_table?: string;
-    target_record_id?: string | string[]; // Can be single ID or array for bulk
+    target_record_id?: string; // Should ONLY be a single UUID string or undefined
     details?: any;
     description?: string;
   }
@@ -22,13 +22,13 @@ async function logAuditAction(
     const { error } = await supabase.from('audit_log').insert({
       user_id: ADMIN_USER_ID,
       action_type,
-      target_table,
-      target_record_id: Array.isArray(target_record_id) ? target_record_id.join(', ') : target_record_id, // Store as string if array
-      details,
-      description,
+      target_table: params.target_table,
+      target_record_id: params.target_record_id, // Pass directly, will be null if undefined
+      details: params.details,
+      description: params.description,
     });
     if (error) {
-      console.error(`[Audit Log Error] Failed to log action '${action_type}':`, error.message, { details, description });
+      console.error(`[Audit Log Error] Failed to log action '${action_type}':`, error.message, params);
     }
   } catch (e) {
     console.error(`[Audit Log Exception] Exception during logging action '${action_type}':`, e);
@@ -96,8 +96,19 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
   query = query.order('created_at', { ascending: false });
 
-  const countQuery = query.select('*', { count: 'exact', head: true });
-  const { count: totalMatchingCount, error: countError } = await countQuery;
+  const countQueryBuilder = supabase
+    .from('items')
+    .select('id', { count: 'exact', head: true }) // only select id for count efficiency
+    .eq('user_id', ADMIN_USER_ID);
+
+  if (filters?.name && filters.name.trim() !== '') {
+    countQueryBuilder.ilike('name', `%${filters.name.trim()}%`);
+  }
+  if (filters?.category && filters.category.trim() !== '') {
+    countQueryBuilder.eq('category', filters.category.trim());
+  }
+  
+  const { count: totalMatchingCount, error: countError } = await countQueryBuilder;
 
 
   if (countError) {
@@ -119,7 +130,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   }
 
 
-  const { data, error: dataError } = await query.select();
+  const { data, error: dataError } = await query; // Removed .select() as it's part of the initial query chain
 
   if (dataError) {
     // console.error(`Error fetching items data for admin user ${ADMIN_USER_ID}:`, dataError.message);
@@ -134,23 +145,21 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     .from('items')
     .select('*')
     .eq('id', id)
+    // .eq('user_id', ADMIN_USER_ID) // We fetch by ID, then verify user_id
     .maybeSingle();
 
   if (error) {
     let message = `Error fetching item by ID '${id}'. DB message: ${error.message}.`;
-    // console.error(`getItemById debug: ${message}`, error);
     return { error: message };
   }
 
   if (!data) {
-    const message = `Item with ID '${id}' not found. Query matched 0 rows.`;
-    // console.log(`getItemById debug: ${message}`);
+    const message = `Item with ID '${id}' not found.`;
     return { error: message };
   }
-
+  
   if (data.user_id !== ADMIN_USER_ID) {
-    const message = `Item with ID '${id}' found, but it does not belong to the admin user (${ADMIN_USER_ID}). Access denied.`;
-    // console.warn(`getItemById security: ${message}`);
+    const message = `Item with ID '${id}' found, but it does not belong to the admin user ('${ADMIN_USER_ID}'). Access denied.`;
     return { error: message };
   }
 
@@ -202,7 +211,6 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 
   if (error) {
     let fullErrorMessage = `Failed to add item for admin user ${ADMIN_USER_ID}: ${error.message}.`;
-    // console.error("Error in addItem:", fullErrorMessage, "Payload:", newItemPayload);
     return { error: fullErrorMessage };
   }
 
@@ -226,49 +234,57 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if ('error' in currentItemResult) {
         return { error: `Cannot update item. Pre-check failed: ${currentItemResult.error}` };
     }
+    const currentItem = currentItemResult as Item; // Safe cast after error check
 
     const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
+    const changes: Record<string, { old: any; new: any }> = {};
 
-    const directFields: (keyof ItemInput)[] = [
-        'name', 'description', 'quantity', 'category', 'subcategory', 'room',
-        'vendor', 'project', 'msrp', 'sku'
-    ];
-    directFields.forEach(field => {
-        if (itemData.hasOwnProperty(field)) {
-            updatePayload[field] = itemData[field] === undefined ? null : itemData[field];
+    function addChange(field: keyof Item, newValue: any) {
+        if (currentItem[field] !== newValue) {
+            changes[field] = { old: currentItem[field], new: newValue };
         }
+        updatePayload[field] = newValue === undefined ? null : newValue;
+    }
+    
+    // Direct fields
+    (['name', 'description', 'quantity', 'category', 'subcategory', 'room', 'vendor', 'project', 'msrp', 'sku'] as (keyof ItemInput)[]).forEach(field => {
+        if (itemData.hasOwnProperty(field)) addChange(field as keyof Item, itemData[field]);
     });
 
-    if (itemData.hasOwnProperty('originalPrice')) updatePayload.original_price = itemData.originalPrice === undefined ? null : itemData.originalPrice;
-    if (itemData.hasOwnProperty('salesPrice')) updatePayload.sales_price = itemData.salesPrice === undefined ? null : itemData.salesPrice;
-    if (itemData.hasOwnProperty('receiptImageUrl')) updatePayload.receipt_image_url = itemData.receiptImageUrl === undefined || itemData.receiptImageUrl === "" ? null : itemData.receiptImageUrl;
-    if (itemData.hasOwnProperty('productImageUrl')) updatePayload.product_image_url = itemData.productImageUrl === undefined || itemData.productImageUrl === "" ? null : itemData.productImageUrl;
-    if (itemData.hasOwnProperty('productUrl')) updatePayload.product_url = itemData.productUrl === undefined || itemData.productUrl === "" ? null : itemData.productUrl;
-    if (itemData.hasOwnProperty('purchaseDate')) updatePayload.purchase_date = itemData.purchaseDate === undefined ? null : itemData.purchaseDate;
-    if (itemData.hasOwnProperty('storageLocation')) updatePayload.storage_location = itemData.storageLocation === undefined ? null : itemData.storageLocation;
-    if (itemData.hasOwnProperty('binLocation')) updatePayload.bin_location = itemData.binLocation === undefined ? null : itemData.binLocation;
+    if (itemData.hasOwnProperty('originalPrice')) addChange('original_price' as keyof Item, itemData.originalPrice);
+    if (itemData.hasOwnProperty('salesPrice')) addChange('sales_price' as keyof Item, itemData.salesPrice);
+    if (itemData.hasOwnProperty('receiptImageUrl')) addChange('receipt_image_url' as keyof Item, itemData.receiptImageUrl || null);
+    if (itemData.hasOwnProperty('productImageUrl')) addChange('product_image_url' as keyof Item, itemData.productImageUrl || null);
+    if (itemData.hasOwnProperty('productUrl')) addChange('product_url' as keyof Item, itemData.productUrl || null);
+    if (itemData.hasOwnProperty('purchaseDate')) addChange('purchase_date' as keyof Item, itemData.purchaseDate || null);
+    if (itemData.hasOwnProperty('storageLocation')) addChange('storage_location' as keyof Item, itemData.storageLocation || null);
+    if (itemData.hasOwnProperty('binLocation')) addChange('bin_location' as keyof Item, itemData.binLocation || null);
 
-    const currentItemStatus = (currentItemResult as Item).status;
-    if (itemData.status && itemData.status !== currentItemStatus) {
-        updatePayload.status = itemData.status;
+
+    const currentDbStatus = currentItem.status;
+    if (itemData.status && itemData.status !== currentDbStatus) {
+        addChange('status', itemData.status);
         updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
+        if(currentItem.sold_date !== updatePayload.sold_date) changes['sold_date'] = {old: currentItem.sold_date, new: updatePayload.sold_date};
+        
         updatePayload.in_use_date = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
-        if (itemData.status === 'in stock') {
+        if(currentItem.in_use_date !== updatePayload.in_use_date) changes['in_use_date'] = {old: currentItem.in_use_date, new: updatePayload.in_use_date};
+        
+        if (itemData.status === 'in stock') { // Explicitly clear dates if moving to 'in stock'
             updatePayload.sold_date = null;
+            if(currentItem.sold_date !== null) changes['sold_date'] = {old: currentItem.sold_date, new: null};
             updatePayload.in_use_date = null;
+            if(currentItem.in_use_date !== null) changes['in_use_date'] = {old: currentItem.in_use_date, new: null};
         }
-    } else if (itemData.status === currentItemStatus) { 
-        if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
-        if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
-    } else { 
-        if (itemData.hasOwnProperty('status')) updatePayload.status = itemData.status;
-        if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
-        if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
+    } else if (itemData.status === currentDbStatus) { // Status not changing, but dates might
+        if (itemData.hasOwnProperty('soldDate')) addChange('sold_date' as keyof Item, itemData.soldDate || null);
+        if (itemData.hasOwnProperty('inUseDate')) addChange('in_use_date' as keyof Item, itemData.inUseDate || null);
     }
     
     updatePayload.updated_at = now;
 
+    // Ensure all undefined values in payload are null for Supabase
     for (const key in updatePayload) {
       if (updatePayload[key] === undefined) {
         updatePayload[key] = null;
@@ -279,7 +295,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID)
+        .eq('user_id', ADMIN_USER_ID) // Ensure update is scoped to admin user
         .select()
         .single();
 
@@ -289,13 +305,13 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     }
 
     if (!updatedItem) {
-        return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error. Check database logs.` };
+        return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error.` };
     }
 
     await logAuditAction('ITEM_UPDATED', {
       target_table: 'items',
       target_record_id: updatedItem.id,
-      details: { updatedFields: Object.keys(itemData), name: updatedItem.name }, // Log which fields were included in the update payload
+      details: { name: updatedItem.name, changes },
       description: `Admin updated item '${updatedItem.name}' (ID: ${updatedItem.id}).`
     });
 
@@ -313,7 +329,7 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
   if ('error' in itemCheck) {
       return { error: `Cannot delete item. Pre-check failed: ${itemCheck.error}` };
   }
-  const itemName = (itemCheck as Item).name; // Get name for logging
+  const itemName = (itemCheck as Item).name;
 
   const { error } = await supabase
     .from('items')
@@ -322,7 +338,6 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .eq('user_id', ADMIN_USER_ID); 
 
   if (error) {
-    // console.error(`Error deleting item ${id} for admin user ${ADMIN_USER_ID}:`, error);
     return { error: error.message };
   }
 
@@ -348,7 +363,6 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     }
     return extractedData;
   } catch (error) {
-    // console.error("Error processing receipt:", error);
     return { error: "Failed to extract data from receipt. Please try again or enter manually." };
   }
 }
@@ -421,6 +435,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
   if (count && count > 0) {
     await logAuditAction('ITEMS_BULK_DELETED', {
         target_table: 'items',
+        // target_record_id: undefined, // No single record ID for bulk
         details: { itemCount: count, itemIds: itemIds },
         description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(', ')}.`
     });
@@ -439,10 +454,10 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now;
+    updatePayload.sold_date = now; // For bulk, we set now; individual items might have had an older date.
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now;
+    updatePayload.in_use_date = now; // For bulk, we set now
     updatePayload.sold_date = null;
   } else { // 'in stock'
     updatePayload.sold_date = null;
@@ -455,7 +470,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .update(updatePayload)
     .in('id', itemIds)
     .eq('user_id', ADMIN_USER_ID)
-    .select({count: 'exact'});
+    .select({count: 'exact'}); // .select() is needed to get count for .update()
 
   if (error) {
     return { success: false, message: error.message };
@@ -466,6 +481,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   if (updatedCount > 0) {
     await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
         target_table: 'items',
+        // target_record_id: undefined, // No single record ID for bulk
         details: { itemCount: updatedCount, itemIds: itemIds, newStatus: newStatus },
         description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(', ')}.`
     });
@@ -485,7 +501,6 @@ export async function getUniqueCategories(): Promise<string[]> {
     .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
-    // console.error(`Error fetching unique categories for admin user ${ADMIN_USER_ID}:`, error);
     return [];
   }
   if (!data) return [];
@@ -536,7 +551,6 @@ async function getManagedOptions(optionType: OptionType): Promise<string[]> {
     .order('name', { ascending: true });
 
   if (error) {
-    // console.error(`Error fetching managed options for admin user ${ADMIN_USER_ID}, type ${optionType}:`, error);
     return [];
   }
   return data ? data.map(opt => opt.name) : [];
@@ -567,25 +581,34 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .limit(1)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { 
+  if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine for "existing" check
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
     return { success: false, message: `${singularName} "${name.trim()}" already exists for this user.` };
   }
 
-  const { error: insertError } = await supabase
+  const { data: newOption, error: insertError } = await supabase
     .from('managed_options')
     .insert({
       name: name.trim(),
       type: optionType,
       user_id: ADMIN_USER_ID, 
-    });
+    })
+    .select('id, name') // Select new option to log its ID
+    .single();
 
-  if (insertError) {
-    let fullErrorMessage = `Failed to add ${singularName} for admin user ${ADMIN_USER_ID}: ${insertError.message}.`;
+  if (insertError || !newOption) {
+    let fullErrorMessage = `Failed to add ${singularName} for admin user ${ADMIN_USER_ID}: ${insertError?.message || 'Unknown error'}.`;
     return { success: false, message: fullErrorMessage };
   }
+  
+  await logAuditAction('MANAGED_OPTION_CREATED', {
+    target_table: 'managed_options',
+    target_record_id: newOption.id,
+    details: { optionType: optionType, name: newOption.name },
+    description: `Admin created ${singularName} option: '${newOption.name}'.`
+  });
 
   const updatedOptions = await getManagedOptions(optionType);
   const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
@@ -598,20 +621,38 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
   const singularName = optionTypeToSingularName[optionType];
 
+  // Fetch the ID first for logging, as delete doesn't return the deleted record's ID directly in the same way.
+  const { data: optionToDelete, error: fetchError } = await supabase
+    .from('managed_options')
+    .select('id')
+    .eq('type', optionType)
+    .eq('name', name)
+    .eq('user_id', ADMIN_USER_ID)
+    .single();
+
+  if (fetchError || !optionToDelete) {
+      return { success: false, message: `${singularName} "${name}" not found for this user, or error fetching: ${fetchError?.message}` };
+  }
+
   const { error, count } = await supabase
     .from('managed_options')
     .delete({ count: 'exact' })
-    .eq('type', optionType)
-    .eq('name', name)
-    .eq('user_id', ADMIN_USER_ID); 
+    .eq('id', optionToDelete.id); // Delete by specific ID
 
   if (error) {
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
   if (count === 0) {
-     return { success: false, message: `${singularName} "${name}" not found for deletion for this user.` };
+     return { success: false, message: `${singularName} "${name}" not found for deletion for this user (count was 0).` };
   }
+
+  await logAuditAction('MANAGED_OPTION_DELETED', {
+    target_table: 'managed_options',
+    target_record_id: optionToDelete.id, // Log the ID that was deleted
+    details: { optionType: optionType, name: name },
+    description: `Admin deleted ${singularName} option: '${name}'.`
+  });
 
   const updatedOptions = await getManagedOptions(optionType);
   const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
@@ -652,18 +693,24 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
   if (error) {
     return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
   }
+  
+  const deletedCount = count || 0;
 
-  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
-  revalidatePath(settingsPagePath, "page");
-  revalidatePath("/inventory/add", "layout");
-  revalidatePath("/inventory/[id]/edit", "layout");
-
-  if (count !== null && count > 0) {
-    return { success: true, message: `${count} ${singularName.toLowerCase()}(s) deleted successfully for this user.`, count };
-  } else if (count === 0) {
+  if (deletedCount > 0) {
+    await logAuditAction('MANAGED_OPTIONS_BULK_DELETED', {
+        target_table: 'managed_options',
+        details: { optionType: optionType, count: deletedCount, names: names },
+        description: `Admin bulk deleted ${deletedCount} ${singularName.toLowerCase()} option(s): ${names.join(', ')}.`
+    });
+    const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
+    revalidatePath(settingsPagePath, "page");
+    revalidatePath("/inventory/add", "layout");
+    revalidatePath("/inventory/[id]/edit", "layout");
+    return { success: true, message: `${deletedCount} ${singularName.toLowerCase()}(s) deleted successfully for this user.`, count: deletedCount };
+  } else if (deletedCount === 0) {
     return { success: false, message: `No matching ${singularName.toLowerCase()}s found for deletion for this user.` };
   }
-  return { success: false, message: `An issue occurred while deleting ${singularName.toLowerCase()}s (count: ${count}).` };
+  return { success: false, message: `An issue occurred while deleting ${singularName.toLowerCase()}s (count: ${deletedCount}).` };
 }
 
 
@@ -703,12 +750,12 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
 
   const results: BulkImportResult = { successCount: 0, errorCount: 0, errors: [] };
-  const importedItemIds: string[] = [];
+  const importedItemDetailsForAudit: {id: string, name: string}[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
     const line = lines[i];
-    const values = line.split(',').map(v => v.trim());
+    const values = line.split(',').map(v => v.trim()); // Basic CSV split
 
     const getValue = (headerName: string): string | undefined => {
         const index = headerMap[headerName];
@@ -772,7 +819,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
       } else {
         results.successCount++;
-        if (addResult.id) importedItemIds.push(addResult.id); // addItem already logs audit for single items
+        if (addResult.id && addResult.name) importedItemDetailsForAudit.push({id: addResult.id, name: addResult.name});
       }
     } catch (error: any) {
       results.errorCount++;
@@ -780,15 +827,22 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
     }
   }
 
-  // addItem already logs individual creations. 
-  // If we want a specific "BULK_IMPORT_COMPLETED" log, we could add it here.
-  // For now, relying on individual addItem logs.
-
   if (results.successCount > 0) {
+     await logAuditAction('ITEMS_BULK_IMPORTED', {
+        target_table: 'items',
+        details: { 
+            successCount: results.successCount, 
+            errorCount: results.errorCount, 
+            // importedItems: importedItemDetailsForAudit // Could be too large for details, be cautious
+        },
+        description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`
+    });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
   }
   return results;
 }
+    
+
     
