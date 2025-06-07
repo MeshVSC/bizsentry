@@ -9,6 +9,33 @@ import { supabase } from '@/lib/supabase/client';
 // Use this specific admin user ID for all operations
 const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c';
 
+async function logAuditAction(
+  action_type: string,
+  { target_table, target_record_id, details, description }: {
+    target_table?: string;
+    target_record_id?: string | string[]; // Can be single ID or array for bulk
+    details?: any;
+    description?: string;
+  }
+) {
+  try {
+    const { error } = await supabase.from('audit_log').insert({
+      user_id: ADMIN_USER_ID,
+      action_type,
+      target_table,
+      target_record_id: Array.isArray(target_record_id) ? target_record_id.join(', ') : target_record_id, // Store as string if array
+      details,
+      description,
+    });
+    if (error) {
+      console.error(`[Audit Log Error] Failed to log action '${action_type}':`, error.message, { details, description });
+    }
+  } catch (e) {
+    console.error(`[Audit Log Exception] Exception during logging action '${action_type}':`, e);
+  }
+}
+
+
 async function seedAdminUserOptions(optionType: string, defaultOptions: string[]) {
   const { data: existingOptions, error: fetchError } = await supabase
     .from('managed_options')
@@ -106,13 +133,11 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
   const { data, error } = await supabase
     .from('items')
     .select('*')
-    .eq('id', id) // Fetch by ID first
+    .eq('id', id)
     .maybeSingle();
 
   if (error) {
     let message = `Error fetching item by ID '${id}'. DB message: ${error.message}.`;
-    if (error.code) message += ` Code: ${error.code}.`;
-    if (error.details) message += ` Details: ${error.details}.`;
     // console.error(`getItemById debug: ${message}`, error);
     return { error: message };
   }
@@ -123,7 +148,6 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     return { error: message };
   }
 
-  // After fetching by ID, verify it belongs to the ADMIN_USER_ID
   if (data.user_id !== ADMIN_USER_ID) {
     const message = `Item with ID '${id}' found, but it does not belong to the admin user (${ADMIN_USER_ID}). Access denied.`;
     // console.warn(`getItemById security: ${message}`);
@@ -138,7 +162,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   const now = new Date().toISOString();
 
   const newItemPayload: Record<string, any> = {
-    user_id: ADMIN_USER_ID, // Associate with the admin user
+    user_id: ADMIN_USER_ID,
     name: itemData.name,
     description: itemData.description,
     quantity: itemData.quantity,
@@ -178,26 +202,28 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 
   if (error) {
     let fullErrorMessage = `Failed to add item for admin user ${ADMIN_USER_ID}: ${error.message}.`;
-    if (error.details) fullErrorMessage += ` Details: ${error.details}.`;
-    if (error.hint) fullErrorMessage += ` Hint: ${error.hint}.`;
     // console.error("Error in addItem:", fullErrorMessage, "Payload:", newItemPayload);
     return { error: fullErrorMessage };
   }
 
   if (insertedItem) {
+    await logAuditAction('ITEM_CREATED', {
+      target_table: 'items',
+      target_record_id: insertedItem.id,
+      details: { name: insertedItem.name, quantity: insertedItem.quantity, status: insertedItem.status },
+      description: `Admin created item '${insertedItem.name}' (ID: ${insertedItem.id}).`
+    });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     return insertedItem as Item;
   }
-  // console.error("Error in addItem: No item returned from insert but no DB error.", "Payload:", newItemPayload);
   return { error: "Failed to add item for an unknown reason (no data returned)." };
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
     const currentItemResult = await getItemById(id);
     if ('error' in currentItemResult) {
-        // console.error(`[updateItem] Pre-check failed. Item ID: '${id}'. Error: ${currentItemResult.error}`);
         return { error: `Cannot update item. Pre-check failed: ${currentItemResult.error}` };
     }
 
@@ -232,10 +258,10 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             updatePayload.sold_date = null;
             updatePayload.in_use_date = null;
         }
-    } else if (itemData.status === currentItemStatus) { // Status not changing, but dates might
+    } else if (itemData.status === currentItemStatus) { 
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
-    } else { // Status field is present but might be undefined from form, or not changing
+    } else { 
         if (itemData.hasOwnProperty('status')) updatePayload.status = itemData.status;
         if (itemData.hasOwnProperty('soldDate')) updatePayload.sold_date = itemData.soldDate === undefined ? null : itemData.soldDate;
         if (itemData.hasOwnProperty('inUseDate')) updatePayload.in_use_date = itemData.inUseDate === undefined ? null : itemData.inUseDate;
@@ -253,23 +279,25 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID) // Ensure update targets the specific admin user's item
+        .eq('user_id', ADMIN_USER_ID)
         .select()
         .single();
 
     if (updateError) {
         let fullErrorMessage = `Failed to update item ID '${id}' for admin user ${ADMIN_USER_ID}: ${updateError.message}.`;
-        if (updateError.details) fullErrorMessage += ` Details: ${updateError.details}.`;
-        if (updateError.hint) fullErrorMessage += ` Hint: ${updateError.hint}.`;
-        if (updateError.code) fullErrorMessage += ` Code: ${updateError.code}.`;
-        // console.error("[updateItem] Supabase update error:", fullErrorMessage, "Payload:", updatePayload, "ID:", id, "UserID:", ADMIN_USER_ID);
         return { error: fullErrorMessage };
     }
 
     if (!updatedItem) {
-        // console.error(`[updateItem] Supabase update for ID '${id}' (User: ${ADMIN_USER_ID}) returned no data and no error.`);
         return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error. Check database logs.` };
     }
+
+    await logAuditAction('ITEM_UPDATED', {
+      target_table: 'items',
+      target_record_id: updatedItem.id,
+      details: { updatedFields: Object.keys(itemData), name: updatedItem.name }, // Log which fields were included in the update payload
+      description: `Admin updated item '${updatedItem.name}' (ID: ${updatedItem.id}).`
+    });
 
     revalidatePath("/inventory", "layout");
     revalidatePath(`/inventory/${id}`, "layout");
@@ -281,22 +309,30 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
 
 
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
-  const itemCheck = await getItemById(id); // Verifies item exists and belongs to ADMIN_USER_ID
+  const itemCheck = await getItemById(id);
   if ('error' in itemCheck) {
-      // console.error(`[deleteItem] Pre-check failed for item ID '${id}'. Error: ${itemCheck.error}`);
       return { error: `Cannot delete item. Pre-check failed: ${itemCheck.error}` };
   }
+  const itemName = (itemCheck as Item).name; // Get name for logging
 
   const { error } = await supabase
     .from('items')
     .delete()
     .eq('id', id)
-    .eq('user_id', ADMIN_USER_ID); // Ensure delete targets the specific admin user's item
+    .eq('user_id', ADMIN_USER_ID); 
 
   if (error) {
     // console.error(`Error deleting item ${id} for admin user ${ADMIN_USER_ID}:`, error);
     return { error: error.message };
   }
+
+  await logAuditAction('ITEM_DELETED', {
+    target_table: 'items',
+    target_record_id: id,
+    details: { name: itemName },
+    description: `Admin deleted item '${itemName}' (ID: ${id}).`
+  });
+
   revalidatePath("/inventory", "layout");
   revalidatePath("/dashboard", "layout");
   revalidatePath("/analytics", "layout");
@@ -318,13 +354,15 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const currentItemResult = await getItemById(id); // Verifies item exists and belongs to ADMIN_USER_ID
+    const currentItemResult = await getItemById(id); 
     if (!currentItemResult || 'error' in currentItemResult) {
-      // console.error(`Update status failed: Item with ID ${id} not found or error fetching:`, (currentItemResult as {error: string})?.error);
       return { error: (currentItemResult as {error: string})?.error || "Item not found." };
     }
 
     const currentItem = currentItemResult as Item;
+    const oldStatus = currentItem.status;
+    const itemName = currentItem.name;
+
     const updatePayload: { [key: string]: any } = { status: newStatus };
     const now = new Date().toISOString();
 
@@ -344,23 +382,27 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', ADMIN_USER_ID) // Ensure update targets the specific admin user's item
+      .eq('user_id', ADMIN_USER_ID) 
       .select()
       .single();
 
     if (error) {
-      // console.error(`Error updating item status for ${id} (User: ${ADMIN_USER_ID}):`, error);
       return { error: error.message };
     }
 
     if (updatedItem) {
+      await logAuditAction('ITEM_STATUS_CHANGED', {
+        target_table: 'items',
+        target_record_id: updatedItem.id,
+        details: { name: itemName, oldStatus: oldStatus, newStatus: updatedItem.status },
+        description: `Admin changed status of item '${itemName}' (ID: ${updatedItem.id}) from '${oldStatus}' to '${updatedItem.status}'.`
+      });
       revalidatePath("/inventory", "layout");
       revalidatePath(`/inventory/${id}`, "layout");
       revalidatePath("/dashboard", "layout");
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    // console.error(`Error updating item status for ${id} (User: ${ADMIN_USER_ID}): No item returned but no DB error.`);
     return { error: "Failed to update item status or item not found (no data returned)." };
 }
 
@@ -374,10 +416,14 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
-    // console.error("Error in bulkDeleteItems:", error);
     return { success: false, message: error.message };
   }
   if (count && count > 0) {
+    await logAuditAction('ITEMS_BULK_DELETED', {
+        target_table: 'items',
+        details: { itemCount: count, itemIds: itemIds },
+        description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(', ')}.`
+    });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
@@ -412,13 +458,17 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .select({count: 'exact'});
 
   if (error) {
-    // console.error("Error in bulkUpdateItemStatus:", error);
     return { success: false, message: error.message };
   }
 
   const updatedCount = count || 0;
 
   if (updatedCount > 0) {
+    await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
+        target_table: 'items',
+        details: { itemCount: updatedCount, itemIds: itemIds, newStatus: newStatus },
+        description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(', ')}.`
+    });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
@@ -518,7 +568,6 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') { 
-      // console.error(`Error checking existing ${singularName} "${name.trim()}" for admin user ${ADMIN_USER_ID}:`, selectError);
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
@@ -535,9 +584,6 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 
   if (insertError) {
     let fullErrorMessage = `Failed to add ${singularName} for admin user ${ADMIN_USER_ID}: ${insertError.message}.`;
-    if (insertError.details) fullErrorMessage += ` Details: ${insertError.details}.`;
-    if (insertError.hint) fullErrorMessage += ` Hint: ${insertError.hint}.`;
-    // console.error("Error in addManagedOption:", fullErrorMessage, "Name:", name.trim(), "Type:", optionType);
     return { success: false, message: fullErrorMessage };
   }
 
@@ -560,7 +606,6 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .eq('user_id', ADMIN_USER_ID); 
 
   if (error) {
-    // console.error(`Error deleting managed option "${name}" of type ${optionType} for admin user ${ADMIN_USER_ID}:`, error);
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
   }
 
@@ -605,7 +650,6 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     .eq('user_id', ADMIN_USER_ID); 
 
   if (error) {
-    // console.error(`Error bulk deleting managed options of type ${optionType} for admin user ${ADMIN_USER_ID}:`, error);
     return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
   }
 
@@ -659,6 +703,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
 
   const results: BulkImportResult = { successCount: 0, errorCount: 0, errors: [] };
+  const importedItemIds: string[] = [];
 
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
@@ -727,12 +772,17 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
       } else {
         results.successCount++;
+        if (addResult.id) importedItemIds.push(addResult.id); // addItem already logs audit for single items
       }
     } catch (error: any) {
       results.errorCount++;
       results.errors.push({ rowNumber, message: error.message || "Failed to add item.", rowData: line });
     }
   }
+
+  // addItem already logs individual creations. 
+  // If we want a specific "BULK_IMPORT_COMPLETED" log, we could add it here.
+  // For now, relying on individual addItem logs.
 
   if (results.successCount > 0) {
     revalidatePath("/inventory", "layout");
