@@ -7,13 +7,13 @@ import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDat
 import { supabase } from '@/lib/supabase/client';
 
 // Use this specific admin user ID for all operations
-const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c';
+const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c'; // User ID for "stock_sentry_admin"
 
 async function logAuditAction(
   action_type: string,
   params: {
     target_table?: string;
-    target_record_id?: string | null; // Allow null for target_record_id
+    target_record_id?: string | null;
     details?: any;
     description?: string;
   }
@@ -23,7 +23,7 @@ async function logAuditAction(
       user_id: ADMIN_USER_ID,
       action_type,
       target_table: params.target_table,
-      target_record_id: params.target_record_id || null, // Ensure null if undefined
+      target_record_id: params.target_record_id || null,
       details: params.details,
       description: params.description,
     });
@@ -98,7 +98,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
   const countQueryBuilder = supabase
     .from('items')
-    .select('id', { count: 'exact', head: true }) 
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', ADMIN_USER_ID);
 
   if (filters?.name && filters.name.trim() !== '') {
@@ -107,7 +107,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   if (filters?.category && filters.category.trim() !== '') {
     countQueryBuilder.eq('category', filters.category.trim());
   }
-  
+
   const { count: totalMatchingCount, error: countError } = await countQueryBuilder;
 
 
@@ -130,7 +130,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   }
 
 
-  const { data, error: dataError } = await query; 
+  const { data, error: dataError } = await query;
 
   if (dataError) {
     // console.error(`Error fetching items data for admin user ${ADMIN_USER_ID}:`, dataError.message);
@@ -156,10 +156,10 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     const message = `Item with ID '${id}' not found.`;
     return { error: message };
   }
-  
+
   if (data.user_id !== ADMIN_USER_ID) {
     const message = `Item with ID '${id}' found, but it does not belong to the admin user ('${ADMIN_USER_ID}'). Access denied.`;
-    // console.warn(message); // Log this as a warning
+    // console.warn(message);
     return { error: message };
   }
 
@@ -211,7 +211,8 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
 
   if (error) {
     let fullErrorMessage = `Failed to add item for admin user ${ADMIN_USER_ID}: ${error.message}.`;
-    return { error: fullErrorMessage };
+    console.error("[addItem Supabase Error]", fullErrorMessage, "Payload:", JSON.stringify(newItemPayload, null, 2));
+    return { error: `Failed to add item. DB Error: ${error.message}. Check server logs.` };
   }
 
   if (insertedItem) {
@@ -226,21 +227,23 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
     revalidatePath("/analytics", "layout");
     return insertedItem as Item;
   }
-  return { error: "Failed to add item for an unknown reason (no data returned)." };
+  console.warn("[addItem Warning] No data returned for insertedItem but no explicit Supabase error.");
+  return { error: "Failed to add item for an unknown reason (no data returned). Check server logs." };
 }
 
 export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
     const currentItemResult = await getItemById(id);
     if ('error' in currentItemResult) {
+        console.error("[updateItem Pre-check Error]", currentItemResult.error);
         return { error: `Cannot update item. Pre-check failed: ${currentItemResult.error}` };
     }
-    const currentItem = currentItemResult as Item; 
+    const currentItem = currentItemResult as Item;
 
-    const updatePayload: { [key: string]: any } = {}; 
+    const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
     const changes: Record<string, { old: any; new: any }> = {};
 
-    const itemInputToDbMap: Record<keyof ItemInput, string> = {
+    const itemInputToDbMap: Record<keyof Omit<ItemInput, 'status' | 'soldDate' | 'inUseDate'>, string> = {
         name: 'name',
         description: 'description',
         quantity: 'quantity',
@@ -255,38 +258,32 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         salesPrice: 'sales_price',
         msrp: 'msrp',
         sku: 'sku',
-        status: 'status',
         receiptImageUrl: 'receipt_image_url',
         productImageUrl: 'product_image_url',
         productUrl: 'product_url',
         purchaseDate: 'purchase_date',
-        soldDate: 'sold_date',
-        inUseDate: 'in_use_date',
     };
 
-    for (const key in itemData) {
-        if (itemData.hasOwnProperty(key as keyof ItemInput)) {
-            const itemInputKey = key as keyof ItemInput;
+    for (const key in itemInputToDbMap) {
+        if (itemData.hasOwnProperty(key as keyof typeof itemInputToDbMap)) {
+            const itemInputKey = key as keyof typeof itemInputToDbMap;
             const dbColumnKey = itemInputToDbMap[itemInputKey];
-            
-            if (dbColumnKey && dbColumnKey !== 'status' && dbColumnKey !== 'sold_date' && dbColumnKey !== 'in_use_date') { // Handle status and its dates separately
-                const newValue = (itemData as any)[itemInputKey];
-                const oldValue = (currentItem as any)[dbColumnKey]; // currentItem is snake_case from DB
+            const incomingValue = itemData[itemInputKey];
+            const currentValue = (currentItem as any)[dbColumnKey];
 
-                if (oldValue !== newValue) {
-                    changes[itemInputKey] = { old: oldValue, new: newValue };
-                }
-                updatePayload[dbColumnKey] = newValue === undefined || newValue === "" ? null : newValue;
+            if (currentValue !== incomingValue) {
+                 changes[itemInputKey] = { old: currentValue, new: incomingValue };
             }
+            updatePayload[dbColumnKey] = (incomingValue === undefined || incomingValue === "") ? null : incomingValue;
         }
     }
-    
+
     const currentDbStatus = currentItem.status;
-    if (itemData.status && itemData.status !== currentDbStatus) {
+    if (itemData.hasOwnProperty('status') && itemData.status !== currentDbStatus) {
       if (currentDbStatus !== itemData.status) {
         changes['status'] = { old: currentDbStatus, new: itemData.status };
       }
-      updatePayload.status = itemData.status;
+      updatePayload.status = itemData.status!;
 
       const newSoldDate = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
       if (currentItem.sold_date !== newSoldDate) changes['soldDate'] = { old: currentItem.sold_date, new: newSoldDate };
@@ -302,7 +299,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         if (currentItem.in_use_date !== null) changes['inUseDate'] = { old: currentItem.in_use_date, new: null };
         updatePayload.in_use_date = null;
       }
-    } else if (itemData.status === currentDbStatus) { 
+    } else if (itemData.status === currentDbStatus || !itemData.hasOwnProperty('status')) { // Status not changed or not provided
       if (itemData.hasOwnProperty('soldDate')) {
         const newSoldDate = itemData.soldDate || null;
         if(currentItem.sold_date !== newSoldDate) changes['soldDate'] = {old: currentItem.sold_date, new: newSoldDate};
@@ -314,43 +311,41 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         updatePayload.in_use_date = newInUseDate;
       }
     }
-    
+
+
     if (Object.keys(updatePayload).length > 0) {
         updatePayload.updated_at = now;
     } else {
-        // No actual field changes other than possibly status dates which might not have changed if status itself didn't change
-        // Or if status changed but target dates were already null/same.
-        // If only status changed and dates ended up being same as before, payload could be empty.
-        // However, if status changed, we always want to set updated_at.
-        if (itemData.status && itemData.status !== currentDbStatus) {
-             updatePayload.updated_at = now;
-        } else {
-            // No changes detected
-            return currentItem;
-        }
+        return currentItem; // No changes detected
     }
-    
+
+    console.log(`[updateItem] Attempting to update item ID '${id}' for user '${ADMIN_USER_ID}'.`);
+    console.log("[updateItem] Update payload being sent to Supabase:", JSON.stringify(updatePayload, null, 2));
+
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID)
+        .eq('user_id', ADMIN_USER_ID) // Ensure update is scoped to the admin user
         .select()
         .single();
 
     if (updateError) {
-        let fullErrorMessage = `Failed to update item ID '${id}' for admin user ${ADMIN_USER_ID}: ${updateError.message}. Payload: ${JSON.stringify(updatePayload)}`;
+        console.error(`[updateItem Supabase Error] Item ID '${id}', User ID '${ADMIN_USER_ID}'. Message: ${updateError.message}. Code: ${updateError.code}. Details: ${updateError.details}. Hint: ${updateError.hint}`);
+        console.error("[updateItem Supabase Error] Failing Payload:", JSON.stringify(updatePayload, null, 2));
+        let fullErrorMessage = `Failed to update item. DB Error: ${updateError.message}. Check server logs for more details.`;
         return { error: fullErrorMessage };
     }
 
     if (!updatedItem) {
-        return { error: `Failed to update item ID '${id}'. No data returned from Supabase after update, but no explicit error.` };
+        console.warn(`[updateItem Warning] No data returned for updatedItem (ID: ${id}) but no explicit Supabase error. This is unexpected.`);
+        return { error: `Failed to update item (ID: ${id}). No data returned after update operation, though no explicit error was reported by the database. Check server logs.` };
     }
 
     await logAuditAction('ITEM_UPDATED', {
       target_table: 'items',
       target_record_id: updatedItem.id,
-      details: { name: updatedItem.name, changes }, // 'changes' uses camelCase keys from ItemInput for easier reading
+      details: { name: updatedItem.name, changes },
       description: `Admin updated item '${updatedItem.name}' (ID: ${updatedItem.id}).`
     });
 
@@ -366,18 +361,25 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
 export async function deleteItem(id: string): Promise<boolean | { error: string }> {
   const itemCheck = await getItemById(id);
   if ('error' in itemCheck) {
+      console.error("[deleteItem Pre-check Error]", itemCheck.error);
       return { error: `Cannot delete item. Pre-check failed: ${itemCheck.error}` };
   }
   const itemName = (itemCheck as Item).name;
 
-  const { error } = await supabase
+  const { error, count } = await supabase
     .from('items')
-    .delete()
+    .delete({ count: 'exact' })
     .eq('id', id)
-    .eq('user_id', ADMIN_USER_ID); 
+    .eq('user_id', ADMIN_USER_ID); // Ensure delete is scoped
 
   if (error) {
-    return { error: error.message };
+    console.error(`[deleteItem Supabase Error] Item ID '${id}', User ID '${ADMIN_USER_ID}'. Message: ${error.message}.`);
+    return { error: `Failed to delete item. DB Error: ${error.message}. Check server logs.` };
+  }
+
+  if (count === 0) {
+    console.warn(`[deleteItem Warning] Item ID '${id}' not found for user '${ADMIN_USER_ID}' during delete operation, or already deleted.`);
+    return { error: `Item with ID '${id}' not found for admin user, or already deleted.` };
   }
 
   await logAuditAction('ITEM_DELETED', {
@@ -402,14 +404,16 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     }
     return extractedData;
   } catch (error) {
+    console.error("[processReceiptImage Error]", error);
     return { error: "Failed to extract data from receipt. Please try again or enter manually." };
   }
 }
 
 export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const currentItemResult = await getItemById(id); 
+    const currentItemResult = await getItemById(id);
     if (!currentItemResult || 'error' in currentItemResult) {
-      return { error: (currentItemResult as {error: string})?.error || "Item not found." };
+      console.error("[updateItemStatus Pre-check Error]", (currentItemResult as {error: string})?.error || "Item not found.");
+      return { error: (currentItemResult as {error: string})?.error || "Item not found for status update." };
     }
 
     const currentItem = currentItemResult as Item;
@@ -425,22 +429,26 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     } else if (newStatus === 'in use') {
       updatePayload.in_use_date = currentItem.in_use_date || now;
       updatePayload.sold_date = null;
-    } else { 
+    } else {
       updatePayload.sold_date = null;
       updatePayload.in_use_date = null;
     }
     updatePayload.updated_at = now;
 
+    console.log(`[updateItemStatus] Attempting to update status for item ID '${id}' to '${newStatus}'.`);
+    console.log("[updateItemStatus] Payload:", JSON.stringify(updatePayload, null, 2));
+
     const { data: updatedItem, error } = await supabase
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', ADMIN_USER_ID) 
+      .eq('user_id', ADMIN_USER_ID)
       .select()
       .single();
 
     if (error) {
-      return { error: error.message };
+      console.error(`[updateItemStatus Supabase Error] Item ID '${id}'. Message: ${error.message}.`);
+      return { error: `Failed to update status. DB Error: ${error.message}. Check server logs.` };
     }
 
     if (updatedItem) {
@@ -456,7 +464,8 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       revalidatePath("/analytics", "layout");
       return updatedItem as Item;
     }
-    return { error: "Failed to update item status or item not found (no data returned)." };
+    console.warn(`[updateItemStatus Warning] No data returned for item ID '${id}' after status update, but no explicit error.`);
+    return { error: "Failed to update item status (no data returned). Check server logs." };
 }
 
 export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
@@ -469,13 +478,14 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
-    return { success: false, message: error.message };
+    console.error("[bulkDeleteItems Supabase Error]", error.message);
+    return { success: false, message: `DB Error: ${error.message}. Check server logs.` };
   }
   if (count && count > 0) {
     await logAuditAction('ITEMS_BULK_DELETED', {
         target_table: 'items',
-        details: { itemCount: count, itemIds: itemIds },
-        description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(', ')}.`
+        details: { itemCount: count, itemIds: itemIds }, // Store all IDs in details
+        description: `Admin bulk deleted ${count} item(s).`
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
@@ -492,12 +502,12 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now; 
+    updatePayload.sold_date = now;
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now; 
+    updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
-  } else { 
+  } else {
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
@@ -508,10 +518,11 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .update(updatePayload)
     .in('id', itemIds)
     .eq('user_id', ADMIN_USER_ID)
-    .select({count: 'exact'}); 
+    .select({count: 'exact'});
 
   if (error) {
-    return { success: false, message: error.message };
+    console.error("[bulkUpdateItemStatus Supabase Error]", error.message);
+    return { success: false, message: `DB Error: ${error.message}. Check server logs.` };
   }
 
   const updatedCount = count || 0;
@@ -519,8 +530,8 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   if (updatedCount > 0) {
     await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
         target_table: 'items',
-        details: { itemCount: updatedCount, itemIds: itemIds, newStatus: newStatus },
-        description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(', ')}.`
+        details: { itemCount: updatedCount, itemIds: itemIds, newStatus: newStatus }, // Store all IDs and newStatus in details
+        description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'.`
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
@@ -584,7 +595,7 @@ async function getManagedOptions(optionType: OptionType): Promise<string[]> {
     .from('managed_options')
     .select('name')
     .eq('type', optionType)
-    .eq('user_id', ADMIN_USER_ID) 
+    .eq('user_id', ADMIN_USER_ID)
     .order('name', { ascending: true });
 
   if (error) {
@@ -614,12 +625,13 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .select('id')
     .eq('type', optionType)
     .ilike('name', name.trim())
-    .eq('user_id', ADMIN_USER_ID) 
+    .eq('user_id', ADMIN_USER_ID)
     .limit(1)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { 
-      return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
+  if (selectError && selectError.code !== 'PGRST116') {
+      console.error(`[addManagedOption Select Error] Type: ${optionType}, Name: ${name.trim()}`, selectError);
+      return { success: false, message: `Error checking existing ${singularName}. DB Error: ${selectError.message}. Check server logs.` };
   }
   if (existing) {
     return { success: false, message: `${singularName} "${name.trim()}" already exists for this user.` };
@@ -630,16 +642,17 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .insert({
       name: name.trim(),
       type: optionType,
-      user_id: ADMIN_USER_ID, 
+      user_id: ADMIN_USER_ID,
     })
-    .select('id, name') 
+    .select('id, name')
     .single();
 
   if (insertError || !newOption) {
     let fullErrorMessage = `Failed to add ${singularName} for admin user ${ADMIN_USER_ID}: ${insertError?.message || 'Unknown error'}.`;
-    return { success: false, message: fullErrorMessage };
+    console.error(`[addManagedOption Insert Error] Type: ${optionType}, Name: ${name.trim()}`, insertError);
+    return { success: false, message: `DB Error: ${insertError?.message || 'Unknown error'}. Check server logs.` };
   }
-  
+
   await logAuditAction('MANAGED_OPTION_CREATED', {
     target_table: 'managed_options',
     target_record_id: newOption.id,
@@ -667,25 +680,27 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
     .single();
 
   if (fetchError || !optionToDelete) {
-      return { success: false, message: `${singularName} "${name}" not found for this user, or error fetching: ${fetchError?.message}` };
+      console.error(`[deleteManagedOption Fetch Error] Type: ${optionType}, Name: ${name}`, fetchError);
+      return { success: false, message: `${singularName} "${name}" not found, or DB error: ${fetchError?.message}. Check server logs.` };
   }
 
   const { error, count } = await supabase
     .from('managed_options')
     .delete({ count: 'exact' })
-    .eq('id', optionToDelete.id); 
+    .eq('id', optionToDelete.id);
 
   if (error) {
-    return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
+    console.error(`[deleteManagedOption Delete Error] Type: ${optionType}, Name: ${name}`, error);
+    return { success: false, message: `Failed to delete ${singularName}. DB Error: ${error.message}. Check server logs.` };
   }
 
   if (count === 0) {
-     return { success: false, message: `${singularName} "${name}" not found for deletion for this user (count was 0).` };
+     return { success: false, message: `${singularName} "${name}" not found for deletion (count was 0).` };
   }
 
   await logAuditAction('MANAGED_OPTION_DELETED', {
     target_table: 'managed_options',
-    target_record_id: optionToDelete.id, 
+    target_record_id: optionToDelete.id,
     details: { optionType: optionType, name: name },
     description: `Admin deleted ${singularName} option: '${name}'.`
   });
@@ -724,12 +739,13 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     .delete({ count: 'exact' })
     .in('name', names)
     .eq('type', optionType)
-    .eq('user_id', ADMIN_USER_ID); 
+    .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
-    return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s: ${error.message}` };
+    console.error(`[bulkDeleteManagedOptions Error] Type: ${optionType}`, error);
+    return { success: false, message: `Failed to delete ${singularName.toLowerCase()}s. DB Error: ${error.message}. Check server logs.` };
   }
-  
+
   const deletedCount = count || 0;
 
   if (deletedCount > 0) {
@@ -791,7 +807,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
     const line = lines[i];
-    const values = line.split(',').map(v => v.trim()); 
+    const values = line.split(',').map(v => v.trim());
 
     const getValue = (headerName: string): string | undefined => {
         const index = headerMap[headerName];
@@ -849,7 +865,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         itemInput.purchaseDate = undefined;
       }
 
-      const addResult = await addItem(itemInput); 
+      const addResult = await addItem(itemInput);
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
@@ -866,9 +882,9 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   if (results.successCount > 0) {
      await logAuditAction('ITEMS_BULK_IMPORTED', {
         target_table: 'items',
-        details: { 
-            successCount: results.successCount, 
-            errorCount: results.errorCount, 
+        details: {
+            successCount: results.successCount,
+            errorCount: results.errorCount,
         },
         description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`
     });
@@ -878,6 +894,3 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
   return results;
 }
-    
-
-    
