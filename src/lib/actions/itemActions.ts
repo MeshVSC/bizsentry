@@ -13,7 +13,7 @@ async function logAuditAction(
   action_type: string,
   params: {
     target_table?: string;
-    target_record_id?: string; // Should ONLY be a single UUID string or undefined
+    target_record_id?: string | null; // Allow null for target_record_id
     details?: any;
     description?: string;
   }
@@ -23,7 +23,7 @@ async function logAuditAction(
       user_id: ADMIN_USER_ID,
       action_type,
       target_table: params.target_table,
-      target_record_id: params.target_record_id, // Pass directly, will be null if undefined
+      target_record_id: params.target_record_id || null, // Ensure null if undefined
       details: params.details,
       description: params.description,
     });
@@ -98,7 +98,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
 
   const countQueryBuilder = supabase
     .from('items')
-    .select('id', { count: 'exact', head: true }) // only select id for count efficiency
+    .select('id', { count: 'exact', head: true }) 
     .eq('user_id', ADMIN_USER_ID);
 
   if (filters?.name && filters.name.trim() !== '') {
@@ -130,7 +130,7 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   }
 
 
-  const { data, error: dataError } = await query; // Removed .select() as it's part of the initial query chain
+  const { data, error: dataError } = await query; 
 
   if (dataError) {
     // console.error(`Error fetching items data for admin user ${ADMIN_USER_ID}:`, dataError.message);
@@ -145,7 +145,6 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     .from('items')
     .select('*')
     .eq('id', id)
-    // .eq('user_id', ADMIN_USER_ID) // We fetch by ID, then verify user_id
     .maybeSingle();
 
   if (error) {
@@ -160,6 +159,7 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
   
   if (data.user_id !== ADMIN_USER_ID) {
     const message = `Item with ID '${id}' found, but it does not belong to the admin user ('${ADMIN_USER_ID}'). Access denied.`;
+    // console.warn(message); // Log this as a warning
     return { error: message };
   }
 
@@ -234,73 +234,112 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     if ('error' in currentItemResult) {
         return { error: `Cannot update item. Pre-check failed: ${currentItemResult.error}` };
     }
-    const currentItem = currentItemResult as Item; // Safe cast after error check
+    const currentItem = currentItemResult as Item; 
 
-    const updatePayload: { [key: string]: any } = {};
+    const updatePayload: { [key: string]: any } = {}; 
     const now = new Date().toISOString();
     const changes: Record<string, { old: any; new: any }> = {};
 
-    function addChange(field: keyof Item, newValue: any) {
-        if (currentItem[field] !== newValue) {
-            changes[field] = { old: currentItem[field], new: newValue };
+    const itemInputToDbMap: Record<keyof ItemInput, string> = {
+        name: 'name',
+        description: 'description',
+        quantity: 'quantity',
+        category: 'category',
+        subcategory: 'subcategory',
+        storageLocation: 'storage_location',
+        binLocation: 'bin_location',
+        room: 'room',
+        vendor: 'vendor',
+        project: 'project',
+        originalPrice: 'original_price',
+        salesPrice: 'sales_price',
+        msrp: 'msrp',
+        sku: 'sku',
+        status: 'status',
+        receiptImageUrl: 'receipt_image_url',
+        productImageUrl: 'product_image_url',
+        productUrl: 'product_url',
+        purchaseDate: 'purchase_date',
+        soldDate: 'sold_date',
+        inUseDate: 'in_use_date',
+    };
+
+    for (const key in itemData) {
+        if (itemData.hasOwnProperty(key as keyof ItemInput)) {
+            const itemInputKey = key as keyof ItemInput;
+            const dbColumnKey = itemInputToDbMap[itemInputKey];
+            
+            if (dbColumnKey && dbColumnKey !== 'status' && dbColumnKey !== 'sold_date' && dbColumnKey !== 'in_use_date') { // Handle status and its dates separately
+                const newValue = (itemData as any)[itemInputKey];
+                const oldValue = (currentItem as any)[dbColumnKey]; // currentItem is snake_case from DB
+
+                if (oldValue !== newValue) {
+                    changes[itemInputKey] = { old: oldValue, new: newValue };
+                }
+                updatePayload[dbColumnKey] = newValue === undefined || newValue === "" ? null : newValue;
+            }
         }
-        updatePayload[field] = newValue === undefined ? null : newValue;
     }
     
-    // Direct fields
-    (['name', 'description', 'quantity', 'category', 'subcategory', 'room', 'vendor', 'project', 'msrp', 'sku'] as (keyof ItemInput)[]).forEach(field => {
-        if (itemData.hasOwnProperty(field)) addChange(field as keyof Item, itemData[field]);
-    });
-
-    if (itemData.hasOwnProperty('originalPrice')) addChange('original_price' as keyof Item, itemData.originalPrice);
-    if (itemData.hasOwnProperty('salesPrice')) addChange('sales_price' as keyof Item, itemData.salesPrice);
-    if (itemData.hasOwnProperty('receiptImageUrl')) addChange('receipt_image_url' as keyof Item, itemData.receiptImageUrl || null);
-    if (itemData.hasOwnProperty('productImageUrl')) addChange('product_image_url' as keyof Item, itemData.productImageUrl || null);
-    if (itemData.hasOwnProperty('productUrl')) addChange('product_url' as keyof Item, itemData.productUrl || null);
-    if (itemData.hasOwnProperty('purchaseDate')) addChange('purchase_date' as keyof Item, itemData.purchaseDate || null);
-    if (itemData.hasOwnProperty('storageLocation')) addChange('storage_location' as keyof Item, itemData.storageLocation || null);
-    if (itemData.hasOwnProperty('binLocation')) addChange('bin_location' as keyof Item, itemData.binLocation || null);
-
-
     const currentDbStatus = currentItem.status;
     if (itemData.status && itemData.status !== currentDbStatus) {
-        addChange('status', itemData.status);
-        updatePayload.sold_date = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
-        if(currentItem.sold_date !== updatePayload.sold_date) changes['sold_date'] = {old: currentItem.sold_date, new: updatePayload.sold_date};
-        
-        updatePayload.in_use_date = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
-        if(currentItem.in_use_date !== updatePayload.in_use_date) changes['in_use_date'] = {old: currentItem.in_use_date, new: updatePayload.in_use_date};
-        
-        if (itemData.status === 'in stock') { // Explicitly clear dates if moving to 'in stock'
-            updatePayload.sold_date = null;
-            if(currentItem.sold_date !== null) changes['sold_date'] = {old: currentItem.sold_date, new: null};
-            updatePayload.in_use_date = null;
-            if(currentItem.in_use_date !== null) changes['in_use_date'] = {old: currentItem.in_use_date, new: null};
-        }
-    } else if (itemData.status === currentDbStatus) { // Status not changing, but dates might
-        if (itemData.hasOwnProperty('soldDate')) addChange('sold_date' as keyof Item, itemData.soldDate || null);
-        if (itemData.hasOwnProperty('inUseDate')) addChange('in_use_date' as keyof Item, itemData.inUseDate || null);
+      if (currentDbStatus !== itemData.status) {
+        changes['status'] = { old: currentDbStatus, new: itemData.status };
+      }
+      updatePayload.status = itemData.status;
+
+      const newSoldDate = itemData.status === 'sold' ? (itemData.soldDate || now) : null;
+      if (currentItem.sold_date !== newSoldDate) changes['soldDate'] = { old: currentItem.sold_date, new: newSoldDate };
+      updatePayload.sold_date = newSoldDate;
+
+      const newInUseDate = itemData.status === 'in use' ? (itemData.inUseDate || now) : null;
+      if (currentItem.in_use_date !== newInUseDate) changes['inUseDate'] = { old: currentItem.in_use_date, new: newInUseDate };
+      updatePayload.in_use_date = newInUseDate;
+
+      if (itemData.status === 'in stock') {
+        if (currentItem.sold_date !== null) changes['soldDate'] = { old: currentItem.sold_date, new: null };
+        updatePayload.sold_date = null;
+        if (currentItem.in_use_date !== null) changes['inUseDate'] = { old: currentItem.in_use_date, new: null };
+        updatePayload.in_use_date = null;
+      }
+    } else if (itemData.status === currentDbStatus) { 
+      if (itemData.hasOwnProperty('soldDate')) {
+        const newSoldDate = itemData.soldDate || null;
+        if(currentItem.sold_date !== newSoldDate) changes['soldDate'] = {old: currentItem.sold_date, new: newSoldDate};
+        updatePayload.sold_date = newSoldDate;
+      }
+      if (itemData.hasOwnProperty('inUseDate')) {
+        const newInUseDate = itemData.inUseDate || null;
+        if(currentItem.in_use_date !== newInUseDate) changes['inUseDate'] = {old: currentItem.in_use_date, new: newInUseDate};
+        updatePayload.in_use_date = newInUseDate;
+      }
     }
     
-    updatePayload.updated_at = now;
-
-    // Ensure all undefined values in payload are null for Supabase
-    for (const key in updatePayload) {
-      if (updatePayload[key] === undefined) {
-        updatePayload[key] = null;
-      }
+    if (Object.keys(updatePayload).length > 0) {
+        updatePayload.updated_at = now;
+    } else {
+        // No actual field changes other than possibly status dates which might not have changed if status itself didn't change
+        // Or if status changed but target dates were already null/same.
+        // If only status changed and dates ended up being same as before, payload could be empty.
+        // However, if status changed, we always want to set updated_at.
+        if (itemData.status && itemData.status !== currentDbStatus) {
+             updatePayload.updated_at = now;
+        } else {
+            // No changes detected
+            return currentItem;
+        }
     }
     
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID) // Ensure update is scoped to admin user
+        .eq('user_id', ADMIN_USER_ID)
         .select()
         .single();
 
     if (updateError) {
-        let fullErrorMessage = `Failed to update item ID '${id}' for admin user ${ADMIN_USER_ID}: ${updateError.message}.`;
+        let fullErrorMessage = `Failed to update item ID '${id}' for admin user ${ADMIN_USER_ID}: ${updateError.message}. Payload: ${JSON.stringify(updatePayload)}`;
         return { error: fullErrorMessage };
     }
 
@@ -311,7 +350,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     await logAuditAction('ITEM_UPDATED', {
       target_table: 'items',
       target_record_id: updatedItem.id,
-      details: { name: updatedItem.name, changes },
+      details: { name: updatedItem.name, changes }, // 'changes' uses camelCase keys from ItemInput for easier reading
       description: `Admin updated item '${updatedItem.name}' (ID: ${updatedItem.id}).`
     });
 
@@ -386,7 +425,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     } else if (newStatus === 'in use') {
       updatePayload.in_use_date = currentItem.in_use_date || now;
       updatePayload.sold_date = null;
-    } else { // 'in stock'
+    } else { 
       updatePayload.sold_date = null;
       updatePayload.in_use_date = null;
     }
@@ -435,7 +474,6 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
   if (count && count > 0) {
     await logAuditAction('ITEMS_BULK_DELETED', {
         target_table: 'items',
-        // target_record_id: undefined, // No single record ID for bulk
         details: { itemCount: count, itemIds: itemIds },
         description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(', ')}.`
     });
@@ -454,12 +492,12 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now; // For bulk, we set now; individual items might have had an older date.
+    updatePayload.sold_date = now; 
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now; // For bulk, we set now
+    updatePayload.in_use_date = now; 
     updatePayload.sold_date = null;
-  } else { // 'in stock'
+  } else { 
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
@@ -470,7 +508,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .update(updatePayload)
     .in('id', itemIds)
     .eq('user_id', ADMIN_USER_ID)
-    .select({count: 'exact'}); // .select() is needed to get count for .update()
+    .select({count: 'exact'}); 
 
   if (error) {
     return { success: false, message: error.message };
@@ -481,7 +519,6 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   if (updatedCount > 0) {
     await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
         target_table: 'items',
-        // target_record_id: undefined, // No single record ID for bulk
         details: { itemCount: updatedCount, itemIds: itemIds, newStatus: newStatus },
         description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(', ')}.`
     });
@@ -581,7 +618,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .limit(1)
     .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine for "existing" check
+  if (selectError && selectError.code !== 'PGRST116') { 
       return { success: false, message: `Error checking existing ${singularName}: ${selectError.message}` };
   }
   if (existing) {
@@ -595,7 +632,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
       type: optionType,
       user_id: ADMIN_USER_ID, 
     })
-    .select('id, name') // Select new option to log its ID
+    .select('id, name') 
     .single();
 
   if (insertError || !newOption) {
@@ -621,7 +658,6 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
   const singularName = optionTypeToSingularName[optionType];
 
-  // Fetch the ID first for logging, as delete doesn't return the deleted record's ID directly in the same way.
   const { data: optionToDelete, error: fetchError } = await supabase
     .from('managed_options')
     .select('id')
@@ -637,7 +673,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
   const { error, count } = await supabase
     .from('managed_options')
     .delete({ count: 'exact' })
-    .eq('id', optionToDelete.id); // Delete by specific ID
+    .eq('id', optionToDelete.id); 
 
   if (error) {
     return { success: false, message: `Failed to delete ${singularName}: ${error.message}` };
@@ -649,7 +685,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
 
   await logAuditAction('MANAGED_OPTION_DELETED', {
     target_table: 'managed_options',
-    target_record_id: optionToDelete.id, // Log the ID that was deleted
+    target_record_id: optionToDelete.id, 
     details: { optionType: optionType, name: name },
     description: `Admin deleted ${singularName} option: '${name}'.`
   });
@@ -755,7 +791,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
     const line = lines[i];
-    const values = line.split(',').map(v => v.trim()); // Basic CSV split
+    const values = line.split(',').map(v => v.trim()); 
 
     const getValue = (headerName: string): string | undefined => {
         const index = headerMap[headerName];
@@ -833,7 +869,6 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         details: { 
             successCount: results.successCount, 
             errorCount: results.errorCount, 
-            // importedItems: importedItemDetailsForAudit // Could be too large for details, be cautious
         },
         description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`
     });
