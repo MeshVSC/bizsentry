@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIconProp, Link as LinkIcon, Archive, PackageOpen, Construction, Building, Fingerprint, QrCode as QrCodeIcon, Barcode as BarcodeIcon } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
+import type { ReactNode, ElementType } from 'react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -37,7 +38,7 @@ async function DeleteItemAction({ itemId }: { itemId: string }) {
 }
 
 interface DetailItemProps {
-  icon: React.ElementType;
+  icon: ElementType;
   label: string;
   value?: string | number | null;
   isCurrency?: boolean;
@@ -49,7 +50,7 @@ interface DetailItemProps {
 function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = false, isUrl = false, className }: DetailItemProps) {
   if (value === null || typeof value === 'undefined' || value === '') return null;
 
-  let displayValue: React.ReactNode = String(value);
+  let displayValue: ReactNode = String(value);
   if (isCurrency && typeof value === 'number') {
     displayValue = `$${value.toFixed(2)}`; 
   } else if (isDate && typeof value === 'string') {
