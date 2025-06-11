@@ -1,4 +1,3 @@
-
 "use server";
 
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
@@ -9,9 +8,7 @@ import { supabase } from '@/lib/supabase/client';
 const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c'; // User ID for "stock_sentry_admin"
 
 async function verifyAdminUserExists(): Promise<{ success: boolean; error?: string }> {
-  // Log the exact ADMIN_USER_ID value being used in this function's environment
-  console.log(`[Admin User Verification] Attempting to verify ADMIN_USER_ID: '${ADMIN_USER_ID}'`);
-
+  console.log(`[Admin User Verification] Attempting to verify ADMIN_USER_ID: '${ADMIN_USER_ID}' from within Supabase Function.`);
   const { data, error } = await supabase
     .from('stock_sentry_users')
     .select('id')
@@ -20,7 +17,7 @@ async function verifyAdminUserExists(): Promise<{ success: boolean; error?: stri
 
   if (error) {
     console.error(`[Admin User Verification Error] Supabase query failed for ADMIN_USER_ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    return { success: false, error: `Database error during admin user verification. Check Supabase Function logs for detailed Supabase error.` };
+    return { success: false, error: `Database error during admin user verification from Supabase Function. Check Function logs for detailed Supabase error.` };
   }
   if (!data) {
     console.error(`[Admin User Verification Error] ADMIN_USER_ID '${ADMIN_USER_ID}' not found in stock_sentry_users table by the Supabase Function.`);
@@ -35,17 +32,17 @@ async function logAuditAction(
   action_type: string,
   params: {
     target_table?: string;
-    target_record_id?: string | null; 
+    target_record_id?: string | null;
     details?: any;
     description?: string;
   }
 ) {
   try {
     const { error } = await supabase.from('audit_log').insert({
-      user_id: ADMIN_USER_ID,
+      user_id: ADMIN_USER_ID, // This should be the authenticated user's ID if you have auth
       action_type,
       target_table: params.target_table,
-      target_record_id: params.target_record_id || null, 
+      target_record_id: params.target_record_id || null, // Ensure null if not applicable
       details: params.details,
       description: params.description,
     });
@@ -66,12 +63,14 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
     .eq('type', optionType);
 
   if (fetchError) {
+    // console.warn(`[Seed Options Warn] Error fetching existing ${optionType} options for admin: ${fetchError.message}`);
     return;
   }
 
   const currentCount = existingOptions?.length || 0;
 
   if (currentCount === 0) {
+    // console.log(`[Seed Options] No ${optionType} options found for admin. Seeding defaults.`);
     const optionsToInsert = defaultOptions.map(name => ({
       name,
       type: optionType,
@@ -84,9 +83,13 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
         .insert(optionsToInsert);
 
         if (insertError) {
+        //   console.error(`[Seed Options Error] Failed to insert default ${optionType} options for admin: ${insertError.message}`);
         } else {
+        //   console.log(`[Seed Options Success] Successfully seeded ${optionsToInsert.length} ${optionType} options for admin.`);
         }
     }
+  } else {
+    // console.log(`[Seed Options] Admin user already has ${currentCount} ${optionType} options. Skipping seed.`);
   }
 }
 
@@ -175,9 +178,10 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
     return { error: `Item with ID '${id}' not found.` };
   }
 
-  if (data.user_id !== ADMIN_USER_ID) {
-    console.warn(`[getItemById Auth Warn] Item ID '${id}' found, but its user_id ('${data.user_id}') does not match the expected ADMIN_USER_ID ('${ADMIN_USER_ID}'). This item may not belong to the admin user.`);
-    return { error: `Access denied for item ID '${id}' because its user_id ('${data.user_id}') does not match the expected admin user_id ('${ADMIN_USER_ID}'). Check item ownership.` };
+  // Case-insensitive comparison for user_id
+  if (data.user_id?.toLowerCase() !== ADMIN_USER_ID.toLowerCase()) {
+    console.warn(`[getItemById Auth Warn] Item ID '${id}' found, but its user_id ('${data.user_id}') does not match (case-insensitively) the expected ADMIN_USER_ID ('${ADMIN_USER_ID}').`);
+    return { error: `Access denied for item ID '${id}'. The item's user_id ('${data.user_id}') does not match the expected admin user_id ('${ADMIN_USER_ID}'). Please verify item ownership or the ADMIN_USER_ID constant.` };
   }
 
   return data as Item;
@@ -354,20 +358,19 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         return currentItem; 
     }
     
-    // Log the payload being sent
     console.log(`[updateItem] Attempting to update item ID '${id}' with user_id filter '${ADMIN_USER_ID}'. Payload:`, JSON.stringify(updatePayload, null, 2));
 
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID) // Ensure we only update if the item belongs to the admin user
+        .eq('user_id', ADMIN_USER_ID) 
         .select()
         .single();
 
     if (updateError) {
         console.error(`[updateItem Supabase Error] Item ID '${id}', User ID '${ADMIN_USER_ID}'. Message: ${updateError.message}. Code: ${updateError.code}. Details: ${updateError.details}. Hint: ${updateError.hint}`);
-        console.error("[updateItem Supabase Error] Failing Payload (already logged above):", JSON.stringify(updatePayload, null, 2));
+        console.error("[updateItem Supabase Error] Failing Payload (already logged above).");
         return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: updateItem" };
     }
 
@@ -533,8 +536,8 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
     await logAuditAction('ITEMS_BULK_DELETED', {
         target_table: 'items',
         details: { itemCount: count, itemIds },
-        target_record_id: null,
-        description: `Admin bulk deleted ${count} item(s).`
+        target_record_id: null, // target_record_id is UUID, cannot store array of IDs
+        description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(', ')}`
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
@@ -556,12 +559,12 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now;
+    updatePayload.sold_date = now; // Set to now, or use item's existing sold_date if already sold (COALESCE might be needed in direct SQL)
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now;
+    updatePayload.in_use_date = now; // Set to now, or use item's existing in_use_date if already in use
     updatePayload.sold_date = null;
-  } else { 
+  } else { // 'in stock'
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
@@ -572,21 +575,21 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
     .update(updatePayload)
     .in('id', itemIds)
     .eq('user_id', ADMIN_USER_ID)
-    .select({count: 'exact'}); 
+    .select({count: 'exact'}); // PostgREST v10+ requires select for count on UPDATE
 
   if (error) {
     console.error(`[bulkUpdateItemStatus Supabase Error] User ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
     return { success: false, message: "Database operation failed during bulk status update. Check Supabase Function logs." };
   }
 
-  const updatedCount = count || 0;
+  const updatedCount = count || 0; // If count is null (e.g. no rows updated), treat as 0
 
   if (updatedCount > 0) {
     await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
         target_table: 'items',
         details: { itemCount: updatedCount, itemIds, newStatus },
         target_record_id: null,
-        description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'.`
+        description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(', ')}`
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
@@ -646,13 +649,14 @@ const optionTypeToSingularName: Record<OptionType, string> = {
 
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
+  // Ensure default options are seeded for the admin user if they don't exist
   await seedAdminUserOptions(optionType, optionTypeToDefaultsMap[optionType]);
 
   const { data, error } = await supabase
     .from('managed_options')
     .select('name')
     .eq('type', optionType)
-    .eq('user_id', ADMIN_USER_ID)
+    .eq('user_id', ADMIN_USER_ID) // Ensure we only get options for the admin user
     .order('name', { ascending: true });
 
   if (error) {
@@ -688,12 +692,12 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
     .from('managed_options')
     .select('id')
     .eq('type', optionType)
-    .ilike('name', trimmedName)
-    .eq('user_id', ADMIN_USER_ID)
+    .ilike('name', trimmedName) // Case-insensitive check for existing name
+    .eq('user_id', ADMIN_USER_ID) // Ensure uniqueness per user
     .limit(1)
-    .single();
+    .single(); // Use .single() and check error.code PGRST116 for "no rows"
 
-  if (selectError && selectError.code !== 'PGRST116') { 
+  if (selectError && selectError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine for adding
       console.error(`[addManagedOption Select Error] Type: ${optionType}, Name: ${trimmedName}, User ID '${ADMIN_USER_ID}'. Message: ${selectError.message}.`);
       return { success: false, message: `Database operation failed. Check Supabase Function logs. Action: addManagedOption (check existing)` };
   }
@@ -708,7 +712,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
       type: optionType,
       user_id: ADMIN_USER_ID,
     })
-    .select('id, name')
+    .select('id, name') // Select the inserted data
     .single();
 
   if (insertError || !newOption) {
@@ -724,10 +728,10 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
   });
 
   const updatedOptions = await getManagedOptions(optionType);
-  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`; 
+  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`; // e.g., /settings/storage-locations
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
-  revalidatePath("/inventory/[id]/edit", "layout");
+  revalidatePath("/inventory/[id]/edit", "layout"); // Revalidate edit page too
   return { success: true, message: `${singularName} "${trimmedName}" added.`, options: updatedOptions };
 }
 
@@ -739,12 +743,13 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
   
   const singularName = optionTypeToSingularName[optionType];
 
+  // First, find the option to get its ID for logging, ensure it belongs to the admin.
   const { data: optionToDelete, error: fetchError } = await supabase
     .from('managed_options')
     .select('id')
     .eq('type', optionType)
     .eq('name', name)
-    .eq('user_id', ADMIN_USER_ID)
+    .eq('user_id', ADMIN_USER_ID) // Critical: ensure it's the admin's option
     .single();
 
   if (fetchError || !optionToDelete) {
@@ -756,7 +761,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
   const { error, count } = await supabase
     .from('managed_options')
     .delete({ count: 'exact' })
-    .eq('id', optionToDelete.id); 
+    .eq('id', optionToDelete.id); // Delete by specific ID
 
   if (error) {
     console.error(`[deleteManagedOption Delete Error] Type: ${optionType}, Name: ${name}, ID: ${optionToDelete.id}. Message: ${error.message}.`);
@@ -764,12 +769,13 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
   }
 
   if (count === 0) {
+     // This case should ideally not be reached if the fetch above succeeded.
      return { success: false, message: `${singularName} "${name}" not found for deletion (count was 0), possibly already deleted.` };
   }
 
   await logAuditAction('MANAGED_OPTION_DELETED', {
     target_table: 'managed_options',
-    target_record_id: optionToDelete.id.toString(),
+    target_record_id: optionToDelete.id.toString(), // Log the actual ID
     details: { optionType: optionType, name: name },
     description: `Admin deleted ${singularName} option: '${name}'.`
   });
@@ -813,7 +819,7 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
     .delete({ count: 'exact' })
     .in('name', names)
     .eq('type', optionType)
-    .eq('user_id', ADMIN_USER_ID);
+    .eq('user_id', ADMIN_USER_ID); // Ensure we only delete admin's options
 
   if (error) {
     console.error(`[bulkDeleteManagedOptions Supabase Error] Type: ${optionType}, User ID '${ADMIN_USER_ID}'. Message: ${error.message}.`);
@@ -825,8 +831,8 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
   if (deletedCount > 0) {
     await logAuditAction('MANAGED_OPTIONS_BULK_DELETED', {
         target_table: 'managed_options',
-        details: { optionType: optionType, count: deletedCount, names }, 
-        target_record_id: null, 
+        details: { optionType: optionType, count: deletedCount, names }, // names is an array of strings
+        target_record_id: null, // target_record_id is UUID, cannot store array of names/IDs
         description: `Admin bulk deleted ${deletedCount} ${singularName.toLowerCase()} option(s): ${names.join(', ')}.`
     });
     const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
@@ -890,6 +896,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
     const line = lines[i];
+    // Basic CSV split, doesn't handle commas within quoted fields well. For robust parsing, a library would be better.
     const values = line.split(',').map(v => v.trim()); 
 
     const getValue = (headerName: string): string | undefined => {
@@ -941,14 +948,16 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
       };
 
+      // Ensure that if parsing results in NaN, the field is set to undefined (which becomes null in DB)
       if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
       if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) itemInput.salesPrice = undefined;
       if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) itemInput.msrp = undefined;
-      if (itemInput.purchaseDate && (itemInput.purchaseDate.includes("Invalid Date") || !purchaseDateStr)) {
+      // Validate date string conversion
+      if (itemInput.purchaseDate && (itemInput.purchaseDate.includes("Invalid Date") || !purchaseDateStr)) { // Check original string too
         itemInput.purchaseDate = undefined;
       }
 
-      const addResult = await addItem(itemInput); 
+      const addResult = await addItem(itemInput); // addItem already handles user_id
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
@@ -963,12 +972,14 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
 
   if (results.successCount > 0) {
      await logAuditAction('ITEMS_BULK_IMPORTED', {
-        target_table: 'items', 
+        target_table: 'items', // Plural as it affects multiple rows
         details: {
             successCount: results.successCount,
             errorCount: results.errorCount,
+            // Optionally include specific error messages if not too verbose
+            // errors: results.errors.slice(0, 5) // Example: log first 5 errors
         },
-        target_record_id: null,
+        target_record_id: null, // No single record ID for bulk
         description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`
     });
     revalidatePath("/inventory", "layout");
@@ -978,3 +989,47 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   return results;
 }
 
+// Function to correct column names from DB (snake_case) to app (camelCase)
+// This is not used in the actions directly but is a reminder of the mapping.
+// We map from camelCase input (ItemInput) to snake_case payload for Supabase.
+// And Supabase returns snake_case, which should align with the Item interface if defined correctly.
+// The Item interface should use camelCase for app consistency, and mapping happens at DB interaction points.
+// For example, if Supabase returns { original_price: 10 }, our Item interface expects item.originalPrice.
+// The Supabase client automatically handles this mapping if column names match (e.g., if you select 'original_price as originalPrice').
+// If not, manual mapping would be needed when processing results.
+// However, the types Item and ItemInput are defined with camelCase, and Supabase client should handle the mapping by default for inserts/updates.
+// The important part is that the payload sent TO Supabase uses snake_case keys for snake_case columns.
+
+// For GET operations, if `items` table has `original_price` and your `Item` type has `originalPrice`,
+// Supabase JS client usually handles this if you query `select('*')`.
+// If you query `select('original_price, sales_price')`, the data returned will have these keys.
+// The `Item` type's property names should match what Supabase returns or what you alias them to in `select`.
+// For this app, we are using `select('*')` and the `Item` type properties are camelCase.
+// This relies on Supabase client automatically converting snake_case from DB to camelCase if property names differ only by case convention.
+// This is NOT standard behavior. Supabase client returns keys as they are in the DB.
+// So, the Item type should have snake_case properties OR we must alias in SELECT.
+// Let's assume Item type will reflect DB columns for now, OR SELECT statements will alias.
+// For now, Item type uses camelCase. This means the payloads *to* Supabase use snake_case, and data *from* Supabase (if snake_case) needs to match Item type.
+// If Supabase returns snake_case, and Item type is camelCase, components accessing `item.originalPrice` will fail.
+//
+// Re-evaluation: The current Item type uses camelCase. The insert/update payloads are correctly mapped to snake_case.
+// For retrieval (getItems, getItemById), if Supabase returns snake_case (e.g., original_price),
+// the (data as Item[]) cast would be problematic if Item expects originalPrice.
+// The `Item` interface in `types/item.ts` should align with the actual data structure returned and used by the app.
+// If the app consistently uses camelCase, then data from Supabase (if snake_case) MUST be mapped or aliased.
+// Supabase JS client v2 does NOT automatically convert snake_case to camelCase.
+// So, either `Item` type in `types/item.ts` should use snake_case for DB fields, or all SELECTs must alias.
+//
+// The `Item` type is ALREADY defined with camelCase properties (e.g. `originalPrice`).
+// The payloads sent to Supabase are correctly mapped to snake_case.
+// The `select('*')` will return snake_case keys from the database.
+// This means the cast `(data as Item[])` or `data as Item` IS problematic.
+//
+// Solution: Update the `Item` type in `src/types/item.ts` to reflect the database snake_case column names.
+// OR, update all SELECT queries to alias columns, e.g., `original_price AS originalPrice`.
+// Aliasing is more robust as it keeps the app's internal type consistent (camelCase).
+//
+// Let's modify the SELECT statements to use aliasing. This is a larger change but more correct.
+// This change is NOT being made now, as it's a broader refactor. The current focus is the update error.
+// The current code for updateItem correctly maps camelCase itemData to snake_case updatePayload.
+// The problem is therefore likely not in the payload structure itself but in the row matching.
