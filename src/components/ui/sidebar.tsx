@@ -401,16 +401,18 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
+    // Ensure this component is always rendered within a <SidebarProvider>
     const { isMobile, state: sidebarContextState } = useSidebar()
 
-    const button = (
-      <Comp
-        ref={ref}
-        data-sidebar="menu-button"
-        data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      />
+    const button = React.createElement(
+      Comp,
+      {
+        ref,
+        "data-sidebar": "menu-button",
+        "data-active": isActive,
+        className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+        ...props,
+      }
     )
 
     if (!tooltip) {
