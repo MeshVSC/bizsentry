@@ -66,6 +66,7 @@ npm install
     select set_config('myapp.current_user_id', '<ADMIN_USER_UUID>', false);
     ```
 
+
     RLS policies on the `items`, `managed_options`, and `audit_log` tables check
     `current_setting('myapp.current_user_id')` to permit or deny access.
 
