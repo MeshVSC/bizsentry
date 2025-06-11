@@ -35,17 +35,17 @@ async function logAuditAction(
   action_type: string,
   params: {
     target_table?: string;
-    target_record_id?: string | null;
+    target_record_id?: string | null; // Keep as string or null for target_record_id
     details?: any;
     description?: string;
   }
 ) {
   try {
     const { error } = await supabase.from('audit_log').insert({
-      user_id: ADMIN_USER_ID, // This assumes ADMIN_USER_ID has been verified to exist
+      user_id: ADMIN_USER_ID,
       action_type,
       target_table: params.target_table,
-      target_record_id: params.target_record_id || null,
+      target_record_id: params.target_record_id || null, // Ensure null if undefined
       details: params.details,
       description: params.description,
     });
@@ -179,8 +179,8 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
   }
 
   if (data.user_id !== ADMIN_USER_ID) {
-    console.warn(`[getItemById Auth Warn] Item ID '${id}' found, but user_id '${data.user_id}' does not match ADMIN_USER_ID '${ADMIN_USER_ID}'.`);
-    return { error: `Access denied for item ID '${id}'.` };
+    console.warn(`[getItemById Auth Warn] Item ID '${id}' found, but its user_id ('${data.user_id}') does not match the expected ADMIN_USER_ID ('${ADMIN_USER_ID}').`);
+    return { error: `Access denied for item ID '${id}': Mismatched user ID. Expected '${ADMIN_USER_ID}', got '${data.user_id}'.` };
   }
 
   return data as Item;
@@ -242,7 +242,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   if (insertedItem) {
     await logAuditAction('ITEM_CREATED', {
       target_table: 'items',
-      target_record_id: insertedItem.id,
+      target_record_id: insertedItem.id.toString(),
       details: { name: insertedItem.name, quantity: insertedItem.quantity, status: insertedItem.status },
       description: `Admin created item '${insertedItem.name}' (ID: ${insertedItem.id}).`
     });
@@ -261,11 +261,16 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
       return { error: adminUserCheck.error || "Admin user verification failed before updating item. Check Supabase Function logs." };
     }
 
-    const currentItemResult = await getItemById(id); // getItemById already checks ADMIN_USER_ID ownership
+    const currentItemResult = await getItemById(id);
     if (!currentItemResult || 'error' in currentItemResult) {
-        return { error: (currentItemResult as {error: string})?.error || "Item not found or access denied during pre-check for update. This might also indicate the ADMIN_USER_ID doesn't own this item if getItemById's specific error isn't clear." };
+        const preCheckError = (currentItemResult as {error: string})?.error || "Item not found or access denied during pre-check for update.";
+        console.error(`[updateItem Pre-check Error] For item ID '${id}': ${preCheckError}`);
+        return { error: preCheckError };
     }
     const currentItem = currentItemResult as Item;
+    
+    console.log(`[updateItem Debug] For Item ID: ${id}, User ID from getItemById is: '${currentItem.user_id}'. Comparing with ADMIN_USER_ID: '${ADMIN_USER_ID}'.`);
+
 
     const updatePayload: { [key: string]: any } = {};
     const now = new Date().toISOString();
@@ -352,11 +357,12 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
         return currentItem; 
     }
 
+    console.log(`[updateItem] Attempting to update item ID '${id}' with user_id filter '${ADMIN_USER_ID}'. Payload:`, JSON.stringify(updatePayload, null, 2));
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID) // Ensure we only update items owned by ADMIN_USER_ID
+        .eq('user_id', ADMIN_USER_ID)
         .select()
         .single();
 
@@ -367,13 +373,13 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     }
 
     if (!updatedItem) {
-        console.warn(`[updateItem Warning] No data returned for updatedItem (ID: ${id}) after Supabase update, but no explicit error.`);
-        return { error: `Failed to update item (ID: ${id}). No data returned after update operation. Check Supabase Function logs. Action: updateItem` };
+        console.warn(`[updateItem Warning] No data returned for updatedItem (ID: ${id}) after Supabase update, but no explicit error. This could mean the item ID and user ID combination didn't match any rows for update.`);
+        return { error: `Failed to update item (ID: ${id}). No data returned after update operation, possibly because the item was not found with the specified admin user ID. Check Supabase Function logs. Action: updateItem` };
     }
 
     await logAuditAction('ITEM_UPDATED', {
       target_table: 'items',
-      target_record_id: updatedItem.id,
+      target_record_id: updatedItem.id.toString(),
       details: { name: updatedItem.name, changes },
       description: `Admin updated item '${updatedItem.name}' (ID: ${updatedItem.id}).`
     });
@@ -393,9 +399,11 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     return { error: adminUserCheck.error || "Admin user verification failed before deleting item. Check Supabase Function logs." };
   }
 
-  const itemCheckResult = await getItemById(id); // Verifies ownership by ADMIN_USER_ID
+  const itemCheckResult = await getItemById(id);
   if (!itemCheckResult || 'error' in itemCheckResult) {
-      return { error: (itemCheckResult as {error: string})?.error || "Item not found or access denied during pre-check for delete." };
+      const preCheckError = (itemCheckResult as {error: string})?.error || "Item not found or access denied during pre-check for delete.";
+      console.error(`[deleteItem Pre-check Error] For item ID '${id}': ${preCheckError}`);
+      return { error: preCheckError };
   }
   const itemName = (itemCheckResult as Item).name;
 
@@ -403,7 +411,7 @@ export async function deleteItem(id: string): Promise<boolean | { error: string 
     .from('items')
     .delete({ count: 'exact' })
     .eq('id', id)
-    .eq('user_id', ADMIN_USER_ID); // Redundant check if getItemById is trusted, but safe
+    .eq('user_id', ADMIN_USER_ID);
 
   if (error) {
     console.error(`[deleteItem Supabase Error] Item ID '${id}', User ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
@@ -448,9 +456,11 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       return { error: adminUserCheck.error || "Admin user verification failed before updating item status. Check Supabase Function logs." };
     }
     
-    const currentItemResult = await getItemById(id); // Verifies ownership by ADMIN_USER_ID
+    const currentItemResult = await getItemById(id);
     if (!currentItemResult || 'error' in currentItemResult) {
-      return { error: (currentItemResult as {error: string})?.error || "Item not found or access denied during pre-check for status update." };
+      const preCheckError = (currentItemResult as {error: string})?.error || "Item not found or access denied during pre-check for status update.";
+      console.error(`[updateItemStatus Pre-check Error] For item ID '${id}': ${preCheckError}`);
+      return { error: preCheckError };
     }
 
     const currentItem = currentItemResult as Item;
@@ -476,7 +486,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
       .from('items')
       .update(updatePayload)
       .eq('id', id)
-      .eq('user_id', ADMIN_USER_ID) // Redundant check if getItemById trusted, but safe
+      .eq('user_id', ADMIN_USER_ID)
       .select()
       .single();
 
@@ -488,7 +498,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     if (updatedItem) {
       await logAuditAction('ITEM_STATUS_CHANGED', {
         target_table: 'items',
-        target_record_id: updatedItem.id,
+        target_record_id: updatedItem.id.toString(),
         details: { name: itemName, oldStatus: oldStatus, newStatus: updatedItem.status },
         description: `Admin changed status of item '${itemName}' (ID: ${updatedItem.id}) from '${oldStatus}' to '${updatedItem.status}'.`
       });
@@ -507,9 +517,7 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
 
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    // For bulk actions, we might not want to return the detailed error in the message,
-    // but rely on server logs and give a generic failure message to client.
-    return { success: false, message: "Admin user verification failed before bulk delete. Operation aborted. Check Supabase Function logs." };
+    return { success: false, message: adminUserCheck.error || "Admin user verification failed. Operation aborted. Check Supabase Function logs." };
   }
 
   const { error, count } = await supabase
@@ -525,8 +533,8 @@ export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boo
   if (count && count > 0) {
     await logAuditAction('ITEMS_BULK_DELETED', {
         target_table: 'items',
-        details: { itemCount: count, itemIds }, // Store all deleted IDs in details
-        target_record_id: null, // No single record ID for bulk
+        details: { itemCount: count, itemIds },
+        target_record_id: null,
         description: `Admin bulk deleted ${count} item(s).`
     });
     revalidatePath("/inventory", "layout");
@@ -542,17 +550,17 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    return { success: false, message: "Admin user verification failed before bulk status update. Operation aborted. Check Supabase Function logs." };
+    return { success: false, message: adminUserCheck.error || "Admin user verification failed. Operation aborted. Check Supabase Function logs." };
   }
 
   const updatePayload: { [key: string]: any } = { status: newStatus };
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
-    updatePayload.sold_date = now; // Set sold_date, clear in_use_date
+    updatePayload.sold_date = now;
     updatePayload.in_use_date = null;
   } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now; // Set in_use_date, clear sold_date
+    updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
   } else { 
     updatePayload.sold_date = null;
@@ -577,8 +585,8 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   if (updatedCount > 0) {
     await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
         target_table: 'items',
-        details: { itemCount: updatedCount, itemIds, newStatus }, // Store all updated IDs in details
-        target_record_id: null, // No single record ID for bulk
+        details: { itemCount: updatedCount, itemIds, newStatus },
+        target_record_id: null,
         description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'.`
     });
     revalidatePath("/inventory", "layout");
@@ -667,7 +675,7 @@ export async function getManagedProjectOptions(): Promise<string[]> { return get
 async function addManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    return { success: false, message: adminUserCheck.error || "Admin user verification failed before adding managed option. Check Supabase Function logs." };
+    return { success: false, message: adminUserCheck.error || "Admin user verification failed. Operation aborted. Check Supabase Function logs." };
   }
 
   const singularName = optionTypeToSingularName[optionType];
@@ -711,7 +719,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 
   await logAuditAction('MANAGED_OPTION_CREATED', {
     target_table: 'managed_options',
-    target_record_id: newOption.id,
+    target_record_id: newOption.id.toString(),
     details: { optionType: optionType, name: newOption.name },
     description: `Admin created ${singularName} option: '${newOption.name}'.`
   });
@@ -727,7 +735,7 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    return { success: false, message: adminUserCheck.error || "Admin user verification failed before deleting managed option. Check Supabase Function logs." };
+    return { success: false, message: adminUserCheck.error || "Admin user verification failed. Operation aborted. Check Supabase Function logs." };
   }
   
   const singularName = optionTypeToSingularName[optionType];
@@ -762,7 +770,7 @@ async function deleteManagedOption(name: string, optionType: OptionType): Promis
 
   await logAuditAction('MANAGED_OPTION_DELETED', {
     target_table: 'managed_options',
-    target_record_id: optionToDelete.id,
+    target_record_id: optionToDelete.id.toString(),
     details: { optionType: optionType, name: name },
     description: `Admin deleted ${singularName} option: '${name}'.`
   });
@@ -793,7 +801,7 @@ export async function deleteManagedProjectOption(name: string) { return deleteMa
 export async function bulkDeleteManagedOptions(names: string[], optionType: OptionType): Promise<{ success: boolean; message?: string; count?: number }> {
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    return { success: false, message: adminUserCheck.error || "Admin user verification failed before bulk deleting managed options. Check Supabase Function logs." };
+    return { success: false, message: adminUserCheck.error || "Admin user verification failed. Operation aborted. Check Supabase Function logs." };
   }
 
   const singularName = optionTypeToSingularName[optionType];
@@ -818,8 +826,8 @@ export async function bulkDeleteManagedOptions(names: string[], optionType: Opti
   if (deletedCount > 0) {
     await logAuditAction('MANAGED_OPTIONS_BULK_DELETED', {
         target_table: 'managed_options',
-        details: { optionType: optionType, count: deletedCount, names }, // Store all deleted names in details
-        target_record_id: null, // No single record ID for bulk
+        details: { optionType: optionType, count: deletedCount, names }, 
+        target_record_id: null, 
         description: `Admin bulk deleted ${deletedCount} ${singularName.toLowerCase()} option(s): ${names.join(', ')}.`
     });
     const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
@@ -845,7 +853,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   if (!adminUserCheck.success) {
     return { 
       successCount: 0, 
-      errorCount: 1, // Represent overall failure
+      errorCount: 1, 
       errors: [{ rowNumber: 0, message: adminUserCheck.error || "Admin user verification failed. Bulk import aborted. Check Supabase Function logs.", rowData: "PRE-CHECK FAILED" }] 
     };
   }
@@ -961,7 +969,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
             successCount: results.successCount,
             errorCount: results.errorCount,
         },
-        target_record_id: null, // No single record ID for bulk import summary
+        target_record_id: null,
         description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`
     });
     revalidatePath("/inventory", "layout");
@@ -970,4 +978,3 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
   return results;
 }
-
