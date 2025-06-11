@@ -6,3 +6,5 @@
 
 // This file can potentially be deleted if no other user-related (e.g., "author" for a blog post)
 // types are planned for the future. For now, it's left empty.
+
+export {}
