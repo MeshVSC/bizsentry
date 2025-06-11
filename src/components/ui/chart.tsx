@@ -59,7 +59,11 @@ const ChartContainer = React.forwardRef<
       >
         <ChartStyle id={chartId} config={config} />
         <RechartsPrimitive.ResponsiveContainer>
-          {children}
+          {
+            React.Children.toArray(children).filter((child) =>
+              React.isValidElement(child)
+            )[0] || null
+          }
         </RechartsPrimitive.ResponsiveContainer>
       </div>
     </ChartContext.Provider>
