@@ -58,6 +58,34 @@ npm install
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
     ```
 *   **Database Schema Note:** The `items.user_id` and `managed_options.user_id` columns in your Supabase tables should be **nullable** for the current no-user setup to function correctly when creating items or options.
+*   **Supabase RLS Note:** If your project uses Supabase Row Level Security (RLS), the policies rely on a session variable named `myapp.current_user_id`.
+    Set this variable for each database connection (often to the admin user ID) before performing queries:
+
+    ```sql
+    -- Example: run after connecting via psql or inside a Supabase function
+    select set_config('myapp.current_user_id', '<ADMIN_USER_UUID>', false);
+    ```
+
+    You can also define a stored procedure to set the variable when connecting from the Supabase client:
+
+    ```sql
+    create or replace function set_current_user_id(user_id uuid)
+    returns void as $$
+    begin
+        perform set_config('myapp.current_user_id', user_id::text, true);
+    end;
+    $$ language plpgsql;
+    ```
+
+    Call it in your application using `rpc`:
+
+    ```ts
+    const { error } = await supabase.rpc('set_current_user_id', { user_id: yourUserId })
+    if (error) console.error('Error setting current user ID:', error)
+    ```
+
+    RLS policies on the `items`, `managed_options`, and `audit_log` tables check
+    `current_setting('myapp.current_user_id')` to permit or deny access.
 
 *   To run Genkit flows locally during development (e.g., for testing AI features), you might use:
     ```bash
