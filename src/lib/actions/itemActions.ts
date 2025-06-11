@@ -35,7 +35,7 @@ async function logAuditAction(
   action_type: string,
   params: {
     target_table?: string;
-    target_record_id?: string | null; // Keep as string or null for target_record_id
+    target_record_id?: string | null; 
     details?: any;
     description?: string;
   }
@@ -45,7 +45,7 @@ async function logAuditAction(
       user_id: ADMIN_USER_ID,
       action_type,
       target_table: params.target_table,
-      target_record_id: params.target_record_id || null, // Ensure null if undefined
+      target_record_id: params.target_record_id || null, 
       details: params.details,
       description: params.description,
     });
@@ -66,7 +66,6 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
     .eq('type', optionType);
 
   if (fetchError) {
-    // console.error(`[Seed Error] Error fetching options for admin user ${ADMIN_USER_ID}, type ${optionType}: ${fetchError.message}.`);
     return;
   }
 
@@ -85,9 +84,7 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
         .insert(optionsToInsert);
 
         if (insertError) {
-          // console.error(`[Seed Error] Error seeding options for admin user ${ADMIN_USER_ID}, type ${optionType}: ${insertError.message}.`);
         } else {
-        // console.log(`[Seed Info] Successfully seeded ${optionsToInsert.length} options for admin user ${ADMIN_USER_ID}, type ${optionType}.`);
         }
     }
   }
@@ -179,8 +176,8 @@ export async function getItemById(id: string): Promise<Item | { error: string }>
   }
 
   if (data.user_id !== ADMIN_USER_ID) {
-    console.warn(`[getItemById Auth Warn] Item ID '${id}' found, but its user_id ('${data.user_id}') does not match the expected ADMIN_USER_ID ('${ADMIN_USER_ID}').`);
-    return { error: `Access denied for item ID '${id}': Mismatched user ID. Expected '${ADMIN_USER_ID}', got '${data.user_id}'.` };
+    console.warn(`[getItemById Auth Warn] Item ID '${id}' found, but its user_id ('${data.user_id}') does not match the expected ADMIN_USER_ID ('${ADMIN_USER_ID}'). This item may not belong to the admin user.`);
+    return { error: `Access denied for item ID '${id}' because its user_id ('${data.user_id}') does not match the expected admin user_id ('${ADMIN_USER_ID}'). Check item ownership.` };
   }
 
   return data as Item;
@@ -356,19 +353,21 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     } else {
         return currentItem; 
     }
-
+    
+    // Log the payload being sent
     console.log(`[updateItem] Attempting to update item ID '${id}' with user_id filter '${ADMIN_USER_ID}'. Payload:`, JSON.stringify(updatePayload, null, 2));
+
     const { data: updatedItem, error: updateError } = await supabase
         .from('items')
         .update(updatePayload)
         .eq('id', id)
-        .eq('user_id', ADMIN_USER_ID)
+        .eq('user_id', ADMIN_USER_ID) // Ensure we only update if the item belongs to the admin user
         .select()
         .single();
 
     if (updateError) {
         console.error(`[updateItem Supabase Error] Item ID '${id}', User ID '${ADMIN_USER_ID}'. Message: ${updateError.message}. Code: ${updateError.code}. Details: ${updateError.details}. Hint: ${updateError.hint}`);
-        console.error("[updateItem Supabase Error] Failing Payload:", JSON.stringify(updatePayload, null, 2));
+        console.error("[updateItem Supabase Error] Failing Payload (already logged above):", JSON.stringify(updatePayload, null, 2));
         return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: updateItem" };
     }
 
@@ -978,3 +977,4 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   }
   return results;
 }
+
