@@ -7,8 +7,7 @@ This changelog provides a high-level overview of the major features and refineme
 ### Initial Setup & Core Inventory Management
 *   Initialized as a Next.js project with TypeScript and Tailwind CSS.
 *   Implemented core CRUD (Create, Read, Update, Delete) functionality for inventory items.
-*   Established an in-memory data store for items, using `globalThis` for persistence during development sessions.
-*   Created basic page structure: Dashboard, Inventory list, Item detail, Add/Edit item forms.
+*   Integrated Supabase for database storage. Items and managed options are stored in Supabase.
 
 ### AI Integration & Enhanced Item Data
 *   Integrated Genkit (using Google AI plugin) for AI-powered receipt data extraction to pre-fill item forms.
@@ -35,16 +34,13 @@ This changelog provides a high-level overview of the major features and refineme
     *   Estimated Profit by Category (approximated).
 *   Added new `StatCard` metrics to the Analytics page: Total Units (In Stock, In Use, Sold) and Total Value (In Stock, In Use, Sold).
 
-### Settings & Prototype User Management
+### Settings & Global Data Management
 *   Developed a multi-page settings area:
     *   Application settings (e.g., default items per page for inventory).
-    *   Management interfaces for dropdown options: Categories, Subcategories, Storage Locations, Bin Locations, Rooms, Vendors, Projects.
-*   Implemented a **prototype** in-app user authentication system:
-    *   Login page and protected routes.
-    *   User roles: Admin, Manager, Viewer, with basic permission checks.
-    *   Admin panel for managing users (add, edit role, delete).
-    *   Switched from `globalThis`-based session to cookie-based session management for improved stability during development.
-    *   **Security Note:** This authentication system is a prototype intended for demonstration and uses plaintext password storage in the mock user data; it is **NOT production-ready**.
+    *   Management interfaces for dropdown options: Categories, Subcategories, Storage Locations, Bin Locations, Rooms, Vendors, Projects. These options are now global.
+*   **Removed User Authentication:** The application no longer has user login, roles, or user-specific data. All data is global.
+    *   The login page and user management sections in settings were removed.
+    *   Data operations (items, managed options) now use `NULL` for `user_id` in the database (requires `user_id` columns to be nullable).
 
 ### UI Theme & Responsiveness
 *   Applied a custom modern dark theme with turquoise/neon blue accents throughout the application.
@@ -58,9 +54,8 @@ This changelog provides a high-level overview of the major features and refineme
 
 ### Development & Build Stability
 *   Addressed various Next.js build errors, runtime issues, and parsing errors.
-*   Refined server action definitions (e.g., ensuring they are `async`).
+*   Refined server action definitions.
 *   Updated `revalidatePath` calls for better data consistency across pages after CRUD operations.
 
 ---
 _This is a summary of major development milestones and does not represent an exhaustive commit-by-commit log. The development process was iterative and conversational._
-```

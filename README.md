@@ -2,14 +2,12 @@
 
 StockSentry is a modern inventory management tool built with Next.js and Tailwind CSS, developed with the assistance of Firebase Studio's App Prototyper. Designed for speed, simplicity, and clarity, it helps track stock levels, categories, and historical changes efficiently.
 
-**Important Note:** This project currently includes a prototype in-app user authentication and management system. It is intended for demonstration and development purposes only and is **NOT secure for production use** due to plaintext password storage in the mock data.
+**Note:** User authentication and management features have been removed. The application now operates in a global, no-user mode. All data is shared.
 
 ---
 
 ## ✨ Features
 
-*   🔐 Basic User Authentication (Admin, Manager, Viewer roles) - **Prototype Only**
-*   👤 User Management (Add, Edit Role, Delete users by Admin) - **Prototype Only**
 *   📦 Inventory CRUD (Create, Read, Update, Delete items)
 *   🏷️ Support for SKU, Product URL, Purchase/Sold/In-Use Dates, MSRP.
 *   📝 AI-Powered Receipt Data Extraction for quick item entry (via Genkit).
@@ -23,7 +21,7 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
     *   Key metric cards (total units in stock/use/sold, total value in stock/use/sold).
 *   📂 Managed Dropdown Options:
     *   Categories, Subcategories, Storage Locations, Bin Locations, Rooms, Vendors, Projects.
-    *   Settings pages to manage these options.
+    *   Settings pages to manage these options (globally).
 *   📤 Bulk CSV Import for items (with template download functionality).
 *   🎨 Modern Dark Theme with Turquoise Accents (Montserrat font).
 *   📱 Responsive Design for Desktop, Tablet, and Mobile.
@@ -46,13 +44,22 @@ npm install
 ```
 (Or `yarn install` if using Yarn)
 
-### 3. Environment Setup (for Genkit AI)
+### 3. Environment Setup (for Genkit AI & Supabase)
 *   Genkit is used for AI features (like receipt processing). It's configured to use Google AI by default.
+*   Supabase is used as the database.
 *   Create a `.env` file in the root of your project (or set environment variables directly).
 *   Add your Google AI API key:
     ```
     GOOGLE_API_KEY=your_google_api_key_here
     ```
+*   Add your Supabase URL and Anon Key:
+    ```
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    ```
+*   **Database Schema Note:** The `items.user_id` and `managed_options.user_id` columns in your Supabase tables should be **nullable** for the current no-user setup to function correctly when creating items or options.
+*   **Supabase RLS Note:** If your project uses Supabase Row Level Security, ensure `myapp.current_user_id` (or your configured admin user ID) is set so data operations succeed.
+
 *   To run Genkit flows locally during development (e.g., for testing AI features), you might use:
     ```bash
     npm run genkit:dev
@@ -66,11 +73,7 @@ npm install
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) (or the port specified by Next.js/Firebase Studio) with your browser to see the result.
-
-**Default Admin Login (Prototype):**
-*   Username: `admin`
-*   Password: `adminpassword`
+Open [http://localhost:3000](http://localhost:3000) (or the port specified by Next.js/Firebase Studio) with your browser to see the result. The application will load directly into the dashboard.
 
 ---
 
@@ -83,10 +86,10 @@ Open [http://localhost:3000](http://localhost:3000) (or the port specified by Ne
 │   ├── app/             # Next.js App Router (pages, layouts)
 │   ├── components/      # Reusable UI components (ShadCN, custom)
 │   ├── hooks/           # Custom React hooks
-│   ├── lib/             # Server actions, utility functions
+│   ├── lib/             # Server actions, utility functions, Supabase client
 │   ├── types/           # TypeScript type definitions
 │   └── ai/              # Genkit AI flows and configuration
-├── .env                 # Environment variables (GOOGLE_API_KEY)
+├── .env                 # Environment variables (GOOGLE_API_KEY, Supabase)
 ├── next.config.ts       # Next.js configuration
 ├── package.json         # Project dependencies and scripts
 ├── README.md            # This file
@@ -106,6 +109,7 @@ Open [http://localhost:3000](http://localhost:3000) (or the port specified by Ne
 *   [Recharts](https://recharts.org/) (for charts, via ShadCN UI)
 *   [Genkit (by Firebase)](https://firebase.google.com/docs/genkit) (for AI features, using Google AI plugin)
 *   [Zod](https://zod.dev/) (Schema validation for forms)
+*   [Supabase](https://supabase.com/) (PostgreSQL Database)
 
 ---
 
@@ -122,4 +126,3 @@ For commercial inquiries, contact [stephcolors@hotmail.com](mailto:stephcolors@h
 
 For questions, feedback, or commercial inquiries regarding StockSentry:
 📧 [stephcolors@hotmail.com](mailto:stephcolors@hotmail.com)
-```
