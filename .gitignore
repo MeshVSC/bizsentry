@@ -35,7 +35,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+# Allow Next.js type references
+# next-env.d.ts
 
 .genkit/*
 .env*
