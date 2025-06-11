@@ -50,9 +50,18 @@ const itemFormSchema = z.object({
   room: z.string().max(100).optional().default(""),
   vendor: z.string().max(100).optional().default(""),
   project: z.string().max(100).optional().default(""),
-  originalPrice: z.coerce.number().min(0).optional(),
-  salesPrice: z.coerce.number().min(0).optional(),
-  msrp: z.coerce.number().min(0).optional(),
+  originalPrice: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.coerce.number().min(0).optional()
+  ),
+  salesPrice: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.coerce.number().min(0).optional()
+  ),
+  msrp: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.coerce.number().min(0).optional()
+  ),
   sku: z.string().max(50).optional().default(""),
   status: z.enum(itemStatuses, { required_error: "Status is required."}).default("in stock"),
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
