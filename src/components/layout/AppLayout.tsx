@@ -8,7 +8,7 @@ import { Bell, Settings, LifeBuoy, UserCircle } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
