@@ -34,7 +34,7 @@ async function logAuditAction(
   params: {
     target_table?: string;
     target_record_id?: string | null;
-    details?: any;
+    details?: unknown;
     description?: string;
   }
 ) {
@@ -180,7 +180,7 @@ export async function addItem(itemData: ItemInput): Promise<Item | { error: stri
   }
 
   const now = new Date().toISOString();
-  const newItemPayload: Record<string, any> = {
+  const newItemPayload: Record<string, unknown> = {
     user_id: ADMIN_USER_ID, // Still setting user_id due to DB schema (FK constraint)
     name: itemData.name,
     description: itemData.description,
@@ -256,9 +256,9 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
     // Debug log to see what user_id getItemById returned (it might be null or different)
     console.log(`[updateItem Debug] For Item ID: ${id}, User ID from getItemById (now global fetch) is: '${currentItem.user_id}'. Update will proceed based on ID only.`);
 
-    const updatePayload: { [key: string]: any } = {};
+    const updatePayload: Record<string, unknown> = {};
     const now = new Date().toISOString();
-    const changes: Record<string, { old: any; new: any }> = {};
+    const changes: Record<string, { old: unknown; new: unknown }> = {};
 
     const fieldMap: Record<keyof Omit<ItemInput, 'status' | 'soldDate' | 'inUseDate' | 'purchaseDate'>, string> = {
         name: 'name',
@@ -285,7 +285,7 @@ export async function updateItem(id: string, itemData: Partial<ItemInput>): Prom
             const itemInputKey = key as keyof typeof fieldMap;
             const dbColumnKey = fieldMap[itemInputKey];
             const incomingValue = itemData[itemInputKey];
-            const currentValue = (currentItem as any)[dbColumnKey]; 
+            const currentValue = (currentItem as Record<string, unknown>)[dbColumnKey];
 
             if (currentValue !== incomingValue) {
                 changes[itemInputKey] = { old: currentValue, new: incomingValue };
@@ -427,7 +427,7 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
       return { ...extractedData, items: [] };
     }
     return extractedData;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[processReceiptImage Genkit Error]", error);
     return { error: `Failed to extract data from receipt: ${error.message || 'Unknown Genkit error'}. Action: processReceiptImage` };
   }
@@ -445,7 +445,7 @@ export async function updateItemStatus(id: string, newStatus: ItemStatus): Promi
     const oldStatus = currentItem.status;
     const itemName = currentItem.name;
 
-    const updatePayload: { [key: string]: any } = { status: newStatus };
+    const updatePayload: Record<string, unknown> = { status: newStatus };
     const now = new Date().toISOString();
 
     if (newStatus === 'sold') {
@@ -523,7 +523,7 @@ export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemSta
   
   // No admin user verification needed if update is by ID only.
 
-  const updatePayload: { [key: string]: any } = { status: newStatus };
+  const updatePayload: Record<string, unknown> = { status: newStatus };
   const now = new Date().toISOString();
 
   if (newStatus === 'sold') {
@@ -580,7 +580,11 @@ export async function getUniqueCategories(): Promise<string[]> {
   }
   if (!data) return [];
 
-  const categories = Array.from(new Set(data.map(item => item.category).filter(Boolean as (value: any) => value is string))).sort();
+  const categories = Array.from(
+    new Set(
+      data.map(item => item.category).filter((value): value is string => typeof value === 'string')
+    )
+  ).sort();
   return categories;
 }
 
@@ -924,7 +928,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
       } else {
         results.successCount++;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.errorCount++;
       results.errors.push({ rowNumber, message: error.message || "Failed to add item.", rowData: line });
     }
