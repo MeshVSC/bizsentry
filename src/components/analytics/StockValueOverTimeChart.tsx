@@ -45,8 +45,8 @@ export default function StockValueOverTimeChart({ data, chartConfig, description
                 stroke="hsl(var(--muted-foreground))"
               />
               <Tooltip
-                content={<ChartTooltipContent 
-                            formatter={(value, name, props) => {
+                content={<ChartTooltipContent
+                            formatter={(value, name) => {
                                 if (name === 'value' && typeof value === 'number') {
                                     return [`$${value.toLocaleString()}`, chartConfig.value.label];
                                 }
