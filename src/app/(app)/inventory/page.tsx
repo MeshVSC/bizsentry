@@ -7,7 +7,7 @@ import { getAppSettings } from '@/lib/actions/settingsActions';
 import InventoryListTable from '@/components/inventory/InventoryListTable';
 import InventoryFilters from '@/components/inventory/InventoryFilters';
 import PaginationControls from '@/components/inventory/PaginationControls';
-import NewSidebar from '../../components/ui/NewSidebar';
+import NewSidebar from '@/components/ui/NewSidebar';
 
 export default async function InventoryPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   const nameFilter = typeof searchParams.name === "string" ? searchParams.name : "";
