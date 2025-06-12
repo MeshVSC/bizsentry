@@ -44,7 +44,14 @@ npm install
 ```
 (Or `yarn install` if using Yarn)
 
-### 3. Environment Setup (for Genkit AI & Supabase)
+### 3. Lint and type-check
+After installing dependencies you can verify code style and TypeScript types:
+```bash
+npm run lint
+npm run typecheck
+```
+
+### 4. Environment Setup (for Genkit AI & Supabase)
 *   Genkit is used for AI features (like receipt processing). It's configured to use Google AI by default.
 *   Supabase is used as the database.
 *   Create a `.env` file in the root of your project (or set environment variables directly).
@@ -79,7 +86,7 @@ npm install
     npm run genkit:watch
     ```
 
-### 4. Start the development server
+### 5. Start the development server
 ```bash
 npm run dev
 ```
