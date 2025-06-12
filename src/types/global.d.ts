@@ -2,10 +2,9 @@
 // Managed dropdown option declarations are removed as they are now fully in Supabase without user-specific globals.
 
 // For application settings (still in-memory for prototype)
-// eslint-disable-next-line no-var
-declare const _appSettingsStore: import('@/lib/actions/settingsActions').AppSettings;
-
 declare global {
+  // eslint-disable-next-line no-var
+  var _appSettingsStore: import('@/lib/actions/settingsActions').AppSettings;
   const _itemsStore: import('@/types/item').Item[];
   const _managedCategoriesStore: string[];
   const _managedSubcategoriesStore: string[];
