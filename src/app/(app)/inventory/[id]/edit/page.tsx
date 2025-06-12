@@ -14,9 +14,14 @@ import {
 import type { Item, ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
-export default async function EditItemPage({ params }: { params: { id: string } }) {
-  // Access params directly as it's not a Promise
-  const id = typeof params.id === 'string' ? params.id : String(params.id);
+export default async function EditItemPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  // Await params before using its properties
+  const resolvedParams = await params;
+  const id = typeof resolvedParams.id === 'string' ? resolvedParams.id : String(resolvedParams.id);
   const itemResult = await getItemById(id);
 
   if (!itemResult || 'error' in itemResult) {
