@@ -144,7 +144,7 @@ export default function ItemForm({
       try {
         const result = await processReceiptImage(base64data);
         if ('error' in result || !result.items || result.items.length === 0) {
-          toast({ title: "Receipt Processing Failed", description: (result as any).error || "Could not extract data from receipt.", variant: "destructive" });
+          toast({ title: "Receipt Processing Failed", description: result.error || "Could not extract data from receipt.", variant: "destructive" });
         } else {
           const extracted = result.items[0] as ExtractedItemData;
           if (extracted.name && !form.getValues("name")) form.setValue("name", extracted.name, { shouldValidate: true });
@@ -223,7 +223,9 @@ export default function ItemForm({
           router.push('/inventory');
           router.refresh(); 
         } else {
-          const errorMsg = (result as any)?.error || `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input or database constraints.`;
+          const errorMsg = result && 'error' in result
+            ? result.error
+            : `Failed to ${isEditing ? 'update' : 'add'} item. Please check your input or database constraints.`;
           toast({ title: "Operation Failed", description: errorMsg, variant: "destructive" });
         }
       } catch (error) {

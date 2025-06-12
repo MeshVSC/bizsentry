@@ -15,10 +15,4 @@ declare global {
   var _managedVendorsStore: string[];
   var _managedProjectsStore: string[];
 }
-export {};
-
-// User store declarations are removed as authentication is removed.
-// // eslint-disable-next-line no-var
-// declare var _usersStore: any; // Kept 'any' to avoid import error if user.ts is empty
-// // eslint-disable-next-line no-var
-// declare var _currentUserStore: any | null; // Kept 'any'
+export {}
