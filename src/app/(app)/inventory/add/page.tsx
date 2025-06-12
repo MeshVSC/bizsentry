@@ -1,8 +1,8 @@
 
 import ItemForm from '@/components/inventory/ItemForm';
 import PageHeader from '@/components/shared/PageHeader';
-import { 
-  addItem, 
+import {
+  createItem,
   getManagedCategoryOptions, 
   getManagedSubcategoryOptions,
   getManagedStorageLocationOptions, 
@@ -25,7 +25,7 @@ export default async function AddItemPage() {
     <>
       <PageHeader title="Add New Item" description="Fill in the details for the new inventory item." />
       <ItemForm 
-        onSubmitAction={addItem} 
+        onSubmitAction={createItem}
         isEditing={false} 
         availableCategories={managedCategories}
         availableSubcategories={managedSubcategories}

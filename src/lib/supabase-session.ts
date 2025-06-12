@@ -46,9 +46,7 @@ export async function initializeUserSession() {
 /**
  * Wrapper for any database operation that needs user context
  */
-export async function withUserSession<T>(
-  operation: () => Promise<T>
-): Promise<T> {
+export async function withUserSession<T>(operation: () => Promise<T>): Promise<T> {
   const sessionResult = await initializeUserSession()
   if (sessionResult.error) {
     throw new Error(sessionResult.error)
