@@ -35,7 +35,7 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 (If you've cloned this from a Git repository)
 ```bash
 git clone <your-repository-url>
-cd stocksentry
+cd studio
 ```
 
 ### 2. Install dependencies
