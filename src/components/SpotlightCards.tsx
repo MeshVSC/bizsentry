@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, ReactNode } from 'react';
-import NewSidebar from '@/components/ui/NewSidebar';
 
 interface GlowCardProps {
   children: ReactNode;
