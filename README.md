@@ -43,6 +43,8 @@ cd studio
 npm install
 ```
 (Or `yarn install` if using Yarn)
+Make sure to install dependencies before running any type checks so packages
+like `@types/node` are available.
 
 ### 3. Lint and type-check
 After installing dependencies you can verify code style and TypeScript types:
