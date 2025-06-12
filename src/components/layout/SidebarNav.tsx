@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -107,7 +106,7 @@ export default function SidebarNav() {
                 const isSubActive = subItem.matcher ? subItem.matcher.test(pathname) : (pathname === subItem.href);
                 return (
                   <SidebarMenuItem key={subItem.href} className="py-0.5">
-                    <Link href={subItem.href} passHref legacyBehavior>
+                    <Link href={subItem.href}>
                       <SidebarMenuButton
                         asChild
                         isActive={isSubActive}
