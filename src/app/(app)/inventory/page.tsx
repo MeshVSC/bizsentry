@@ -9,18 +9,11 @@ import InventoryListTable from '@/components/inventory/InventoryListTable';
 import InventoryFilters from '@/components/inventory/InventoryFilters';
 import PaginationControls from '@/components/inventory/PaginationControls';
 
-interface InventoryPageProps {
-  searchParams?: {
-    name?: string;
-    category?: string;
-    page?: string;
-  };
-}
-
-export default async function InventoryPage({ searchParams }: InventoryPageProps) {
-  const nameFilter = searchParams?.name || '';
-  const categoryFilter = searchParams?.category || '';
-  const currentPage = parseInt(searchParams?.page || '1', 10);
+export default async function InventoryPage({ searchParams }: { searchParams: URLSearchParams }) {
+  const params = await searchParams;
+  const nameFilter = params.get("name") ?? "";
+  const categoryFilter = params.get("category") ?? "";
+  const currentPage = parseInt(params.get("page") ?? "1", 10);
 
   const appSettings = await getAppSettings();
   const itemsPerPage = appSettings.defaultItemsPerPage || 5; 
