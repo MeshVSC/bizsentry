@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { processReceiptImage } from "@/lib/actions/itemActions";
 import FileUploadInput from "@/components/shared/FileUploadInput";
 import { useToast } from "@/hooks/use-toast";
@@ -332,7 +332,7 @@ export default function ItemForm({
                     <FormItem>
                       <FormLabel>Product URL</FormLabel>
                       <FormControl><Input placeholder="https://example.com/product-page" {...field} /></FormControl>
-                      <FormDescription>Optional link to the product's official or sales page.</FormDescription>
+                      <FormDescription>Optional link to the product&apos;s official or sales page.</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
