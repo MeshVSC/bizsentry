@@ -2,12 +2,10 @@
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
-import { Package, PackageCheck, DollarSign, Layers, TrendingUp, PlusCircle, Archive } from 'lucide-react';
-import type { Item } from '@/types/item';
+import { Package, PackageCheck, Layers, TrendingUp, PlusCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
 import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 import type { ChartConfig } from '@/components/ui/chart';
 
