@@ -20,8 +20,7 @@ export default function ApplicationSettingsPage() {
         setLoadingSettings(true);
         const settings = await getAppSettings(); 
         setInitialAppSettings(settings);
-      } catch (error) {
-        // console.error("Failed to fetch app settings:", error);
+      } catch {
       } finally {
         setLoadingSettings(false);
       }

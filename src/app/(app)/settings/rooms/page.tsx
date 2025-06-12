@@ -23,8 +23,7 @@ export default function RoomsSettingsPage() {
         setLoading(true);
         const options = await getManagedRoomOptions();
         setInitialRooms(options);
-      } catch (error) {
-        // console.error("Failed to fetch room options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }

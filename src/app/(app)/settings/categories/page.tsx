@@ -23,8 +23,7 @@ export default function CategoriesSettingsPage() {
         setLoading(true);
         const options = await getManagedCategoryOptions();
         setInitialCategories(options);
-      } catch (error) {
-        // console.error("Failed to fetch category options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }

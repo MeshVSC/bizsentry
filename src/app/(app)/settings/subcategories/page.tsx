@@ -23,8 +23,7 @@ export default function SubcategoriesSettingsPage() {
         setLoading(true);
         const options = await getManagedSubcategoryOptions();
         setInitialSubcategories(options);
-      } catch (error) {
-        // console.error("Failed to fetch subcategory options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }
