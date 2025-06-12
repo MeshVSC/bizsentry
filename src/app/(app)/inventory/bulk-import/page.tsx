@@ -90,7 +90,7 @@ export default function BulkImportPage() {
             Ensure your CSV file has the following columns: <br />
             <code className="text-xs bg-muted p-1 rounded break-all block my-2">{CSV_EXPECTED_COLUMNS_STRING}</code>
             The first row should be headers matching these names (case-insensitive). `name` and `quantity` are required. Other fields are optional.
-            Dates should be in YYYY-MM-DD format. URLs should be valid. Status can be 'in stock', 'in use', or 'sold'.
+            Dates should be in YYYY-MM-DD format. URLs should be valid. Status can be &apos;in stock&apos;, &apos;in use&apos;, or &apos;sold&apos;.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
