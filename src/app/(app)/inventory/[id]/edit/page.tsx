@@ -1,27 +1,27 @@
 
 import ItemForm from '@/components/inventory/ItemForm';
 import PageHeader from '@/components/shared/PageHeader';
-import { 
-  getItemById, 
-  updateItem, 
-  getManagedCategoryOptions, 
+import {
+  getItemById,
+  updateItem,
+  getManagedCategoryOptions,
   getManagedSubcategoryOptions,
-  getManagedStorageLocationOptions, 
+  getManagedStorageLocationOptions,
   getManagedBinLocationOptions,
   getManagedRoomOptions,
   getManagedVendorOptions,
   getManagedProjectOptions,
 } from '@/lib/actions/itemActions';
-import type { ItemInput } from '@/types/item';
+import type { Item, ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
   const { id } = await params;
-  const item = await getItemById(id);
-  
-  if (!item) {
+  const itemResult = await getItemById(id);
+  if (!itemResult || 'error' in itemResult) {
     notFound();
   }
+  const item = itemResult as Item;
 
   const managedCategories = await getManagedCategoryOptions();
   const managedSubcategories = await getManagedSubcategoryOptions();

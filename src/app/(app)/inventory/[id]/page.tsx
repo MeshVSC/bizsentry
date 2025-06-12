@@ -28,6 +28,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode, ElementType } from 'react';
+import type { Item } from '@/types/item';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -100,11 +101,11 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
   const { id } = await params;
-  const item = await getItemById(id);
-
-  if (!item) {
+  const itemResult = await getItemById(id);
+  if (!itemResult || 'error' in itemResult) {
     notFound();
   }
+  const item = itemResult as Item;
 
   let profitLoss: number | null = null;
   let profitLossIcon = DollarSign;
