@@ -7,7 +7,6 @@ import { getAppSettings } from '@/lib/actions/settingsActions';
 import InventoryListTable from '@/components/inventory/InventoryListTable';
 import InventoryFilters from '@/components/inventory/InventoryFilters';
 import PaginationControls from '@/components/inventory/PaginationControls';
-import NewSidebar from '@/components/ui/NewSidebar';
 
 export default async function InventoryPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
   // Access searchParams properties directly
@@ -27,13 +26,11 @@ export default async function InventoryPage({ searchParams }: { searchParams: { 
   const uniqueCategories = await getUniqueCategories();
 
   return (
-    <div className="flex">
-      <NewSidebar />
-      <div className="flex-grow">
-        <PageHeader
-          title="Inventory"
-          description="Manage your stock items."
-          actions={
+    <>
+      <PageHeader
+        title="Inventory"
+        description="Manage your stock items."
+        actions={
             <div className="flex gap-2">
               <Button asChild variant="outline">
                 <Link href="/inventory/bulk-import">
@@ -47,24 +44,23 @@ export default async function InventoryPage({ searchParams }: { searchParams: { 
               </Button>
             </div>
           }
+      />
+      <div className="space-y-4">
+        <InventoryFilters
+          currentNameFilter={nameFilter}
+          currentCategoryFilter={categoryFilter}
+          allCategories={uniqueCategories}
         />
-        <div className="space-y-4">
-          <InventoryFilters
-            currentNameFilter={nameFilter}
-            currentCategoryFilter={categoryFilter}
-            allCategories={uniqueCategories}
+        <InventoryListTable items={items} />
+        {count > 0 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={count}
+            itemsPerPage={itemsPerPage}
           />
-          <InventoryListTable items={items} />
-          {count > 0 && (
-            <PaginationControls
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalCount={count}
-              itemsPerPage={itemsPerPage}
-            />
-          )}
-        </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
