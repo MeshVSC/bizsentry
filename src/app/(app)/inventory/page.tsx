@@ -10,10 +10,9 @@ import InventoryFilters from '@/components/inventory/InventoryFilters';
 import PaginationControls from '@/components/inventory/PaginationControls';
 
 export default async function InventoryPage({ searchParams }: { searchParams: URLSearchParams }) {
-  const params = await searchParams;
-  const nameFilter = params.get("name") ?? "";
-  const categoryFilter = params.get("category") ?? "";
-  const currentPage = parseInt(params.get("page") ?? "1", 10);
+  const nameFilter = searchParams.get("name") ?? "";
+  const categoryFilter = searchParams.get("category") ?? "";
+  const currentPage = parseInt(searchParams.get("page") ?? "1", 10);
 
   const appSettings = await getAppSettings();
   const itemsPerPage = appSettings.defaultItemsPerPage || 5; 

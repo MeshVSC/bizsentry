@@ -16,7 +16,7 @@ import type { ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
+  const { id } = params;
   const item = await getItemById(id);
   
   if (!item) {
