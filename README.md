@@ -56,7 +56,7 @@ npm run typecheck
 ### 4. Environment Setup (for Genkit AI & Supabase)
 *   Genkit is used for AI features (like receipt processing). It's configured to use Google AI by default.
 *   Supabase is used as the database.
-*   Create a `.env` file in the root of your project (or set environment variables directly).
+*   Create a `.env` file in the root of your project (or set environment variables directly). A sample `.env` is included for reference; replace the example values with your own keys and avoid committing real secrets.
 *   Add your Google AI API key:
     ```
     GOOGLE_API_KEY=your_google_api_key_here
@@ -66,6 +66,7 @@ npm run typecheck
     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
     ```
+*   Update the `ADMIN_USER_ID` constant in `src/lib/actions/itemActions.ts` to match the ID of an existing admin user in your Supabase project.
 *   **Database Schema Note:** The `items.user_id` and `managed_options.user_id` columns in your Supabase tables should be **nullable** for the current no-user setup to function correctly when creating items or options.
 *   **Supabase RLS Note:** If your project uses Supabase Row Level Security (RLS), the policies rely on a session variable named `myapp.current_user_id`.
     Set this variable for each database connection (often to the admin user ID) before performing queries:
