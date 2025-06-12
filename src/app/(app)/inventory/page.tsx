@@ -8,11 +8,20 @@ import InventoryListTable from '@/components/inventory/InventoryListTable';
 import InventoryFilters from '@/components/inventory/InventoryFilters';
 import PaginationControls from '@/components/inventory/PaginationControls';
 
-export default async function InventoryPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
-  // Access searchParams properties directly
-  const nameFilter = typeof searchParams.name === "string" ? searchParams.name : "";
-  const categoryFilter = typeof searchParams.category === "string" ? searchParams.category : "";
-  const currentPage = parseInt(typeof searchParams.page === "string" ? searchParams.page : "1", 10);
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // Await searchParams before using its properties
+  const resolvedSearchParams = await searchParams;
+
+  const nameFilter = typeof resolvedSearchParams.name === "string" ? resolvedSearchParams.name : "";
+  const categoryFilter = typeof resolvedSearchParams.category === "string" ? resolvedSearchParams.category : "";
+  const currentPage = parseInt(
+    typeof resolvedSearchParams.page === "string" ? resolvedSearchParams.page : "1",
+    10,
+  );
 
   const appSettings = await getAppSettings();
   const itemsPerPage = appSettings.defaultItemsPerPage || 5; 
