@@ -16,7 +16,8 @@ import type { ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
-  const item = await getItemById(params.id);
+  const { id } = await params;
+  const item = await getItemById(id);
   
   if (!item) {
     notFound();
@@ -32,7 +33,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
 
   const updateItemWithId = async (data: ItemInput) => {
     "use server";
-    return updateItem(params.id, data);
+    return updateItem(id, data);
   };
 
   return (
