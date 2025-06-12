@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import { bulkDeleteItems, bulkUpdateItemStatus, deleteItem as individualDeleteItem, updateItemStatus } from '@/lib/actions/itemActions';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'; 
@@ -94,7 +94,7 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
         const result = await bulkDeleteItems(selectedItemIds);
         toast({ title: result.success ? "Success" : "Error", description: result.message || (result.success ? `${selectedItemIds.length} item(s) deleted.` : "Failed to delete items."), variant: result.success ? "default" : "destructive" });
         if (result.success) setSelectedItemIds([]);
-      } catch (error) {
+      } catch {
         toast({ title: "Error", description: "Bulk delete failed.", variant: "destructive" });
       }
     });
@@ -107,7 +107,7 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
         const result = await bulkUpdateItemStatus(selectedItemIds, newStatus);
         toast({ title: result.success ? "Success" : "Error", description: result.message || (result.success ? `${selectedItemIds.length} item(s) status updated.` : "Failed to update statuses."), variant: result.success ? "default" : "destructive" });
         if (result.success) setSelectedItemIds([]);
-      } catch (error) {
+      } catch {
         toast({ title: "Error", description: "Bulk status update failed.", variant: "destructive" });
       }
     });
@@ -147,8 +147,7 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
                   Set Status
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end">
                   {itemStatuses.map(status => (
                     <DropdownMenuItem key={status} onClick={() => handleBulkUpdateStatus(status)} className="capitalize">
                        {status === 'in stock' && <PackagePlus className="mr-2 h-4 w-4" />}
@@ -158,7 +157,6 @@ export default function InventoryListTable({ items }: InventoryListTableProps) {
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
-              </DropdownMenuPortal>
             </DropdownMenu>
             <AlertDialog>
               <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={isPendingBulkAction}>Delete Selected</Button></AlertDialogTrigger>
@@ -215,7 +213,7 @@ function IndividualItemActions({ item }: { item: Item }) {
       try {
         const result = await individualDeleteItem(item.id);
         toast({ title: result ? "Success" : "Error", description: result ? `Item "${item.name}" deleted.` : "Failed to delete item.", variant: result ? "default" : "destructive" });
-      } catch (error) {
+      } catch {
         toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
       }
     });
@@ -231,7 +229,7 @@ function IndividualItemActions({ item }: { item: Item }) {
         <AlertDialog>
           <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive w-full flex items-center cursor-pointer" disabled={isPending}><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem></AlertDialogTrigger>
           <AlertDialogContent>
-            <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete "{item.name}".</AlertDialogDescription></AlertDialogHeader>
+            <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>{`This will permanently delete \"${item.name}\".`}</AlertDialogDescription></AlertDialogHeader>
             <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><Button variant="destructive" onClick={handleDelete} disabled={isPending}>{isPending ? "Deleting..." : "Delete"}</Button></AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
