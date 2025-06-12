@@ -66,7 +66,7 @@ export default function SidebarNav() {
         const isActive = item.matcher ? item.matcher.test(pathname) : (pathname === item.href);
         return (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href} passHref legacyBehavior>
+            <Link href={item.href}>
               <SidebarMenuButton
                 asChild
                 isActive={isActive}
@@ -76,11 +76,10 @@ export default function SidebarNav() {
                   isActive && "bg-primary/30 text-primary" // Highlight active link
                 )}
               >
-                <a>
-                  <item.icon className="h-5 w-5" />
-                  {/* Show label only if sidebar is expanded */}
-                  <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{item.label}</span>
-                </a>
+                {/* Use Link as the anchor directly */}
+                <item.icon className="h-5 w-5" />
+                {/* Show label only if sidebar is expanded */}
+                <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{item.label}</span>
               </SidebarMenuButton>
             </Link>
           </SidebarMenuItem>
