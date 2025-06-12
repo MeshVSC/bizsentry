@@ -43,12 +43,13 @@ try {
   new URL(supabaseUrl); 
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
   // console.log("[Supabase Client Init Success] Supabase client initialized.");
-} catch (e: any) {
-  const errorMessage = `Failed to initialize Supabase client: ${e.message}.`;
+} catch (e: unknown) {
+  const extractedMessage = e instanceof Error ? e.message : String(e);
+  const errorMessage = `Failed to initialize Supabase client: ${extractedMessage}.`;
   console.error("[Supabase Client Init Error] Error during Supabase client initialization.");
   console.error("[Supabase Client Init Error] Provided Supabase URL that caused error was:", `"${supabaseUrl}"`);
   console.error("[Supabase Client Init Error] Provided Supabase Anon Key was:", `"${supabaseAnonKey ? 'Key Present (length: ' + supabaseAnonKey.length + ')' : 'Key Missing or Empty'}"`);
-  console.error("[Supabase Client Init Error] The error was:", e.message);
+  console.error("[Supabase Client Init Error] The error was:", extractedMessage);
   
   if (isBuildPhase) {
      console.error("[Supabase Client Init Error - BUILD PHASE] Please check your .env file to ensure NEXT_PUBLIC_SUPABASE_URL is a complete and valid URL (e.g., https://your-project-ref.supabase.co) and NEXT_PUBLIC_SUPABASE_ANON_KEY is correct. These must be available to the build process.");
