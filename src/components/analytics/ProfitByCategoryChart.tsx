@@ -29,9 +29,9 @@ export default function ProfitByCategoryChart({ data, chartConfig }: ProfitByCat
               <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="hsl(var(--border))"/>
               <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(value) => `$${value.toLocaleString()}`} stroke="hsl(var(--muted-foreground))" />
               <YAxis dataKey="name" type="category" tickLine={false} axisLine={false} tickMargin={8} width={100} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip 
-                content={<ChartTooltipContent 
-                            formatter={(value, name, props) => {
+              <Tooltip
+                content={<ChartTooltipContent
+                            formatter={(value, name) => {
                                 if (name === 'profit' && typeof value === 'number') {
                                     return [`$${value.toFixed(2)}`, chartConfig.profit.label || 'Est. Profit'];
                                 }

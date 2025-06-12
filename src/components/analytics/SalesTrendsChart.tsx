@@ -42,8 +42,8 @@ export default function SalesTrendsChart({ data, chartConfig }: SalesTrendsChart
                 stroke="hsl(var(--muted-foreground))"
               />
               <Tooltip
-                content={<ChartTooltipContent 
-                            formatter={(value, name, props) => {
+                content={<ChartTooltipContent
+                            formatter={(value, name) => {
                                 if (name === 'totalSales' && typeof value === 'number') {
                                     return [`$${value.toLocaleString()}`, chartConfig.totalSales.label];
                                 }
