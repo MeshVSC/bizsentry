@@ -15,12 +15,12 @@ import type { Item, ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
+  // Access params directly as it's not a Promise
   const id = typeof params.id === 'string' ? params.id : String(params.id);
   const itemResult = await getItemById(id);
 
   if (!itemResult || 'error' in itemResult) {
-    // handle missing item or backend error
-    return notFound(); // or appropriate fallback
+    return <div>Error loading item</div>;
   }
 
   const item = itemResult as Item; // Rename itemResult to item here
