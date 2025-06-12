@@ -25,13 +25,25 @@ export default function QRCodeDisplay({
   }
 
   // For SVG, fgColor and bgColor might need to be actual color values.
-  // We'll use a trick: render to a hidden canvas to get themed colors, then to SVG. This is complex.
-  // Simpler: use fixed colors or pass theme-aware colors directly if SVG doesn't pick up CSS vars.
-  // For now, let's assume direct color values are needed for fgColor/bgColor by qrcode.react for SVG.
-  // A more robust solution would involve checking computed styles if we want to use CSS vars.
-  // For simplicity here, I'll use some default colors that work well with dark themes.
-  const effectiveFgColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--foreground').trim() || '#F9FAFB' : '#F9FAFB';
-  const effectiveBgColor = typeof window !== 'undefined' ? getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#1F2937' : '#1F2937';
+  // Resolve CSS variables to real colors when running in the browser while
+  // allowing direct color strings to be used as provided.
+  const resolveColor = (color: string, fallbackHex: string) => {
+    const cssVarMatch = color.match(/var\((--[^)]+)\)/);
+    if (cssVarMatch) {
+      if (typeof window !== 'undefined') {
+        return (
+          getComputedStyle(document.documentElement)
+            .getPropertyValue(cssVarMatch[1])
+            .trim() || fallbackHex
+        );
+      }
+      return fallbackHex;
+    }
+    return color;
+  };
+
+  const effectiveFgColor = resolveColor(fgColor, '#F9FAFB');
+  const effectiveBgColor = resolveColor(bgColor, '#1F2937');
 
 
   return (
