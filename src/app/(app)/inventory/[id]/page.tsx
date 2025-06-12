@@ -11,12 +11,9 @@ import {
   DollarSign,
   Package,
   Layers,
-  MapPin,
   Tag,
   Briefcase,
   CalendarDays,
-  FileText,
-  Image as ImageIconProp,
   Link as LinkIcon,
   Archive,
   PackageOpen,
@@ -78,7 +75,7 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
   } else if (isDate && typeof value === 'string') {
     try {
       displayValue = new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-    } catch (e) {
+  } catch {
       displayValue = "Invalid Date"; 
     }
   } else if (isUrl && typeof value === 'string' && value.startsWith('http')) {
@@ -157,7 +154,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the item "{item.name}".
+                    This action cannot be undone. This will permanently delete the item &quot;{item.name}&quot;.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
