@@ -100,9 +100,11 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 
 
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
-  const itemResult = await getItemById(id);
-  if (!itemResult || 'error' in itemResult) {
+  const { id } = params;
+  const item = await getItemById(id);
+
+  if (!item) {
+
     notFound();
   }
   const item = itemResult as Item;

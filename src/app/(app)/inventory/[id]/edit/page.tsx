@@ -16,11 +16,14 @@ import type { Item, ItemInput } from '@/types/item';
 import { notFound } from 'next/navigation';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
-  const { id } = await params;
-  const itemResult = await getItemById(id);
-  if (!itemResult || 'error' in itemResult) {
-    notFound();
-  }
+
+const { id } = params;
+const item = await getItemById(id);
+
+if (!item || 'error' in item) {
+  // handle missing item or backend error
+  return notFound(); // or appropriate fallback
+}
   const item = itemResult as Item;
 
   const managedCategories = await getManagedCategoryOptions();
