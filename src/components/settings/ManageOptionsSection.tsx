@@ -214,7 +214,7 @@ export default function ManageOptionsSection({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action will delete the {currentOptionSingular.toLowerCase()} "{option}". This cannot be undone.
+                          This action will delete the {currentOptionSingular.toLowerCase()} &quot;{option}&quot;. This cannot be undone.
                           Items currently using this {currentOptionSingular.toLowerCase()} will not be automatically reassigned.
                         </AlertDialogDescription>
                       </AlertDialogHeader>

@@ -80,6 +80,9 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
         const { error: insertError } = await supabase
         .from('managed_options')
         .insert(optionsToInsert);
+        if (insertError) {
+          console.error('Error inserting default options', insertError);
+        }
     }
   }
 }

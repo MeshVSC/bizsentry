@@ -155,8 +155,9 @@ export default function ItemForm({
           form.setValue("receiptImageUrl", base64data, { shouldValidate: true });
           toast({ title: "Receipt Processed", description: "Item details populated from receipt." });
         }
-      } catch (error) {
-        toast({ title: "Error", description: "Failed to process receipt.", variant: "destructive" });
+        } catch (error) {
+          console.error('Failed to process receipt:', error);
+          toast({ title: "Error", description: "Failed to process receipt.", variant: "destructive" });
       } finally {
         setIsReceiptProcessing(false);
       }
