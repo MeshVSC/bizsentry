@@ -1,75 +1,51 @@
-import Link from 'next/link';
-import { PlusCircle, Upload } from 'lucide-react';
-import PageHeader from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/button';
-import { getItems, getUniqueCategories } from '@/lib/actions/itemActions';
-import { getAppSettings } from '@/lib/actions/settingsActions';
-import InventoryListTable from '@/components/inventory/InventoryListTable';
-import InventoryFilters from '@/components/inventory/InventoryFilters';
-import PaginationControls from '@/components/inventory/PaginationControls';
+import { getAllItems } from '@/lib/supabase-server'
+import { redirect } from 'next/navigation'
 
-export default async function InventoryPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+export default async function InventoryPage({ 
+  searchParams 
+}: { 
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
 }) {
   // Await searchParams before using its properties
-  const resolvedSearchParams = await searchParams;
-
-  const nameFilter = typeof resolvedSearchParams.name === "string" ? resolvedSearchParams.name : "";
-  const categoryFilter = typeof resolvedSearchParams.category === "string" ? resolvedSearchParams.category : "";
-  const currentPage = parseInt(
-    typeof resolvedSearchParams.page === "string" ? resolvedSearchParams.page : "1",
-    10,
-  );
-
-  const appSettings = await getAppSettings();
-  const itemsPerPage = appSettings.defaultItemsPerPage || 5; 
-
-  const { items, totalPages, count } = await getItems({ 
-    name: nameFilter, 
-    category: categoryFilter,
+  const resolvedSearchParams = await searchParams
+  
+  const nameFilter = typeof resolvedSearchParams.name === "string" ? resolvedSearchParams.name : ""
+  const categoryFilter = typeof resolvedSearchParams.category === "string" ? resolvedSearchParams.category : ""
+  const currentPage = parseInt(typeof resolvedSearchParams.page === "string" ? resolvedSearchParams.page : "1", 10)
+  
+  // Get app settings (you'll need to update this function too)
+  // const appSettings = await getAppSettings()
+  const itemsPerPage = 10 // Or get from settings
+  
+  // Get items with filters
+  const result = await getAllItems({
+    name: nameFilter || undefined,
+    category: categoryFilter || undefined,
     page: currentPage,
-    limit: itemsPerPage,
-  });
-  const uniqueCategories = await getUniqueCategories();
+    limit: itemsPerPage
+  })
+  
+  // Handle authentication errors
+  if (result.error) {
+    if (result.error === 'Authentication required') {
+      redirect('/login') // Redirect to your login page
+    }
+    
+    return (
+      <div className="p-4">
+        <h1>Error</h1>
+        <p>{result.error}</p>
+      </div>
+    )
+  }
+  
+  const items = result.data || []
 
   return (
-    <>
-      <PageHeader
-        title="Inventory"
-        description="Manage your stock items."
-        actions={
-            <div className="flex gap-2">
-              <Button asChild variant="outline">
-                <Link href="/inventory/bulk-import">
-                  <Upload className="mr-2 h-4 w-4" /> Bulk Import
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/inventory/add">
-                  <PlusCircle className="mr-2 h-4 w-4" /> Add Item
-                </Link>
-              </Button>
-            </div>
-          }
-      />
-      <div className="space-y-4">
-        <InventoryFilters
-          currentNameFilter={nameFilter}
-          currentCategoryFilter={categoryFilter}
-          allCategories={uniqueCategories}
-        />
-        <InventoryListTable items={items} />
-        {count > 0 && (
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalCount={count}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
-      </div>
-    </>
-  );
+    <div className="p-4">
+      <h1>Inventory</h1>
+      {/* Your inventory list component here */}
+      <InventoryList items={items} />
+    </div>
+  )
 }
