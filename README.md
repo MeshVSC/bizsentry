@@ -122,6 +122,29 @@ Open [http://localhost:3000](http://localhost:3000) (or the port specified by Ne
 └── ...
 ```
 
+
+### Components
+The project contains reusable UI components located in the `src/components` directory. Key components include:
+
+- **NewSidebar**: A sidebar component located at `src/components/ui/NewSidebar.tsx`. This component is used in the `/inventory` page.
+
+### Pages
+The project uses Next.js for routing. Key pages include:
+
+- **Inventory Page**: Located at `src/app/(app)/inventory/page.tsx`. This page fetches the user's session using Supabase and displays inventory data. If the session is missing, the user is redirected to the login page or shown an error message.
+
+### Libraries
+The project includes utility libraries located in the `src/lib` directory:
+
+- **Supabase Session**: Located at `src/lib/supabase-session.ts`. This file handles session retrieval using Supabase's `auth.getSession()` method.
+- **Supabase Server**: Located at `src/lib/supabase-server.ts`. This file contains server-side logic for handling authentication and rendering pages based on the user's session.
+
+### Environment Variables
+Ensure the following environment variables are set in your `.env` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-url.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ---
 
 ## 🧠 Tech Stack

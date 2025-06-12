@@ -1,5 +1,7 @@
+import React from 'react';
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getSession } from '@/lib/supabase-session';
 
 export async function createServerSupabaseClient() {
   const cookieStore = cookies()
@@ -26,7 +28,7 @@ export async function initializeServerUserSession() {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
-      console.error('[initializeServerUserSession] No authenticated user:', authError?.message)
+      console.error('[initializeServerUserSession] No authenticated user:', authError)
       return { error: 'Authentication required' }
     }
 
@@ -146,4 +148,24 @@ export async function getAllItems(filters?: { name?: string; category?: string; 
 
     return data
   })
+}
+
+export default async function InventoryPage() {
+  try {
+    const session = await getSession();
+    if (!session) {
+      throw new Error('Auth session missing!');
+    }
+
+    // Proceed with page logic
+return {
+  success: true,
+  message: 'Inventory Page'
+};
+} catch (error) {
+  console.error('Error fetching session:', error);
+  return {
+    success: false,
+    message: 'Please log in to access this page.'
+  };
 }
