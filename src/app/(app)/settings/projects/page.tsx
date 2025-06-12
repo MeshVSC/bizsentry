@@ -23,8 +23,7 @@ export default function ProjectsSettingsPage() {
         setLoading(true);
         const options = await getManagedProjectOptions();
         setInitialProjects(options);
-      } catch (error) {
-        // console.error("Failed to fetch project options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }

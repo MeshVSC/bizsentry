@@ -23,8 +23,7 @@ export default function BinLocationsSettingsPage() {
         setLoading(true);
         const options = await getManagedBinLocationOptions();
         setInitialBinLocations(options);
-      } catch (error) {
-        // console.error("Failed to fetch bin location options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }

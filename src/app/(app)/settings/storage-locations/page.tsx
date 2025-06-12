@@ -23,8 +23,7 @@ export default function StorageLocationsSettingsPage() {
         setLoading(true);
         const options = await getManagedStorageLocationOptions();
         setInitialStorageLocations(options);
-      } catch (error) {
-        // console.error("Failed to fetch storage location options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }

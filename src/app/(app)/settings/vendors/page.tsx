@@ -23,8 +23,7 @@ export default function VendorsSettingsPage() {
         setLoading(true);
         const options = await getManagedVendorOptions();
         setInitialVendors(options);
-      } catch (error) {
-        // console.error("Failed to fetch vendor options:", error);
+      } catch {
       } finally {
         setLoading(false);
       }
