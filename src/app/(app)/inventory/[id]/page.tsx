@@ -5,7 +5,29 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIconProp, Link as LinkIcon, Archive, PackageOpen, Construction, Building, Fingerprint, QrCode as QrCodeIcon, Barcode as BarcodeIcon } from 'lucide-react'; 
+import {
+  Edit,
+  Trash2,
+  DollarSign,
+  Package,
+  Layers,
+  MapPin,
+  Tag,
+  Briefcase,
+  CalendarDays,
+  FileText,
+  Image as ImageIconProp,
+  Link as LinkIcon,
+  Archive,
+  PackageOpen,
+  Construction,
+  Building,
+  Fingerprint,
+  QrCode as QrCodeIcon,
+  Barcode as BarcodeIcon,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode, ElementType } from 'react';
