@@ -85,6 +85,12 @@ npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) (or the port specified by Next.js/Firebase Studio) with your browser to see the result. The application will load directly into the dashboard.
 
+### Confirm sidebar persistence
+1. Start the development server and open the app in your browser.
+2. Collapse the sidebar using the toggle button (or `Cmd/Ctrl + b`).
+3. Reload the page.
+4. The sidebar should remain in the same state after the reload.
+
 ---
 
 ## 📁 Project Structure (Simplified)

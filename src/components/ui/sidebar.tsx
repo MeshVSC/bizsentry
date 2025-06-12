@@ -75,6 +75,17 @@ const SidebarProvider = React.forwardRef<
 
     const [_open, _setOpen] = React.useState(defaultOpen)
     const open = openProp ?? _open
+
+    React.useEffect(() => {
+      if (typeof document !== "undefined" && openProp === undefined) {
+        const match = document.cookie.match(
+          new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`)
+        )
+        if (match) {
+          _setOpen(match[1] === "true")
+        }
+      }
+    }, [openProp])
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
         const openState = typeof value === "function" ? value(open) : value
