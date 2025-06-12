@@ -2,8 +2,7 @@
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { getItems } from '@/lib/actions/itemActions';
-import type { Item } from '@/types/item';
-import { Package, PackageCheck, Layers, DollarSign, TrendingUp, Archive, PackageX, Building } from 'lucide-react';
+import { Package, PackageCheck, Layers, DollarSign, TrendingUp, Archive, PackageX } from 'lucide-react';
 import type { ChartConfig } from '@/components/ui/chart';
 import ItemsPerCategoryChart from '@/components/analytics/ItemsPerCategoryChart';
 import StockValueOverTimeChart from '@/components/analytics/StockValueOverTimeChart';
