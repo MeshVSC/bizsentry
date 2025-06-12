@@ -5,6 +5,7 @@ import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
 import { supabase } from '@/lib/supabase/client';
+import { withUserSession } from '@/lib/supabase-session';
 
 const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c'; // User ID for "stock_sentry_admin"
 
@@ -154,272 +155,109 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
   return { items: (data as Item[]) || [], totalPages, count: totalItems };
 }
 
-export async function getItemById(id: string): Promise<Item | { error: string }> {
-  const { data, error } = await supabase
-    .from('items')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) {
-    console.error(`[getItemById Supabase Error] Item ID '${id}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: getItemById (fetch)" };
-  }
-
-  if (!data) {
-    return { error: `Item with ID '${id}' not found.` };
-  }
-  // Explicit user_id check against ADMIN_USER_ID removed as per user request.
-  // The function now returns the item if found by ID, regardless of its user_id.
-  return data as Item;
-}
-
-
-export async function addItem(itemData: ItemInput): Promise<Item | { error: string }> {
-  // Still verify admin user exists because we are setting items.user_id = ADMIN_USER_ID
-  const adminUserCheck = await verifyAdminUserExists();
-  if (!adminUserCheck.success) {
-    return { error: adminUserCheck.error || "Admin user verification failed before adding item. Check Supabase Function logs. Action: addItem" };
-  }
-
-  const now = new Date().toISOString();
-  const newItemPayload: Record<string, unknown> = {
-    user_id: ADMIN_USER_ID, // Still setting user_id due to DB schema (FK constraint)
-    name: itemData.name,
-    description: itemData.description,
-    quantity: itemData.quantity,
-    category: itemData.category,
-    subcategory: itemData.subcategory,
-    room: itemData.room,
-    vendor: itemData.vendor,
-    project: itemData.project,
-    msrp: itemData.msrp,
-    sku: itemData.sku,
-    status: itemData.status,
-    original_price: itemData.originalPrice,
-    sales_price: itemData.salesPrice,
-    receipt_image_url: itemData.receiptImageUrl,
-    product_image_url: itemData.productImageUrl,
-    product_url: itemData.productUrl,
-    purchase_date: itemData.purchaseDate,
-    storage_location: itemData.storageLocation,
-    bin_location: itemData.binLocation,
-    sold_date: itemData.status === 'sold' ? (itemData.soldDate || now) : null,
-    in_use_date: itemData.status === 'in use' ? (itemData.inUseDate || now) : null,
-    barcode_data: `BARCODE-${(itemData.sku || crypto.randomUUID()).substring(0,8).toUpperCase()}`,
-    qr_code_data: `QR-${(itemData.sku || crypto.randomUUID()).toUpperCase()}`,
-  };
-
-  for (const key in newItemPayload) {
-    if (newItemPayload[key] === undefined) {
-      newItemPayload[key] = null;
-    }
-  }
-
-  const { data: insertedItem, error } = await supabase
-    .from('items')
-    .insert([newItemPayload])
-    .select()
-    .single();
-
-  if (error) {
-    console.error(`[addItem Supabase Error] User ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    console.error("[addItem Supabase Error] Failing Payload:", JSON.stringify(newItemPayload, null, 2));
-    return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: addItem" };
-  }
-
-  if (insertedItem) {
-    await logAuditAction('ITEM_CREATED', {
-      target_table: 'items',
-      target_record_id: insertedItem.id.toString(),
-      details: { name: insertedItem.name, quantity: insertedItem.quantity, status: insertedItem.status },
-      description: `Admin created item '${insertedItem.name}' (ID: ${insertedItem.id}).`
-    });
-    revalidatePath("/inventory", "layout");
-    revalidatePath("/dashboard", "layout");
-    revalidatePath("/analytics", "layout");
-    return insertedItem as Item;
-  }
-  console.warn("[addItem Warning] No data returned for insertedItem but no explicit Supabase error.");
-  return { error: "Failed to add item (no data returned after insert). Check Supabase Function logs. Action: addItem" };
-}
-
-export async function updateItem(id: string, itemData: Partial<ItemInput>): Promise<Item | { error: string } | undefined> {
-    // No longer verifying admin user here directly, as update operates on ID only
-    // However, getItemById is called internally, which is now global.
-    
-    const currentItemResult = await getItemById(id); // getItemById no longer checks user_id
-    if (!currentItemResult || 'error' in currentItemResult) {
-        const preCheckError = (currentItemResult as {error: string})?.error || "Item not found during pre-check for update.";
-        console.error(`[updateItem Pre-check Error] For item ID '${id}': ${preCheckError}`);
-        return { error: preCheckError };
-    }
-    const currentItem = currentItemResult as Item;
-    
-    // Debug log to see what user_id getItemById returned (it might be null or different)
-    console.log(`[updateItem Debug] For Item ID: ${id}, User ID from getItemById (now global fetch) is: '${currentItem.user_id}'. Update will proceed based on ID only.`);
-
-    const updatePayload: Record<string, unknown> = {};
-    const now = new Date().toISOString();
-    const changes: Record<string, { old: unknown; new: unknown }> = {};
-
-    const fieldMap: Record<keyof Omit<ItemInput, 'status' | 'soldDate' | 'inUseDate' | 'purchaseDate'>, string> = {
-        name: 'name',
-        description: 'description',
-        quantity: 'quantity',
-        category: 'category',
-        subcategory: 'subcategory',
-        storageLocation: 'storage_location',
-        binLocation: 'bin_location',
-        room: 'room',
-        vendor: 'vendor',
-        project: 'project',
-        originalPrice: 'original_price',
-        salesPrice: 'sales_price',
-        msrp: 'msrp',
-        sku: 'sku',
-        receiptImageUrl: 'receipt_image_url',
-        productImageUrl: 'product_image_url',
-        productUrl: 'product_url',
-    };
-    
-    for (const key in fieldMap) {
-        if (itemData.hasOwnProperty(key as keyof typeof fieldMap)) {
-            const itemInputKey = key as keyof typeof fieldMap;
-            const dbColumnKey = fieldMap[itemInputKey];
-            const incomingValue = itemData[itemInputKey];
-            const currentValue = (currentItem as Record<string, unknown>)[dbColumnKey];
-
-            if (currentValue !== incomingValue) {
-                changes[itemInputKey] = { old: currentValue, new: incomingValue };
-            }
-            updatePayload[dbColumnKey] = (incomingValue === "" || incomingValue === undefined) ? null : incomingValue;
-        }
-    }
-
-    if (itemData.hasOwnProperty('purchaseDate')) {
-        const incomingDate = itemData.purchaseDate ? new Date(itemData.purchaseDate).toISOString() : null;
-        const currentDate = currentItem.purchase_date ? new Date(currentItem.purchase_date).toISOString() : null;
-        if (currentDate !== incomingDate) {
-            changes['purchaseDate'] = { old: currentDate, new: incomingDate };
-        }
-        updatePayload.purchase_date = incomingDate;
-    }
-    
-    // We are NOT updating user_id field itself. It's set on creation.
-
-    const currentDbStatus = currentItem.status;
-    if (itemData.hasOwnProperty('status') && itemData.status !== currentDbStatus) {
-      if (currentDbStatus !== itemData.status) changes['status'] = { old: currentDbStatus, new: itemData.status };
-      updatePayload.status = itemData.status!;
-
-      const newSoldDate = itemData.status === 'sold' ? (itemData.soldDate ? new Date(itemData.soldDate).toISOString() : now) : null;
-      if (currentItem.sold_date !== newSoldDate) changes['soldDate'] = { old: currentItem.sold_date, new: newSoldDate };
-      updatePayload.sold_date = newSoldDate;
-
-      const newInUseDate = itemData.status === 'in use' ? (itemData.inUseDate ? new Date(itemData.inUseDate).toISOString() : now) : null;
-      if (currentItem.in_use_date !== newInUseDate) changes['inUseDate'] = { old: currentItem.in_use_date, new: newInUseDate };
-      updatePayload.in_use_date = newInUseDate;
-
-      if (itemData.status === 'in stock') {
-        if (currentItem.sold_date !== null) changes['soldDate'] = { old: currentItem.sold_date, new: null };
-        updatePayload.sold_date = null;
-        if (currentItem.in_use_date !== null) changes['inUseDate'] = { old: currentItem.in_use_date, new: null };
-        updatePayload.in_use_date = null;
-      }
-    } else { 
-      if (itemData.hasOwnProperty('soldDate') && currentItem.status === 'sold') {
-        const newSoldDate = itemData.soldDate ? new Date(itemData.soldDate).toISOString() : null;
-        if(currentItem.sold_date !== newSoldDate) changes['soldDate'] = {old: currentItem.sold_date, new: newSoldDate};
-        updatePayload.sold_date = newSoldDate;
-      }
-      if (itemData.hasOwnProperty('inUseDate') && currentItem.status === 'in use') {
-        const newInUseDate = itemData.inUseDate ? new Date(itemData.inUseDate).toISOString() : null;
-        if(currentItem.in_use_date !== newInUseDate) changes['inUseDate'] = {old: currentItem.in_use_date, new: newInUseDate};
-        updatePayload.in_use_date = newInUseDate;
-      }
-    }
-
-    if (Object.keys(updatePayload).length > 0) {
-        updatePayload.updated_at = now;
-    } else {
-        return currentItem; 
-    }
-    
-    console.log(`[updateItem] Attempting to update item ID '${id}'. Payload (user_id filter removed from query):`, JSON.stringify(updatePayload, null, 2));
-
-    const { data: updatedItem, error: updateError } = await supabase
+export async function getItemById(id: string) {
+  try {
+    return await withUserSession(async (client) => {
+      const { data, error } = await client
         .from('items')
-        .update(updatePayload)
-        .eq('id', id) // user_id filter removed from WHERE clause
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error(`[getItemById Error] Item ID '${id}':`, error);
+        return { error: error.message };
+      }
+
+      return data;
+    });
+  } catch (error) {
+    console.error('[getItemById Error]', error);
+    return { error: 'Failed to get item' };
+  }
+}
+
+
+export async function createItem(itemData: ItemInput) {
+  try {
+    return await withUserSession(async (client) => {
+      const payload = {
+        ...itemData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await client
+        .from('items')
+        .insert([payload])
         .select()
         .single();
 
-    if (updateError) {
-        console.error(`[updateItem Supabase Error] Item ID '${id}'. Message: ${updateError.message}. Code: ${updateError.code}. Details: ${updateError.details}. Hint: ${updateError.hint}`);
-        console.error("[updateItem Supabase Error] Failing Payload (already logged above).");
-        return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: updateItem" };
-    }
+      if (error) {
+        console.error(`[createItem Supabase Error] Message: ${error.message}`);
+        return { error: error.message };
+      }
 
-    if (!updatedItem) {
-        console.warn(`[updateItem Warning] No data returned for updatedItem (ID: ${id}) after Supabase update, but no explicit error. This could mean the item ID didn't match any rows for update.`);
-        return { error: `Failed to update item (ID: ${id}). No data returned after update operation, item may not have been found by ID. Check Supabase Function logs. Action: updateItem` };
-    }
-
-    await logAuditAction('ITEM_UPDATED', {
-      target_table: 'items',
-      target_record_id: updatedItem.id.toString(),
-      details: { name: updatedItem.name, changes },
-      description: `Admin updated item '${updatedItem.name}' (ID: ${updatedItem.id}).`
+      return { data };
     });
+  } catch (error) {
+    console.error('[createItem Error]', error);
+    return { error: 'Failed to create item' };
+  }
+}
 
-    revalidatePath("/inventory", "layout");
-    revalidatePath(`/inventory/${id}`, "layout");
-    revalidatePath(`/inventory/${id}/edit`, "layout");
-    revalidatePath("/dashboard", "layout");
-    revalidatePath("/analytics", "layout");
-    return updatedItem as Item;
+export async function updateItem(id: string, updateData: any) {
+  try {
+    console.log(`[updateItem Debug] Starting update for Item ID: ${id}`);
+    return await withUserSession(async (client) => {
+      const payload = {
+        ...updateData,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log(`[updateItem] Attempting to update item ID '${id}'. Payload:`, payload);
+
+      const { data, error } = await client
+        .from('items')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`[updateItem Supabase Error] Item ID '${id}'. Message: ${error.message}`);
+        return { error: error.message };
+      }
+
+      console.log(`[updateItem Success] Item ID '${id}' updated successfully`);
+      return { data };
+    });
+  } catch (error) {
+    console.error('[updateItem Error]', error);
+    return { error: 'Failed to update item' };
+  }
 }
 
 
-export async function deleteItem(id: string): Promise<boolean | { error: string }> {
-  // No admin user verification needed here if delete is by ID only.
-  // However, audit log still uses ADMIN_USER_ID.
+export async function deleteItem(id: string) {
+  try {
+    return await withUserSession(async (client) => {
+      const { error } = await client
+        .from('items')
+        .delete()
+        .eq('id', id);
 
-  const itemCheckResult = await getItemById(id); // getItemById is now global
-  if (!itemCheckResult || 'error' in itemCheckResult) {
-      const preCheckError = (itemCheckResult as {error: string})?.error || "Item not found during pre-check for delete.";
-      console.error(`[deleteItem Pre-check Error] For item ID '${id}': ${preCheckError}`);
-      return { error: preCheckError };
+      if (error) {
+        console.error(`[deleteItem Error] Item ID '${id}'. Message: ${error.message}`);
+        return { error: error.message };
+      }
+
+      return { data: true };
+    });
+  } catch (error) {
+    console.error('[deleteItem Error]', error);
+    return { error: 'Failed to delete item' };
   }
-  const itemName = (itemCheckResult as Item).name;
-
-  const { error, count } = await supabase
-    .from('items')
-    .delete({ count: 'exact' })
-    .eq('id', id); // user_id filter removed
-
-  if (error) {
-    console.error(`[deleteItem Supabase Error] Item ID '${id}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: deleteItem" };
-  }
-
-  if (count === 0) {
-    console.warn(`[deleteItem Warning] Item ID '${id}' not found during delete, or count was 0.`);
-    return { error: `Item with ID '${id}' not found at time of deletion.` };
-  }
-
-  await logAuditAction('ITEM_DELETED', {
-    target_table: 'items',
-    target_record_id: id,
-    details: { name: itemName },
-    description: `Admin deleted item '${itemName}' (ID: ${id}).`
-  });
-
-  revalidatePath("/inventory", "layout");
-  revalidatePath("/dashboard", "layout");
-  revalidatePath("/analytics", "layout");
-  return true;
 }
 
 export async function processReceiptImage(receiptImage: string): Promise<ReceiptDataExtractionOutput | { error: string }> {
@@ -924,7 +762,7 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         itemInput.purchaseDate = undefined;
       }
 
-      const addResult = await addItem(itemInput); 
+      const addResult = await createItem(itemInput);
       if ('error' in addResult) {
         results.errorCount++;
         results.errors.push({ rowNumber, message: addResult.error, rowData: line });
