@@ -66,22 +66,20 @@ export default function SidebarNav() {
         const isActive = item.matcher ? item.matcher.test(pathname) : (pathname === item.href);
         return (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-              <SidebarMenuButton
-                asChild
-                isActive={isActive}
-                tooltip={{ children: item.label }}
-                className={cn(
-                  "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary",
-                  isActive && "bg-primary/30 text-primary" // Highlight active link
-                )}
-              >
-                {/* Use Link as the anchor directly */}
+            <SidebarMenuButton
+              asChild
+              isActive={isActive}
+              tooltip={{ children: item.label }}
+              className={cn(
+                "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary",
+                isActive && "bg-primary/30 text-primary" // Highlight active link
+              )}
+            >
+              <Link href={item.href} className="flex items-center">
                 <item.icon className="h-5 w-5" />
-                {/* Show label only if sidebar is expanded */}
                 <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{item.label}</span>
-              </SidebarMenuButton>
-            </Link>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         );
       })}
