@@ -3,16 +3,16 @@
 
 // For application settings (still in-memory for prototype)
 // eslint-disable-next-line no-var
-declare var _appSettingsStore: import('@/lib/actions/settingsActions').AppSettings;
+declare const _appSettingsStore: import('@/lib/actions/settingsActions').AppSettings;
 
 declare global {
-  var _itemsStore: import('@/types/item').Item[];
-  var _managedCategoriesStore: string[];
-  var _managedSubcategoriesStore: string[];
-  var _managedStorageLocationsStore: string[];
-  var _managedBinLocationsStore: string[];
-  var _managedRoomsStore: string[];
-  var _managedVendorsStore: string[];
-  var _managedProjectsStore: string[];
+  const _itemsStore: import('@/types/item').Item[];
+  const _managedCategoriesStore: string[];
+  const _managedSubcategoriesStore: string[];
+  const _managedStorageLocationsStore: string[];
+  const _managedBinLocationsStore: string[];
+  const _managedRoomsStore: string[];
+  const _managedVendorsStore: string[];
+  const _managedProjectsStore: string[];
 }
 export {}
