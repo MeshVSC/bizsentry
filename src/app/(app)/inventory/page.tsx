@@ -1,51 +1,31 @@
-import { getAllItems } from '@/lib/supabase-server'
-import { redirect } from 'next/navigation'
+import { getSession } from '@/lib/supabase-session';
 
-export default async function InventoryPage({ 
-  searchParams 
-}: { 
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
-}) {
-  // Await searchParams before using its properties
-  const resolvedSearchParams = await searchParams
-  
-  const nameFilter = typeof resolvedSearchParams.name === "string" ? resolvedSearchParams.name : ""
-  const categoryFilter = typeof resolvedSearchParams.category === "string" ? resolvedSearchParams.category : ""
-  const currentPage = parseInt(typeof resolvedSearchParams.page === "string" ? resolvedSearchParams.page : "1", 10)
-  
-  // Get app settings (you'll need to update this function too)
-  // const appSettings = await getAppSettings()
-  const itemsPerPage = 10 // Or get from settings
-  
-  // Get items with filters
-  const result = await getAllItems({
-    name: nameFilter || undefined,
-    category: categoryFilter || undefined,
-    page: currentPage,
-    limit: itemsPerPage
-  })
-  
-  // Handle authentication errors
-  if (result.error) {
-    if (result.error === 'Authentication required') {
-      redirect('/login') // Redirect to your login page
+export default async function InventoryPage() {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return (
+        <div>
+          <h1>Inventory Page</h1>
+          <p>Session is missing. Please ensure you are authenticated.</p>
+        </div>
+      );
     }
-    
-    return (
-      <div className="p-4">
-        <h1>Error</h1>
-        <p>{result.error}</p>
-      </div>
-    )
-  }
-  
-  const items = result.data || []
 
-  return (
-    <div className="p-4">
-      <h1>Inventory</h1>
-      {/* Your inventory list component here */}
-      <InventoryList items={items} />
-    </div>
-  )
+    // Proceed with page logic if session exists
+    return (
+      <div>
+        <h1>Inventory Page</h1>
+        <p>Welcome to the inventory page!</p>
+      </div>
+    );
+  } catch (error) {
+    console.error('Error fetching session:', error);
+    return (
+      <div>
+        <h1>Inventory Page</h1>
+        <p>An error occurred while fetching the session.</p>
+      </div>
+    );
+  }
 }

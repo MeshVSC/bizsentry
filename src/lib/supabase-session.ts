@@ -9,12 +9,4 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const getSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session) {
-    throw new Error('Auth session missing!');
-  }
-  return data.session;
-};
-
 export default supabase;
