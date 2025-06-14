@@ -67,6 +67,8 @@ const itemFormSchema = z.object({
   receiptImageUrl: z.string().optional().or(z.literal("")).default(""),
   productImageUrl: z.string().optional().default(""),
   productUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal("")).default(""),
+  barcodeData: z.string().max(100).optional().default(""),
+  qrCodeData: z.string().max(500).optional().default(""),
   purchaseDate: z.date().optional(),
   soldDate: z.date().optional(),
   inUseDate: z.date().optional(),
@@ -129,6 +131,8 @@ export default function ItemForm({
       receiptImageUrl: item?.receiptImageUrl || "",
       productImageUrl: item?.productImageUrl || "",
       productUrl: item?.productUrl || "",
+      barcodeData: item?.barcodeData || "",
+      qrCodeData: item?.qrCodeData || "",
       purchaseDate: item?.purchaseDate ? new Date(item.purchaseDate) : undefined,
       soldDate: item?.soldDate ? new Date(item.soldDate) : undefined,
       inUseDate: item?.inUseDate ? new Date(item.inUseDate) : undefined,
@@ -587,6 +591,51 @@ export default function ItemForm({
                   </div>
                 )}
                  <FormField control={form.control} name="receiptImageUrl" render={({ field }) => ( <FormItem className="hidden"><FormControl><Input {...field} /></FormControl></FormItem>)} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Barcode & QR Code Data</CardTitle>
+                <CardDescription>Enter barcode or QR code data for tracking purposes.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="barcodeData"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Barcode Data</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter barcode data" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Enter the barcode number or data (e.g., UPC, EAN, Code 128)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="qrCodeData"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>QR Code Data</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Enter QR code data" 
+                          {...field} 
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Enter QR code data (URL, text, or other information)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
           </div>

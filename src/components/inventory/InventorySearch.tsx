@@ -34,7 +34,7 @@ export default function InventorySearch({
         placeholder={placeholder}
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
-        className="pl-10 pr-10"
+        className="pl-10 pr-10 border-border/50 focus:border-primary/50 bg-background/50 backdrop-blur-sm transition-all duration-200"
       />
       {query && (
         <Button

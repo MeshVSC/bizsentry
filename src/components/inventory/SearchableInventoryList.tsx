@@ -30,16 +30,16 @@ export default function SearchableInventoryList({ items }: SearchableInventoryLi
 
   if (items.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-lg border p-8 text-center">
-          <div className="mx-auto w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Package className="h-12 w-12 text-muted-foreground" />
+      <div className="space-y-6">
+        <div className="rounded-xl border p-12 text-center bg-muted/5">
+          <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+            <Package className="h-10 w-10 text-primary/60" />
           </div>
-          <h3 className="text-lg font-semibold">No Inventory Items</h3>
-          <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-3">No Inventory Items</h3>
+          <p className="text-muted-foreground max-w-md mx-auto mb-8">
             You haven&apos;t added any items yet. Get started by adding your first item to begin managing your inventory.
           </p>
-          <Button asChild className="mt-6">
+          <Button asChild className="hover:scale-105 transition-transform">
             <Link href="/inventory/add">
               <Plus className="mr-2 h-4 w-4" />
               Add First Item
@@ -70,35 +70,35 @@ export default function SearchableInventoryList({ items }: SearchableInventoryLi
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredItems.map((item) => (
-            <Card key={item.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="truncate">{item.name}</span>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    Qty: {item.quantity}
+            <Card key={item.id} className="group hover:shadow-lg transition-all duration-200 border hover:border-primary/20 bg-card/95">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center justify-between text-base">
+                  <span className="truncate font-semibold group-hover:text-primary transition-colors">{item.name}</span>
+                  <span className="text-sm font-medium text-muted-foreground bg-muted/60 px-2 py-1 rounded-md">
+                    {item.quantity}
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="pt-0">
+                <div className="space-y-3">
                   {item.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {item.description}
                     </p>
                   )}
-                  <div className="flex items-center justify-between">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      item.status === 'in stock' ? 'bg-green-100 text-green-800' :
-                      item.status === 'in use' ? 'bg-blue-100 text-blue-800' :
-                      'bg-red-100 text-red-800'
+                  <div className="flex items-center justify-between pt-2">
+                    <span className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                      item.status === 'in stock' ? 'bg-green-100 text-green-700 group-hover:bg-green-200' :
+                      item.status === 'in use' ? 'bg-blue-100 text-blue-700 group-hover:bg-blue-200' :
+                      'bg-red-100 text-red-700 group-hover:bg-red-200'
                     }`}>
                       {item.status}
                     </span>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm" className="hover:bg-primary hover:text-primary-foreground transition-colors">
                       <Link href={`/inventory/${item.id}`}>
-                        View
+                        View Item
                       </Link>
                     </Button>
                   </div>
