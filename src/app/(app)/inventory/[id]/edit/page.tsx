@@ -2,6 +2,7 @@ import { getItemById, updateItem, getManagedCategoryOptions, getManagedSubcatego
 import { notFound } from 'next/navigation'
 import PageHeader from '@/components/shared/PageHeader'
 import ItemForm from '@/components/inventory/ItemForm'
+import type { ItemInput } from '@/types/item'
 
 export default async function EditItemPage({ 
   params 
@@ -27,7 +28,7 @@ export default async function EditItemPage({
   const managedProjects = await getManagedProjectOptions()
 
   // Create update function that includes the item ID
-  const updateItemAction = async (itemData: any) => {
+  const updateItemAction = async (itemData: Partial<ItemInput>) => {
     'use server'
     return await updateItem(id, itemData)
   }

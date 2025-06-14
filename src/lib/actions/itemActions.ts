@@ -6,7 +6,6 @@ import {
   type ReceiptDataExtractionOutput,
 } from "@/ai/flows/receipt-data-extraction";
 import { supabase } from "@/lib/supabase/client";
-import { withUserSession } from "@/lib/supabase/session";
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
 
@@ -355,7 +354,7 @@ export async function createItem(itemData: ItemInput) {
   }
 }
 
-export async function updateItem(id: string, updateData: any) {
+export async function updateItem(id: string, updateData: Partial<ItemInput>) {
   try {
     console.log(`[updateItem Debug] Starting update for Item ID: ${id}`);
     

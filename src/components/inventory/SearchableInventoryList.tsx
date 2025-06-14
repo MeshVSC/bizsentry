@@ -37,7 +37,7 @@ export default function SearchableInventoryList({ items }: SearchableInventoryLi
           </div>
           <h3 className="text-lg font-semibold">No Inventory Items</h3>
           <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-            You haven't added any items yet. Get started by adding your first item to begin managing your inventory.
+            You haven&apos;t added any items yet. Get started by adding your first item to begin managing your inventory.
           </p>
           <Button asChild className="mt-6">
             <Link href="/inventory/add">
@@ -66,7 +66,7 @@ export default function SearchableInventoryList({ items }: SearchableInventoryLi
           <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No items found</h3>
           <p className="text-muted-foreground">
-            No items match your search for "{searchQuery}"
+            No items match your search for &ldquo;{searchQuery}&rdquo;
           </p>
         </div>
       ) : (

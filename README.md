@@ -8,24 +8,76 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 
 ## ✨ Features
 
-*   📦 Inventory CRUD (Create, Read, Update, Delete items)
-*   🏷️ Support for SKU, Product URL, Purchase/Sold/In-Use Dates, MSRP.
-*   📝 AI-Powered Receipt Data Extraction for quick item entry (via Genkit).
-*   🖼️ Product Image URL association.
-*   📊 Dashboard with key inventory statistics.
-*   📈 Analytics Page with charts:
-    *   Items per Category
-    *   Stock Value Over Time
+### Core Inventory Management
+*   📦 **Full CRUD Operations** - Create, Read, Update, Delete inventory items
+*   🏷️ **Comprehensive Item Data** - SKU, Product URL, Purchase/Sold/In-Use Dates, MSRP
+*   📝 **AI-Powered Receipt Extraction** - Quick item entry via Genkit AI flows
+*   🖼️ **Product Image Association** - Link images to inventory items
+*   📊 **Real-time Dashboard** - Key inventory statistics and metrics
+
+### Analytics & Reporting
+*   📈 **Advanced Analytics** with interactive charts:
+    *   Items per Category breakdown
+    *   Stock Value Over Time trends
     *   Sales Trends (approximated)
-    *   Profit by Category (approximated)
-    *   Key metric cards (total units in stock/use/sold, total value in stock/use/sold).
-*   📂 Managed Dropdown Options:
-    *   Categories, Subcategories, Storage Locations, Bin Locations, Rooms, Vendors, Projects.
-    *   Settings pages to manage these options (globally).
-*   📤 Bulk CSV Import for items (with template download functionality).
-*   🎨 Modern Dark Theme with Turquoise Accents (Montserrat font).
-*   📱 Responsive Design for Desktop, Tablet, and Mobile.
-*   ⚙️ Collapsible Sidebar navigation.
+    *   Profit by Category analysis
+    *   Key metric cards (total units in stock/use/sold, total value calculations)
+
+### Data Management
+*   📂 **Managed Dropdown Options**:
+    *   Categories, Subcategories, Storage Locations, Bin Locations
+    *   Rooms, Vendors, Projects with dedicated settings pages
+*   📤 **Bulk CSV Import** - Mass import with downloadable template
+*   🔍 **Advanced Search** - Real-time search across all item fields (name, description, category, status, vendor)
+
+### User Experience & Interface
+*   🎨 **Modern Design** - Dark theme with turquoise accents, Montserrat typography
+*   📱 **Fully Responsive** - Optimized for desktop, tablet, and mobile
+*   ⚙️ **Smart Sidebar** - Collapsible navigation with custom logo support
+*   ⚡ **Enhanced Performance**:
+    *   Skeleton loading screens for smooth transitions
+    *   Optimized image handling and component rendering
+*   🎯 **Quick Actions**:
+    *   Floating action button for rapid item addition
+    *   Comprehensive keyboard shortcuts for power users
+*   🎭 **Polished UI Elements**:
+    *   Beautiful empty states with illustrations
+    *   Toast notifications for user feedback
+    *   Loading states and progress indicators
+
+### Keyboard Shortcuts & Accessibility
+*   ⌨️ **Keyboard Navigation**:
+    *   `Ctrl/Cmd + N` - Quick new item creation
+    *   `Ctrl/Cmd + K` - Focus search bar
+    *   `Esc` - Navigate back
+    *   `H` - Go to dashboard
+    *   `I` - Go to inventory
+*   ♿ **Accessibility Features** - Screen reader support, keyboard navigation, proper ARIA labels
+
+---
+
+## 🆕 Recent Improvements (2024)
+
+### UI/UX Enhancements
+*   ✨ **Skeleton Loading States** - Smooth loading experience with animated placeholders
+*   🎯 **Floating Action Button** - Quick access to add items from any page
+*   🖼️ **Enhanced Empty States** - Beautiful illustrations when no data exists
+*   🎨 **Custom Logo Support** - Client logo integration in collapsible sidebar
+*   📱 **Improved Mobile Experience** - Better responsive design and touch interactions
+
+### Performance & User Experience
+*   🔍 **Real-time Search** - Instant filtering across all inventory fields
+*   ⌨️ **Keyboard Shortcuts** - Power user navigation and quick actions
+*   🔔 **Toast Notifications** - System-wide feedback for user actions
+*   🎭 **Polished Animations** - Smooth transitions and micro-interactions
+*   ⚡ **Optimized Loading** - Faster page loads with improved caching
+
+### Developer Experience
+*   🛠️ **Next.js 15 Compatibility** - Full upgrade with latest features
+*   🎯 **TypeScript Improvements** - Better type safety and error handling
+*   🧩 **Component Architecture** - Modular, reusable component system
+*   📁 **Improved Code Organization** - Better file structure and separation of concerns
+*   🔧 **Deployment Ready** - Fixed ESLint errors and improved build process
 
 ---
 
@@ -103,41 +155,90 @@ Open [http://localhost:3000](http://localhost:3000) (or the port specified by Ne
 
 ---
 
-## 📁 Project Structure (Simplified)
+## 📁 Project Structure
 
 ```
 .
-├── public/              # Static assets (e.g., logo.png, logo-icon.png)
+├── public/              # Static assets (logos, icons, images)
+│   ├── logo-icon.png    # Standard app icon
+│   └── logo-icon-custom.png  # Client custom logo
 ├── src/
 │   ├── app/             # Next.js App Router (pages, layouts)
-│   ├── components/      # Reusable UI components (ShadCN, custom)
+│   │   ├── (app)/       # Protected app routes
+│   │   │   ├── dashboard/
+│   │   │   ├── inventory/
+│   │   │   ├── analytics/
+│   │   │   └── settings/
+│   │   └── layout.tsx   # Root layout with toast system
+│   ├── components/      # Reusable UI components
+│   │   ├── ui/          # ShadCN base components + custom UI
+│   │   │   ├── skeleton.tsx        # Loading placeholders
+│   │   │   ├── floating-action-button.tsx  # Quick action FAB
+│   │   │   └── toaster.tsx         # Toast notification system
+│   │   ├── layout/      # Layout components
+│   │   │   ├── AppLayout.tsx       # Main app layout with sidebar
+│   │   │   └── SidebarNav.tsx      # Navigation component
+│   │   ├── inventory/   # Inventory-specific components
+│   │   │   ├── SearchableInventoryList.tsx  # Search + item display
+│   │   │   ├── InventorySearch.tsx          # Search input component
+│   │   │   └── InventoryLoadingSkeleton.tsx # Loading state
+│   │   └── shared/      # Shared components across pages
 │   ├── hooks/           # Custom React hooks
-│   ├── lib/             # Server actions, utility functions, Supabase client
+│   │   └── use-keyboard-shortcuts.ts  # Global keyboard navigation
+│   ├── lib/             # Server actions, utilities, database
+│   │   ├── actions/     # Server actions for data operations
+│   │   └── supabase/    # Database client and utilities
 │   ├── types/           # TypeScript type definitions
 │   └── ai/              # Genkit AI flows and configuration
-├── .env                 # Environment variables (GOOGLE_API_KEY, Supabase)
+├── .env                 # Environment variables
 ├── next.config.ts       # Next.js configuration
-├── package.json         # Project dependencies and scripts
-├── README.md            # This file
-└── ...
+├── package.json         # Dependencies and scripts
+└── README.md            # This documentation
 ```
 
 
-### Components
-The project contains reusable UI components located in the `src/components` directory. Key components include:
+### Key Components
 
-- **NewSidebar**: A sidebar component located at `src/components/ui/NewSidebar.tsx`. This component is used in the `/inventory` page.
+#### Layout & Navigation
+- **AppLayout** (`src/components/layout/AppLayout.tsx`) - Main application layout with collapsible sidebar
+- **SidebarNav** (`src/components/layout/SidebarNav.tsx`) - Navigation menu with active state management
+- **FloatingActionButton** (`src/components/ui/floating-action-button.tsx`) - Quick action button for adding items
 
-### Pages
-The project uses Next.js for routing. Key pages include:
+#### Inventory Management
+- **SearchableInventoryList** (`src/components/inventory/SearchableInventoryList.tsx`) - Main inventory display with real-time search
+- **InventorySearch** (`src/components/inventory/InventorySearch.tsx`) - Search input with clear functionality
+- **InventoryLoadingSkeleton** (`src/components/inventory/InventoryLoadingSkeleton.tsx`) - Loading state animations
 
-- **Inventory Page**: Located at `src/app/(app)/inventory/page.tsx`. This page fetches the user's session using Supabase and displays inventory data. If the session is missing, the user is redirected to the login page or shown an error message.
+#### UI Components
+- **Skeleton** (`src/components/ui/skeleton.tsx`) - Animated loading placeholders
+- **Toaster** (`src/components/ui/toaster.tsx`) - Toast notification system
+- **ShadCN UI Components** - Button, Card, Input, Dialog, and other base components
 
-### Libraries
-The project includes utility libraries located in the `src/lib` directory:
+### Pages & Features
 
-- **Supabase Session**: Located at `src/lib/supabase-session.ts`. This file handles session retrieval using Supabase's `auth.getSession()` method.
-- **Supabase Server**: Located at `src/lib/supabase-server.ts`. This file contains server-side logic for handling authentication and rendering pages based on the user's session.
+#### Main Application Pages
+- **Dashboard** (`src/app/(app)/dashboard/page.tsx`) - Overview with key metrics and statistics
+- **Inventory** (`src/app/(app)/inventory/page.tsx`) - Main inventory management with search and CRUD operations
+- **Analytics** (`src/app/(app)/analytics/page.tsx`) - Charts and reporting dashboard
+- **Settings** (`src/app/(app)/settings/`) - Application configuration and managed options
+
+#### Enhanced Inventory Features
+- **Real-time Search** - Filter items by name, description, category, status, or vendor
+- **Skeleton Loading** - Smooth loading experience with animated placeholders
+- **Empty States** - Beautiful illustrations when no items exist
+- **Quick Actions** - Floating action button accessible from any page
+- **Keyboard Navigation** - Power user shortcuts for rapid navigation
+
+### Libraries & Hooks
+
+#### Custom Hooks
+- **useKeyboardShortcuts** (`src/hooks/use-keyboard-shortcuts.ts`) - Global keyboard navigation system
+- **useToast** (`src/hooks/use-toast.ts`) - Toast notification management
+
+#### Core Libraries
+- **Server Actions** (`src/lib/actions/`) - Database operations and business logic
+- **Supabase Client** (`src/lib/supabase/`) - Database connection and utilities
+- **Type Definitions** (`src/types/`) - TypeScript interfaces for type safety
 
 ### Environment Variables
 Ensure the following environment variables are set in your `.env` file:
@@ -145,6 +246,28 @@ Ensure the following environment variables are set in your `.env` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-url.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+---
+
+## 🔧 Technical Highlights
+
+### Performance Optimizations
+- **Server Components** - Leveraging Next.js 15 for optimal performance
+- **Suspense Boundaries** - Smooth loading with skeleton states
+- **Client-side Search** - Real-time filtering without server requests
+- **Optimized Images** - Proper image handling with Next.js Image component
+
+### Developer Experience
+- **TypeScript** - Full type safety with strict mode enabled
+- **Component Architecture** - Modular, reusable component system
+- **Custom Hooks** - Encapsulated logic for keyboard shortcuts and notifications
+- **Consistent Styling** - Tailwind CSS with design system approach
+
+### User Experience Features
+- **Responsive Design** - Mobile-first approach with desktop enhancements
+- **Accessibility** - Keyboard navigation and screen reader support
+- **Progressive Enhancement** - Works without JavaScript for core functions
+- **Smooth Animations** - CSS transitions and loading states
+
 ---
 
 ## 🧠 Tech Stack

@@ -2,7 +2,7 @@
 "use client"; 
 
 import type { ReactNode } from 'react';
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, UserCircle } from 'lucide-react';
 import SidebarNav from './SidebarNav';
@@ -54,7 +54,6 @@ function SimplifiedUserMenu() {
 }
 
 function AppLayoutContent({ children }: AppLayoutProps) {
-  const appVersion = "0.1.0";
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   
