@@ -1,32 +1,53 @@
 "use server";
 
+import {
+  receiptDataExtraction,
+  type ReceiptDataExtractionInput,
+  type ReceiptDataExtractionOutput,
+} from "@/ai/flows/receipt-data-extraction";
+import { supabase } from "@/lib/supabase/client";
+import { withUserSession } from "@/lib/supabase/session";
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
-import { receiptDataExtraction, type ReceiptDataExtractionInput, type ReceiptDataExtractionOutput } from '@/ai/flows/receipt-data-extraction';
-import { supabase } from '@/lib/supabase/client';
 
-const ADMIN_USER_ID = '047dd250-5c94-44f2-8827-6ff6bff8207c'; // User ID for "stock_sentry_admin"
+const ADMIN_USER_ID = "047dd250-5c94-44f2-8827-6ff6bff8207c"; // User ID for "stock_sentry_admin"
 
-async function verifyAdminUserExists(): Promise<{ success: boolean; error?: string }> {
-  console.log(`[Admin User Verification] Attempting to verify ADMIN_USER_ID: '${ADMIN_USER_ID}' from within Supabase Function.`);
+async function verifyAdminUserExists(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  console.log(
+    `[Admin User Verification] Attempting to verify ADMIN_USER_ID: '${ADMIN_USER_ID}' from within Supabase Function.`
+  );
   const { data, error } = await supabase
-    .from('stock_sentry_users')
-    .select('id')
-    .eq('id', ADMIN_USER_ID)
+    .from("stock_sentry_users")
+    .select("id")
+    .eq("id", ADMIN_USER_ID)
     .maybeSingle();
 
   if (error) {
-    console.error(`[Admin User Verification Error] Supabase query failed for ADMIN_USER_ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    return { success: false, error: `Database error during admin user verification from Supabase Function. Check Function logs for detailed Supabase error. Action: verifyAdminUserExists` };
+    console.error(
+      `[Admin User Verification Error] Supabase query failed for ADMIN_USER_ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`
+    );
+    return {
+      success: false,
+      error: `Database error during admin user verification from Supabase Function. Check Function logs for detailed Supabase error. Action: verifyAdminUserExists`,
+    };
   }
   if (!data) {
-    console.error(`[Admin User Verification Error] ADMIN_USER_ID '${ADMIN_USER_ID}' not found in stock_sentry_users table by the Supabase Function.`);
-    return { success: false, error: `Configured ADMIN_USER_ID '${ADMIN_USER_ID}' not found in the users table by the Supabase Function. Please check configuration, RLS (if any on stock_sentry_users), and Supabase Function environment/permissions. Action: verifyAdminUserExists` };
+    console.error(
+      `[Admin User Verification Error] ADMIN_USER_ID '${ADMIN_USER_ID}' not found in stock_sentry_users table by the Supabase Function.`
+    );
+    return {
+      success: false,
+      error: `Configured ADMIN_USER_ID '${ADMIN_USER_ID}' not found in the users table by the Supabase Function. Please check configuration, RLS (if any on stock_sentry_users), and Supabase Function environment/permissions. Action: verifyAdminUserExists`,
+    };
   }
-  console.log(`[Admin User Verification Success] ADMIN_USER_ID '${ADMIN_USER_ID}' successfully verified by the Supabase Function.`);
+  console.log(
+    `[Admin User Verification Success] ADMIN_USER_ID '${ADMIN_USER_ID}' successfully verified by the Supabase Function.`
+  );
   return { success: true };
 }
-
 
 async function logAuditAction(
   action_type: string,
@@ -38,29 +59,37 @@ async function logAuditAction(
   }
 ) {
   try {
-    const { error } = await supabase.from('audit_log').insert({
-      user_id: ADMIN_USER_ID, 
+    const { error } = await supabase.from("audit_log").insert({
+      user_id: ADMIN_USER_ID,
       action_type,
       target_table: params.target_table,
-      target_record_id: params.target_record_id || null, 
+      target_record_id: params.target_record_id || null,
       details: params.details,
       description: params.description,
     });
     if (error) {
-      console.error(`[Audit Log Error] Failed to log action '${action_type}'. User ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}. Params:`, params);
+      console.error(
+        `[Audit Log Error] Failed to log action '${action_type}'. User ID '${ADMIN_USER_ID}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}. Params:`,
+        params
+      );
     }
   } catch (e) {
-    console.error(`[Audit Log Exception] Exception during logging action '${action_type}':`, e);
+    console.error(
+      `[Audit Log Exception] Exception during logging action '${action_type}':`,
+      e
+    );
   }
 }
 
-
-async function seedAdminUserOptions(optionType: string, defaultOptions: string[]) {
+async function seedAdminUserOptions(
+  optionType: string,
+  defaultOptions: string[]
+) {
   const { data: existingOptions, error: fetchError } = await supabase
-    .from('managed_options')
-    .select('name', { count: 'exact' })
-    .eq('user_id', ADMIN_USER_ID) // Seeding is still tied to admin user
-    .eq('type', optionType);
+    .from("managed_options")
+    .select("name", { count: "exact" })
+    .eq("user_id", ADMIN_USER_ID) // Seeding is still tied to admin user
+    .eq("type", optionType);
 
   if (fetchError) {
     return;
@@ -69,23 +98,22 @@ async function seedAdminUserOptions(optionType: string, defaultOptions: string[]
   const currentCount = existingOptions?.length || 0;
 
   if (currentCount === 0) {
-    const optionsToInsert = defaultOptions.map(name => ({
+    const optionsToInsert = defaultOptions.map((name) => ({
       name,
       type: optionType,
       user_id: ADMIN_USER_ID,
     }));
 
     if (optionsToInsert.length > 0) {
-        const { error: insertError } = await supabase
-        .from('managed_options')
+      const { error: insertError } = await supabase
+        .from("managed_options")
         .insert(optionsToInsert);
-        if (insertError) {
-          console.error('Error inserting default options', insertError);
-        }
+      if (insertError) {
+        console.error("Error inserting default options", insertError);
+      }
     }
   }
 }
-
 
 export interface ItemFilters {
   name?: string;
@@ -94,39 +122,42 @@ export interface ItemFilters {
   limit?: number;
 }
 
-export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; totalPages: number; count: number }> {
+export async function getItems(
+  filters?: ItemFilters
+): Promise<{ items: Item[]; totalPages: number; count: number }> {
   // user_id filter removed for global item listing
-  let query = supabase
-    .from('items')
-    .select('*', { count: 'exact' }); 
+  let query = supabase.from("items").select("*", { count: "exact" });
 
   if (filters) {
-    if (filters.name && filters.name.trim() !== '') {
-      query = query.ilike('name', `%${filters.name.trim()}%`);
+    if (filters.name && filters.name.trim() !== "") {
+      query = query.ilike("name", `%${filters.name.trim()}%`);
     }
-    if (filters.category && filters.category.trim() !== '') {
-      query = query.eq('category', filters.category.trim());
+    if (filters.category && filters.category.trim() !== "") {
+      query = query.eq("category", filters.category.trim());
     }
   }
 
-  query = query.order('created_at', { ascending: false });
+  query = query.order("created_at", { ascending: false });
 
   // Count query also removes user_id filter
   const countQueryBuilder = supabase
-    .from('items')
-    .select('id', { count: 'exact', head: true });
+    .from("items")
+    .select("id", { count: "exact", head: true });
 
-  if (filters?.name && filters.name.trim() !== '') {
-    countQueryBuilder.ilike('name', `%${filters.name.trim()}%`);
+  if (filters?.name && filters.name.trim() !== "") {
+    countQueryBuilder.ilike("name", `%${filters.name.trim()}%`);
   }
-  if (filters?.category && filters.category.trim() !== '') {
-    countQueryBuilder.eq('category', filters.category.trim());
+  if (filters?.category && filters.category.trim() !== "") {
+    countQueryBuilder.eq("category", filters.category.trim());
   }
 
-  const { count: totalMatchingCount, error: countError } = await countQueryBuilder;
+  const { count: totalMatchingCount, error: countError } =
+    await countQueryBuilder;
 
   if (countError) {
-    console.error(`[getItems Count Error] Message: ${countError.message}. Code: ${countError.code}. Details: ${countError.details}. Hint: ${countError.hint}`);
+    console.error(
+      `[getItems Count Error] Message: ${countError.message}. Code: ${countError.code}. Details: ${countError.details}. Hint: ${countError.hint}`
+    );
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -140,13 +171,15 @@ export async function getItems(filters?: ItemFilters): Promise<{ items: Item[]; 
     totalPages = Math.ceil(totalItems / limit);
     query = query.range(startIndex, startIndex + limit - 1);
   } else if (totalItems === 0) {
-     return { items: [], totalPages: 0, count: 0 };
+    return { items: [], totalPages: 0, count: 0 };
   }
 
   const { data, error: dataError } = await query;
 
   if (dataError) {
-    console.error(`[getItems Data Error] Message: ${dataError.message}. Code: ${dataError.code}. Details: ${dataError.details}. Hint: ${dataError.hint}`);
+    console.error(
+      `[getItems Data Error] Message: ${dataError.message}. Code: ${dataError.code}. Details: ${dataError.details}. Hint: ${dataError.hint}`
+    );
     return { items: [], totalPages: 0, count: 0 };
   }
 
@@ -157,9 +190,9 @@ export async function getItemById(id: string) {
   try {
     return await withUserSession(async (client) => {
       const { data, error } = await client
-        .from('items')
-        .select('*')
-        .eq('id', id)
+        .from("items")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) {
@@ -170,11 +203,10 @@ export async function getItemById(id: string) {
       return data;
     });
   } catch (error) {
-    console.error('[getItemById Error]', error);
-    return { error: 'Failed to get item' };
+    console.error("[getItemById Error]", error);
+    return { error: "Failed to get item" };
   }
 }
-
 
 export async function createItem(itemData: ItemInput) {
   try {
@@ -182,11 +214,11 @@ export async function createItem(itemData: ItemInput) {
       const payload = {
         ...itemData,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const { data, error } = await client
-        .from('items')
+        .from("items")
         .insert([payload])
         .select()
         .single();
@@ -199,8 +231,8 @@ export async function createItem(itemData: ItemInput) {
       return { data };
     });
   } catch (error) {
-    console.error('[createItem Error]', error);
-    return { error: 'Failed to create item' };
+    console.error("[createItem Error]", error);
+    return { error: "Failed to create item" };
   }
 }
 
@@ -210,20 +242,25 @@ export async function updateItem(id: string, updateData: any) {
     return await withUserSession(async (client) => {
       const payload = {
         ...updateData,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
-      console.log(`[updateItem] Attempting to update item ID '${id}'. Payload:`, payload);
+      console.log(
+        `[updateItem] Attempting to update item ID '${id}'. Payload:`,
+        payload
+      );
 
       const { data, error } = await client
-        .from('items')
+        .from("items")
         .update(payload)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
       if (error) {
-        console.error(`[updateItem Supabase Error] Item ID '${id}'. Message: ${error.message}`);
+        console.error(
+          `[updateItem Supabase Error] Item ID '${id}'. Message: ${error.message}`
+        );
         return { error: error.message };
       }
 
@@ -231,34 +268,34 @@ export async function updateItem(id: string, updateData: any) {
       return { data };
     });
   } catch (error) {
-    console.error('[updateItem Error]', error);
-    return { error: 'Failed to update item' };
+    console.error("[updateItem Error]", error);
+    return { error: "Failed to update item" };
   }
 }
-
 
 export async function deleteItem(id: string) {
   try {
     return await withUserSession(async (client) => {
-      const { error } = await client
-        .from('items')
-        .delete()
-        .eq('id', id);
+      const { error } = await client.from("items").delete().eq("id", id);
 
       if (error) {
-        console.error(`[deleteItem Error] Item ID '${id}'. Message: ${error.message}`);
+        console.error(
+          `[deleteItem Error] Item ID '${id}'. Message: ${error.message}`
+        );
         return { error: error.message };
       }
 
       return { data: true };
     });
   } catch (error) {
-    console.error('[deleteItem Error]', error);
-    return { error: 'Failed to delete item' };
+    console.error("[deleteItem Error]", error);
+    return { error: "Failed to delete item" };
   }
 }
 
-export async function processReceiptImage(receiptImage: string): Promise<ReceiptDataExtractionOutput | { error: string }> {
+export async function processReceiptImage(
+  receiptImage: string
+): Promise<ReceiptDataExtractionOutput | { error: string }> {
   try {
     const input: ReceiptDataExtractionInput = { receiptImage };
     const extractedData = await receiptDataExtraction(input);
@@ -268,195 +305,335 @@ export async function processReceiptImage(receiptImage: string): Promise<Receipt
     return extractedData;
   } catch (error: unknown) {
     console.error("[processReceiptImage Genkit Error]", error);
-    return { error: `Failed to extract data from receipt: ${error.message || 'Unknown Genkit error'}. Action: processReceiptImage` };
+    return {
+      error: `Failed to extract data from receipt: ${
+        (error as Error).message || "Unknown Genkit error"
+      }. Action: processReceiptImage`,
+    };
   }
 }
 
-export async function updateItemStatus(id: string, newStatus: ItemStatus): Promise<Item | { error: string } | undefined> {
-    const currentItemResult = await getItemById(id); // getItemById is now global
-    if (!currentItemResult || 'error' in currentItemResult) {
-      const preCheckError = (currentItemResult as {error: string})?.error || "Item not found or access denied during pre-check for status update.";
-      console.error(`[updateItemStatus Pre-check Error] For item ID '${id}': ${preCheckError}`);
-      return { error: preCheckError };
-    }
+export async function updateItemStatus(
+  id: string,
+  newStatus: ItemStatus
+): Promise<Item | { error: string } | undefined> {
+  const currentItemResult = await getItemById(id); // getItemById is now global
+  if (!currentItemResult || "error" in currentItemResult) {
+    const preCheckError =
+      (currentItemResult as { error: string })?.error ||
+      "Item not found or access denied during pre-check for status update.";
+    console.error(
+      `[updateItemStatus Pre-check Error] For item ID '${id}': ${preCheckError}`
+    );
+    return { error: preCheckError };
+  }
 
-    const currentItem = currentItemResult as Item;
-    const oldStatus = currentItem.status;
-    const itemName = currentItem.name;
+  const currentItem = currentItemResult as Item;
+  const oldStatus = currentItem.status;
+  const itemName = currentItem.name;
 
-    const updatePayload: Record<string, unknown> = { status: newStatus };
-    const now = new Date().toISOString();
+  const updatePayload: Record<string, unknown> = { status: newStatus };
+  const now = new Date().toISOString();
 
-    if (newStatus === 'sold') {
-      updatePayload.sold_date = currentItem.sold_date || now;
-      updatePayload.in_use_date = null;
-    } else if (newStatus === 'in use') {
-      updatePayload.in_use_date = currentItem.in_use_date || now;
-      updatePayload.sold_date = null;
-    } else { 
-      updatePayload.sold_date = null;
-      updatePayload.in_use_date = null;
-    }
-    updatePayload.updated_at = now;
+  if (newStatus === "sold") {
+    updatePayload.sold_date = currentItem.soldDate || now;
+    updatePayload.in_use_date = null;
+  } else if (newStatus === "in use") {
+    updatePayload.in_use_date = currentItem.inUseDate || now;
+    updatePayload.sold_date = null;
+  } else {
+    updatePayload.sold_date = null;
+    updatePayload.in_use_date = null;
+  }
+  updatePayload.updated_at = now;
 
-    const { data: updatedItem, error } = await supabase
-      .from('items')
-      .update(updatePayload)
-      .eq('id', id) // user_id filter removed
-      .select()
-      .single();
-
-    if (error) {
-      console.error(`[updateItemStatus Supabase Error] Item ID '${id}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-      return { error: "Database operation failed. Please check Supabase Function logs for specific error details. Action: updateItemStatus" };
-    }
-
-    if (updatedItem) {
-      await logAuditAction('ITEM_STATUS_CHANGED', {
-        target_table: 'items',
-        target_record_id: updatedItem.id.toString(),
-        details: { name: itemName, oldStatus: oldStatus, newStatus: updatedItem.status },
-        description: `Admin changed status of item '${itemName}' (ID: ${updatedItem.id}) from '${oldStatus}' to '${updatedItem.status}'.`
-      });
-      revalidatePath("/inventory", "layout");
-      revalidatePath(`/inventory/${id}`, "layout");
-      revalidatePath("/dashboard", "layout");
-      revalidatePath("/analytics", "layout");
-      return updatedItem as Item;
-    }
-    console.warn(`[updateItemStatus Warning] No data returned for item ID '${id}' after status update, but no explicit error.`);
-    return { error: "Failed to update item status (no data returned). Check Supabase Function logs. Action: updateItemStatus" };
-}
-
-export async function bulkDeleteItems(itemIds: string[]): Promise<{ success: boolean; message?: string }> {
-  if (itemIds.length === 0) return { success: false, message: "No items selected."};
-
-  // No admin user verification needed here for delete if by ID only.
-  
-  const { error, count } = await supabase
-    .from('items')
-    .delete({ count: 'exact' })
-    .in('id', itemIds); // user_id filter removed
+  const { data: updatedItem, error } = await supabase
+    .from("items")
+    .update(updatePayload)
+    .eq("id", id) // user_id filter removed
+    .select()
+    .single();
 
   if (error) {
-    console.error(`[bulkDeleteItems Supabase Error] Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    return { success: false, message: "Database operation failed during bulk delete. Check Supabase Function logs. Action: bulkDeleteItems" };
+    console.error(
+      `[updateItemStatus Supabase Error] Item ID '${id}'. Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`
+    );
+    return {
+      error:
+        "Database operation failed. Please check Supabase Function logs for specific error details. Action: updateItemStatus",
+    };
+  }
+
+  if (updatedItem) {
+    await logAuditAction("ITEM_STATUS_CHANGED", {
+      target_table: "items",
+      target_record_id: updatedItem.id.toString(),
+      details: {
+        name: itemName,
+        oldStatus: oldStatus,
+        newStatus: updatedItem.status,
+      },
+      description: `Admin changed status of item '${itemName}' (ID: ${updatedItem.id}) from '${oldStatus}' to '${updatedItem.status}'.`,
+    });
+    revalidatePath("/inventory", "layout");
+    revalidatePath(`/inventory/${id}`, "layout");
+    revalidatePath("/dashboard", "layout");
+    revalidatePath("/analytics", "layout");
+    return updatedItem as Item;
+  }
+  console.warn(
+    `[updateItemStatus Warning] No data returned for item ID '${id}' after status update, but no explicit error.`
+  );
+  return {
+    error:
+      "Failed to update item status (no data returned). Check Supabase Function logs. Action: updateItemStatus",
+  };
+}
+
+export async function bulkDeleteItems(
+  itemIds: string[]
+): Promise<{ success: boolean; message?: string }> {
+  if (itemIds.length === 0)
+    return { success: false, message: "No items selected." };
+
+  // No admin user verification needed here for delete if by ID only.
+
+  const { error, count } = await supabase
+    .from("items")
+    .delete({ count: "exact" })
+    .in("id", itemIds); // user_id filter removed
+
+  if (error) {
+    console.error(
+      `[bulkDeleteItems Supabase Error] Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`
+    );
+    return {
+      success: false,
+      message:
+        "Database operation failed during bulk delete. Check Supabase Function logs. Action: bulkDeleteItems",
+    };
   }
   if (count && count > 0) {
-    await logAuditAction('ITEMS_BULK_DELETED', {
-        target_table: 'items',
-        details: { itemCount: count, itemIds },
-        target_record_id: null, 
-        description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(', ')}`
+    await logAuditAction("ITEMS_BULK_DELETED", {
+      target_table: "items",
+      details: { itemCount: count, itemIds },
+      target_record_id: null,
+      description: `Admin bulk deleted ${count} item(s). IDs: ${itemIds.join(
+        ", "
+      )}`,
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
     return { success: true, message: `${count} item(s) deleted successfully.` };
   }
-  return { success: false, message: `No matching items found to delete or none selected.` };
+  return {
+    success: false,
+    message: `No matching items found to delete or none selected.`,
+  };
 }
 
-export async function bulkUpdateItemStatus(itemIds: string[], newStatus: ItemStatus): Promise<{ success: boolean; message?: string }> {
-  if (itemIds.length === 0) return { success: false, message: "No items selected."};
-  
+export async function bulkUpdateItemStatus(
+  itemIds: string[],
+  newStatus: ItemStatus
+): Promise<{ success: boolean; message?: string }> {
+  if (itemIds.length === 0)
+    return { success: false, message: "No items selected." };
+
   // No admin user verification needed if update is by ID only.
 
   const updatePayload: Record<string, unknown> = { status: newStatus };
   const now = new Date().toISOString();
 
-  if (newStatus === 'sold') {
-    updatePayload.sold_date = now; 
+  if (newStatus === "sold") {
+    updatePayload.sold_date = now;
     updatePayload.in_use_date = null;
-  } else if (newStatus === 'in use') {
-    updatePayload.in_use_date = now; 
+  } else if (newStatus === "in use") {
+    updatePayload.in_use_date = now;
     updatePayload.sold_date = null;
-  } else { 
+  } else {
     updatePayload.sold_date = null;
     updatePayload.in_use_date = null;
   }
   updatePayload.updated_at = now;
 
-  const { error, count } = await supabase
-    .from('items')
+  const { error, data } = await supabase
+    .from("items")
     .update(updatePayload)
-    .in('id', itemIds) // user_id filter removed
-    .select({count: 'exact'}); 
+    .in("id", itemIds) // user_id filter removed
+    .select("*");
 
   if (error) {
-    console.error(`[bulkUpdateItemStatus Supabase Error] Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`);
-    return { success: false, message: "Database operation failed during bulk status update. Check Supabase Function logs. Action: bulkUpdateItemStatus" };
+    console.error(
+      `[bulkUpdateItemStatus Supabase Error] Message: ${error.message}. Code: ${error.code}. Details: ${error.details}. Hint: ${error.hint}`
+    );
+    return {
+      success: false,
+      message:
+        "Database operation failed during bulk status update. Check Supabase Function logs. Action: bulkUpdateItemStatus",
+    };
   }
 
-  const updatedCount = count || 0; 
+  const updatedCount = data?.length || 0;
 
   if (updatedCount > 0) {
-    await logAuditAction('ITEMS_BULK_STATUS_CHANGED', {
-        target_table: 'items',
-        details: { itemCount: updatedCount, itemIds, newStatus },
-        target_record_id: null,
-        description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(', ')}`
+    await logAuditAction("ITEMS_BULK_STATUS_CHANGED", {
+      target_table: "items",
+      details: { itemCount: updatedCount, itemIds, newStatus },
+      target_record_id: null,
+      description: `Admin bulk updated status of ${updatedCount} item(s) to '${newStatus}'. IDs: ${itemIds.join(
+        ", "
+      )}`,
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");
     revalidatePath("/analytics", "layout");
-    itemIds.forEach(id => revalidatePath(`/inventory/${id}`, "layout"));
-    return { success: true, message: `${updatedCount} item(s) status updated to ${newStatus}.` };
+    itemIds.forEach((id) => revalidatePath(`/inventory/${id}`, "layout"));
+    return {
+      success: true,
+      message: `${updatedCount} item(s) status updated to ${newStatus}.`,
+    };
   }
-  return { success: false, message: `No matching items found to update or none selected.` };
+  return {
+    success: false,
+    message: `No matching items found to update or none selected.`,
+  };
 }
 
 export async function getUniqueCategories(): Promise<string[]> {
   // user_id filter removed
   const { data, error } = await supabase
-    .from('items')
-    .select('category')
-    .not('category', 'is', null); 
+    .from("items")
+    .select("category")
+    .not("category", "is", null);
 
   if (error) {
-    console.error(`[getUniqueCategories Supabase Error] Message: ${error.message}.`);
+    console.error(
+      `[getUniqueCategories Supabase Error] Message: ${error.message}.`
+    );
     return [];
   }
   if (!data) return [];
 
   const categories = Array.from(
     new Set(
-      data.map(item => item.category).filter((value): value is string => typeof value === 'string')
+      data
+        .map((item) => item.category)
+        .filter((value): value is string => typeof value === "string")
     )
   ).sort();
   return categories;
 }
 
-const defaultManagedCategories = ['Electronics', 'Accessories', 'Office Supplies', 'Furniture', 'Appliances', 'Software', 'Miscellaneous', 'Lighting'];
-const defaultManagedSubcategories = ['Peripherals', 'Computer Accessories', 'Cables', 'Lighting', 'Kitchen Appliances', 'Productivity Tools', 'Decor', 'Desks', 'Desk Lamps'];
-const defaultManagedStorageLocations = ['Warehouse A', 'Warehouse B', 'Office Shelf', 'Storage Closet', 'Remote Site', 'Main Stockroom', 'Showroom', 'Kitchen Area', 'Drawer C', 'Pantry', 'Drawer B'];
-const defaultManagedBinLocations = ['A-01', 'A-02', 'A-03', 'B-01', 'C-01', 'Shelf A1', 'Shelf A2', 'Shelf 1-A', 'Shelf 1-B', 'Shelf 1-C', 'Shelf 2-A', 'Drawer X', 'Pallet 5', 'Section 1', 'Section 2', 'Bin 1', 'Bin 3', 'Display A', 'Counter Top'];
-const defaultManagedRooms = ['Main Office', 'Tech Closet', 'Server Room', 'Conference Room A', 'Break Room', 'Storage Unit 1'];
-const defaultManagedVendors = ['TechSupply Co.', 'Keychron', 'Accessory King', 'StandUp Inc.', 'Lights R Us', 'Office Essentials', 'Generic Supplier'];
-const defaultManagedProjects = ['Office Upgrade', 'Gaming Setup', 'General Stock', 'Ergonomics Improvement', 'New Office Setup', 'Client Project X', 'Internal R&D'];
+const defaultManagedCategories = [
+  "Electronics",
+  "Accessories",
+  "Office Supplies",
+  "Furniture",
+  "Appliances",
+  "Software",
+  "Miscellaneous",
+  "Lighting",
+];
+const defaultManagedSubcategories = [
+  "Peripherals",
+  "Computer Accessories",
+  "Cables",
+  "Lighting",
+  "Kitchen Appliances",
+  "Productivity Tools",
+  "Decor",
+  "Desks",
+  "Desk Lamps",
+];
+const defaultManagedStorageLocations = [
+  "Warehouse A",
+  "Warehouse B",
+  "Office Shelf",
+  "Storage Closet",
+  "Remote Site",
+  "Main Stockroom",
+  "Showroom",
+  "Kitchen Area",
+  "Drawer C",
+  "Pantry",
+  "Drawer B",
+];
+const defaultManagedBinLocations = [
+  "A-01",
+  "A-02",
+  "A-03",
+  "B-01",
+  "C-01",
+  "Shelf A1",
+  "Shelf A2",
+  "Shelf 1-A",
+  "Shelf 1-B",
+  "Shelf 1-C",
+  "Shelf 2-A",
+  "Drawer X",
+  "Pallet 5",
+  "Section 1",
+  "Section 2",
+  "Bin 1",
+  "Bin 3",
+  "Display A",
+  "Counter Top",
+];
+const defaultManagedRooms = [
+  "Main Office",
+  "Tech Closet",
+  "Server Room",
+  "Conference Room A",
+  "Break Room",
+  "Storage Unit 1",
+];
+const defaultManagedVendors = [
+  "TechSupply Co.",
+  "Keychron",
+  "Accessory King",
+  "StandUp Inc.",
+  "Lights R Us",
+  "Office Essentials",
+  "Generic Supplier",
+];
+const defaultManagedProjects = [
+  "Office Upgrade",
+  "Gaming Setup",
+  "General Stock",
+  "Ergonomics Improvement",
+  "New Office Setup",
+  "Client Project X",
+  "Internal R&D",
+];
 
-
-export type OptionType = 'category' | 'subcategory' | 'storage_location' | 'bin_location' | 'room' | 'vendor' | 'project';
+export type OptionType =
+  | "category"
+  | "subcategory"
+  | "storage_location"
+  | "bin_location"
+  | "room"
+  | "vendor"
+  | "project";
 
 const optionTypeToDefaultsMap: Record<OptionType, string[]> = {
-  'category': defaultManagedCategories,
-  'subcategory': defaultManagedSubcategories,
-  'storage_location': defaultManagedStorageLocations,
-  'bin_location': defaultManagedBinLocations,
-  'room': defaultManagedRooms,
-  'vendor': defaultManagedVendors,
-  'project': defaultManagedProjects,
+  category: defaultManagedCategories,
+  subcategory: defaultManagedSubcategories,
+  storage_location: defaultManagedStorageLocations,
+  bin_location: defaultManagedBinLocations,
+  room: defaultManagedRooms,
+  vendor: defaultManagedVendors,
+  project: defaultManagedProjects,
 };
 const optionTypeToSingularName: Record<OptionType, string> = {
-    'category': 'Category',
-    'subcategory': 'Subcategory',
-    'storage_location': 'Storage Location',
-    'bin_location': 'Bin Location',
-    'room': 'Room',
-    'vendor': 'Vendor',
-    'project': 'Project',
+  category: "Category",
+  subcategory: "Subcategory",
+  storage_location: "Storage Location",
+  bin_location: "Bin Location",
+  room: "Room",
+  vendor: "Vendor",
+  project: "Project",
 };
-
 
 async function getManagedOptions(optionType: OptionType): Promise<string[]> {
   // Seeding is still tied to admin user
@@ -464,33 +641,56 @@ async function getManagedOptions(optionType: OptionType): Promise<string[]> {
 
   // user_id filter removed for global options
   const { data, error } = await supabase
-    .from('managed_options')
-    .select('name')
-    .eq('type', optionType)
+    .from("managed_options")
+    .select("name")
+    .eq("type", optionType)
     // .eq('user_id', ADMIN_USER_ID) // Removed for global options
-    .order('name', { ascending: true });
+    .order("name", { ascending: true });
 
   if (error) {
-    console.error(`[getManagedOptions Supabase Error] Type '${optionType}'. Message: ${error.message}.`);
+    console.error(
+      `[getManagedOptions Supabase Error] Type '${optionType}'. Message: ${error.message}.`
+    );
     return [];
   }
-  return data ? data.map(opt => opt.name) : [];
+  return data ? data.map((opt) => opt.name) : [];
 }
 
-export async function getManagedCategoryOptions(): Promise<string[]> { return getManagedOptions('category'); }
-export async function getManagedSubcategoryOptions(): Promise<string[]> { return getManagedOptions('subcategory'); }
-export async function getManagedStorageLocationOptions(): Promise<string[]> { return getManagedOptions('storage_location'); }
-export async function getManagedBinLocationOptions(): Promise<string[]> { return getManagedOptions('bin_location'); }
-export async function getManagedRoomOptions(): Promise<string[]> { return getManagedOptions('room'); }
-export async function getManagedVendorOptions(): Promise<string[]> { return getManagedOptions('vendor'); }
-export async function getManagedProjectOptions(): Promise<string[]> { return getManagedOptions('project'); }
+export async function getManagedCategoryOptions(): Promise<string[]> {
+  return getManagedOptions("category");
+}
+export async function getManagedSubcategoryOptions(): Promise<string[]> {
+  return getManagedOptions("subcategory");
+}
+export async function getManagedStorageLocationOptions(): Promise<string[]> {
+  return getManagedOptions("storage_location");
+}
+export async function getManagedBinLocationOptions(): Promise<string[]> {
+  return getManagedOptions("bin_location");
+}
+export async function getManagedRoomOptions(): Promise<string[]> {
+  return getManagedOptions("room");
+}
+export async function getManagedVendorOptions(): Promise<string[]> {
+  return getManagedOptions("vendor");
+}
+export async function getManagedProjectOptions(): Promise<string[]> {
+  return getManagedOptions("project");
+}
 
-
-async function addManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
+async function addManagedOption(
+  name: string,
+  optionType: OptionType
+): Promise<{ success: boolean; message?: string; options?: string[] }> {
   // Still verify admin user as options are inserted with ADMIN_USER_ID due to schema
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    return { success: false, message: adminUserCheck.error || "Admin user verification failed. Operation aborted. Action: addManagedOption" };
+    return {
+      success: false,
+      message:
+        adminUserCheck.error ||
+        "Admin user verification failed. Operation aborted. Action: addManagedOption",
+    };
   }
 
   const singularName = optionTypeToSingularName[optionType];
@@ -502,155 +702,246 @@ async function addManagedOption(name: string, optionType: OptionType): Promise<{
 
   // Check for uniqueness globally for that type if user_id is removed from this check
   const { data: existing, error: selectError } = await supabase
-    .from('managed_options')
-    .select('id')
-    .eq('type', optionType)
-    .ilike('name', trimmedName)
+    .from("managed_options")
+    .select("id")
+    .eq("type", optionType)
+    .ilike("name", trimmedName)
     // .eq('user_id', ADMIN_USER_ID) // Removed, check globally for type and name
     .limit(1)
-    .single(); 
+    .single();
 
-  if (selectError && selectError.code !== 'PGRST116') { 
-      console.error(`[addManagedOption Select Error] Type: ${optionType}, Name: ${trimmedName}. Message: ${selectError.message}.`);
-      return { success: false, message: `Database operation failed. Check Supabase Function logs. Action: addManagedOption (check existing)` };
+  if (selectError && selectError.code !== "PGRST116") {
+    console.error(
+      `[addManagedOption Select Error] Type: ${optionType}, Name: ${trimmedName}. Message: ${selectError.message}.`
+    );
+    return {
+      success: false,
+      message: `Database operation failed. Check Supabase Function logs. Action: addManagedOption (check existing)`,
+    };
   }
   if (existing) {
-    return { success: false, message: `${singularName} "${trimmedName}" already exists.` };
+    return {
+      success: false,
+      message: `${singularName} "${trimmedName}" already exists.`,
+    };
   }
 
   const { data: newOption, error: insertError } = await supabase
-    .from('managed_options')
+    .from("managed_options")
     .insert({
       name: trimmedName,
       type: optionType,
       user_id: ADMIN_USER_ID, // Still setting user_id due to schema
     })
-    .select('id, name') 
+    .select("id, name")
     .single();
 
   if (insertError || !newOption) {
-    console.error(`[addManagedOption Insert Error] Type: ${optionType}, Name: ${trimmedName}, User ID '${ADMIN_USER_ID}'. Message: ${insertError?.message}.`);
-    return { success: false, message: `Database operation failed. Check Supabase Function logs. Action: addManagedOption (insert)` };
+    console.error(
+      `[addManagedOption Insert Error] Type: ${optionType}, Name: ${trimmedName}, User ID '${ADMIN_USER_ID}'. Message: ${insertError?.message}.`
+    );
+    return {
+      success: false,
+      message: `Database operation failed. Check Supabase Function logs. Action: addManagedOption (insert)`,
+    };
   }
 
-  await logAuditAction('MANAGED_OPTION_CREATED', {
-    target_table: 'managed_options',
+  await logAuditAction("MANAGED_OPTION_CREATED", {
+    target_table: "managed_options",
     target_record_id: newOption.id.toString(),
     details: { optionType: optionType, name: newOption.name },
-    description: `Admin created ${singularName} option: '${newOption.name}'.`
+    description: `Admin created ${singularName} option: '${newOption.name}'.`,
   });
 
   const updatedOptions = await getManagedOptions(optionType);
-  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`; 
+  const settingsPagePath = `/settings/${optionType.replace(/_/g, "-") + "s"}`;
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
-  revalidatePath("/inventory/[id]/edit", "layout"); 
-  return { success: true, message: `${singularName} "${trimmedName}" added.`, options: updatedOptions };
+  revalidatePath("/inventory/[id]/edit", "layout");
+  return {
+    success: true,
+    message: `${singularName} "${trimmedName}" added.`,
+    options: updatedOptions,
+  };
 }
 
-async function deleteManagedOption(name: string, optionType: OptionType): Promise<{ success: boolean; message?: string; options?: string[] }> {
+async function deleteManagedOption(
+  name: string,
+  optionType: OptionType
+): Promise<{ success: boolean; message?: string; options?: string[] }> {
   // No admin user verification needed if delete is by name/type globally
-  
+
   const singularName = optionTypeToSingularName[optionType];
 
   const { data: optionToDelete, error: fetchError } = await supabase
-    .from('managed_options')
-    .select('id')
-    .eq('type', optionType)
-    .eq('name', name)
+    .from("managed_options")
+    .select("id")
+    .eq("type", optionType)
+    .eq("name", name)
     // .eq('user_id', ADMIN_USER_ID) // Removed for global deletion by name/type
     .single();
 
   if (fetchError || !optionToDelete) {
-      console.error(`[deleteManagedOption Fetch Error] Type: ${optionType}, Name: ${name}. Message: ${fetchError?.message}.`);
-      if (fetchError?.code === 'PGRST116') return { success: false, message: `${singularName} "${name}" not found.` };
-      return { success: false, message: `Database operation failed. Check Supabase Function logs. Action: deleteManagedOption (fetch)` };
+    console.error(
+      `[deleteManagedOption Fetch Error] Type: ${optionType}, Name: ${name}. Message: ${fetchError?.message}.`
+    );
+    if (fetchError?.code === "PGRST116")
+      return {
+        success: false,
+        message: `${singularName} "${name}" not found.`,
+      };
+    return {
+      success: false,
+      message: `Database operation failed. Check Supabase Function logs. Action: deleteManagedOption (fetch)`,
+    };
   }
 
   const { error, count } = await supabase
-    .from('managed_options')
-    .delete({ count: 'exact' })
-    .eq('id', optionToDelete.id); // Delete by specific ID
+    .from("managed_options")
+    .delete({ count: "exact" })
+    .eq("id", optionToDelete.id); // Delete by specific ID
 
   if (error) {
-    console.error(`[deleteManagedOption Delete Error] Type: ${optionType}, Name: ${name}, ID: ${optionToDelete.id}. Message: ${error.message}.`);
-    return { success: false, message: `Database operation failed. Check Supabase Function logs. Action: deleteManagedOption (delete)` };
+    console.error(
+      `[deleteManagedOption Delete Error] Type: ${optionType}, Name: ${name}, ID: ${optionToDelete.id}. Message: ${error.message}.`
+    );
+    return {
+      success: false,
+      message: `Database operation failed. Check Supabase Function logs. Action: deleteManagedOption (delete)`,
+    };
   }
 
   if (count === 0) {
-     return { success: false, message: `${singularName} "${name}" not found for deletion (count was 0).` };
+    return {
+      success: false,
+      message: `${singularName} "${name}" not found for deletion (count was 0).`,
+    };
   }
 
-  await logAuditAction('MANAGED_OPTION_DELETED', {
-    target_table: 'managed_options',
-    target_record_id: optionToDelete.id.toString(), 
+  await logAuditAction("MANAGED_OPTION_DELETED", {
+    target_table: "managed_options",
+    target_record_id: optionToDelete.id.toString(),
     details: { optionType: optionType, name: name },
-    description: `Admin deleted ${singularName} option: '${name}'.`
+    description: `Admin deleted ${singularName} option: '${name}'.`,
   });
 
   const updatedOptions = await getManagedOptions(optionType);
-  const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
+  const settingsPagePath = `/settings/${optionType.replace(/_/g, "-") + "s"}`;
   revalidatePath(settingsPagePath, "page");
   revalidatePath("/inventory/add", "layout");
   revalidatePath("/inventory/[id]/edit", "layout");
-  return { success: true, message: `${singularName} "${name}" deleted.`, options: updatedOptions };
+  return {
+    success: true,
+    message: `${singularName} "${name}" deleted.`,
+    options: updatedOptions,
+  };
 }
 
-export async function addManagedCategoryOption(name: string) { return addManagedOption(name, 'category'); }
-export async function deleteManagedCategoryOption(name: string) { return deleteManagedOption(name, 'category'); }
-export async function addManagedSubcategoryOption(name: string) { return addManagedOption(name, 'subcategory'); }
-export async function deleteManagedSubcategoryOption(name: string) { return deleteManagedOption(name, 'subcategory'); }
-export async function addManagedStorageLocationOption(name: string) { return addManagedOption(name, 'storage_location'); }
-export async function deleteManagedStorageLocationOption(name: string) { return deleteManagedOption(name, 'storage_location'); }
-export async function addManagedBinLocationOption(name: string) { return addManagedOption(name, 'bin_location'); }
-export async function deleteManagedBinLocationOption(name: string) { return deleteManagedOption(name, 'bin_location'); }
-export async function addManagedRoomOption(name: string) { return addManagedOption(name, 'room'); }
-export async function deleteManagedRoomOption(name: string) { return deleteManagedOption(name, 'room'); }
-export async function addManagedVendorOption(name: string) { return addManagedOption(name, 'vendor'); }
-export async function deleteManagedVendorOption(name: string) { return deleteManagedOption(name, 'vendor'); }
-export async function addManagedProjectOption(name: string) { return addManagedOption(name, 'project'); }
-export async function deleteManagedProjectOption(name: string) { return deleteManagedOption(name, 'project'); }
+export async function addManagedCategoryOption(name: string) {
+  return addManagedOption(name, "category");
+}
+export async function deleteManagedCategoryOption(name: string) {
+  return deleteManagedOption(name, "category");
+}
+export async function addManagedSubcategoryOption(name: string) {
+  return addManagedOption(name, "subcategory");
+}
+export async function deleteManagedSubcategoryOption(name: string) {
+  return deleteManagedOption(name, "subcategory");
+}
+export async function addManagedStorageLocationOption(name: string) {
+  return addManagedOption(name, "storage_location");
+}
+export async function deleteManagedStorageLocationOption(name: string) {
+  return deleteManagedOption(name, "storage_location");
+}
+export async function addManagedBinLocationOption(name: string) {
+  return addManagedOption(name, "bin_location");
+}
+export async function deleteManagedBinLocationOption(name: string) {
+  return deleteManagedOption(name, "bin_location");
+}
+export async function addManagedRoomOption(name: string) {
+  return addManagedOption(name, "room");
+}
+export async function deleteManagedRoomOption(name: string) {
+  return deleteManagedOption(name, "room");
+}
+export async function addManagedVendorOption(name: string) {
+  return addManagedOption(name, "vendor");
+}
+export async function deleteManagedVendorOption(name: string) {
+  return deleteManagedOption(name, "vendor");
+}
+export async function addManagedProjectOption(name: string) {
+  return addManagedOption(name, "project");
+}
+export async function deleteManagedProjectOption(name: string) {
+  return deleteManagedOption(name, "project");
+}
 
-export async function bulkDeleteManagedOptions(names: string[], optionType: OptionType): Promise<{ success: boolean; message?: string; count?: number }> {
+export async function bulkDeleteManagedOptions(
+  names: string[],
+  optionType: OptionType
+): Promise<{ success: boolean; message?: string; count?: number }> {
   // No admin user verification needed if delete is global by name/type
 
   const singularName = optionTypeToSingularName[optionType];
   if (!names || names.length === 0) {
-    return { success: false, message: `No ${singularName.toLowerCase()}s selected for deletion.` };
+    return {
+      success: false,
+      message: `No ${singularName.toLowerCase()}s selected for deletion.`,
+    };
   }
 
   const { error, count } = await supabase
-    .from('managed_options')
-    .delete({ count: 'exact' })
-    .in('name', names)
-    .eq('type', optionType);
-    // .eq('user_id', ADMIN_USER_ID); // Removed for global deletion
+    .from("managed_options")
+    .delete({ count: "exact" })
+    .in("name", names)
+    .eq("type", optionType);
+  // .eq('user_id', ADMIN_USER_ID); // Removed for global deletion
 
   if (error) {
-    console.error(`[bulkDeleteManagedOptions Supabase Error] Type: ${optionType}. Message: ${error.message}.`);
-    return { success: false, message: `Database operation failed. Check Supabase Function logs. Action: bulkDeleteManagedOptions` };
+    console.error(
+      `[bulkDeleteManagedOptions Supabase Error] Type: ${optionType}. Message: ${error.message}.`
+    );
+    return {
+      success: false,
+      message: `Database operation failed. Check Supabase Function logs. Action: bulkDeleteManagedOptions`,
+    };
   }
 
   const deletedCount = count || 0;
 
   if (deletedCount > 0) {
-    await logAuditAction('MANAGED_OPTIONS_BULK_DELETED', {
-        target_table: 'managed_options',
-        details: { optionType: optionType, count: deletedCount, names }, 
-        target_record_id: null, 
-        description: `Admin bulk deleted ${deletedCount} ${singularName.toLowerCase()} option(s): ${names.join(', ')}.`
+    await logAuditAction("MANAGED_OPTIONS_BULK_DELETED", {
+      target_table: "managed_options",
+      details: { optionType: optionType, count: deletedCount, names },
+      target_record_id: null,
+      description: `Admin bulk deleted ${deletedCount} ${singularName.toLowerCase()} option(s): ${names.join(
+        ", "
+      )}.`,
     });
-    const settingsPagePath = `/settings/${optionType.replace(/_/g, '-') + 's'}`;
+    const settingsPagePath = `/settings/${optionType.replace(/_/g, "-") + "s"}`;
     revalidatePath(settingsPagePath, "page");
     revalidatePath("/inventory/add", "layout");
     revalidatePath("/inventory/[id]/edit", "layout");
-    return { success: true, message: `${deletedCount} ${singularName.toLowerCase()}(s) deleted successfully.`, count: deletedCount };
+    return {
+      success: true,
+      message: `${deletedCount} ${singularName.toLowerCase()}(s) deleted successfully.`,
+      count: deletedCount,
+    };
   } else if (deletedCount === 0) {
-    return { success: false, message: `No matching ${singularName.toLowerCase()}s found for deletion.` };
+    return {
+      success: false,
+      message: `No matching ${singularName.toLowerCase()}s found for deletion.`,
+    };
   }
-  return { success: false, message: `An issue occurred while deleting ${singularName.toLowerCase()}s (count: ${deletedCount}).` };
+  return {
+    success: false,
+    message: `An issue occurred while deleting ${singularName.toLowerCase()}s (count: ${deletedCount}).`,
+  };
 }
-
 
 export interface BulkImportResult {
   successCount: number;
@@ -658,31 +949,71 @@ export interface BulkImportResult {
   errors: { rowNumber: number; message: string; rowData: string }[];
 }
 
-export async function bulkImportItems(csvFileContent: string): Promise<BulkImportResult> {
+export async function bulkImportItems(
+  csvFileContent: string
+): Promise<BulkImportResult> {
   // Still verify admin user as items are inserted with ADMIN_USER_ID
   const adminUserCheck = await verifyAdminUserExists();
   if (!adminUserCheck.success) {
-    return { 
-      successCount: 0, 
-      errorCount: 1, 
-      errors: [{ rowNumber: 0, message: adminUserCheck.error || "Admin user verification failed. Bulk import aborted. Action: bulkImportItems", rowData: "PRE-CHECK FAILED" }] 
+    return {
+      successCount: 0,
+      errorCount: 1,
+      errors: [
+        {
+          rowNumber: 0,
+          message:
+            adminUserCheck.error ||
+            "Admin user verification failed. Bulk import aborted. Action: bulkImportItems",
+          rowData: "PRE-CHECK FAILED",
+        },
+      ],
     };
   }
 
-  const lines = csvFileContent.split(/\r\n|\n/).filter(line => line.trim() !== '');
+  const lines = csvFileContent
+    .split(/\r\n|\n/)
+    .filter((line) => line.trim() !== "");
   if (lines.length <= 1) {
-    return { successCount: 0, errorCount: 0, errors: [{ rowNumber: 0, message: "CSV file is empty or contains only a header.", rowData: "" }] };
+    return {
+      successCount: 0,
+      errorCount: 0,
+      errors: [
+        {
+          rowNumber: 0,
+          message: "CSV file is empty or contains only a header.",
+          rowData: "",
+        },
+      ],
+    };
   }
 
   const headerLine = lines[0];
   const expectedHeaders = [
-    "name", "quantity", "purchasePrice", "salesPrice", "msrp", "sku",
-    "category", "subcategory", "description", "vendor", "storageLocation", "binLocation", "room", "project",
-    "purchaseDate", "productImageUrl", "receiptImageUrl", "productUrl", "status"
+    "name",
+    "quantity",
+    "purchasePrice",
+    "salesPrice",
+    "msrp",
+    "sku",
+    "category",
+    "subcategory",
+    "description",
+    "vendor",
+    "storageLocation",
+    "binLocation",
+    "room",
+    "project",
+    "purchaseDate",
+    "productImageUrl",
+    "receiptImageUrl",
+    "productUrl",
+    "status",
   ];
-  const actualHeaders = headerLine.split(',').map(h => h.trim().toLowerCase());
+  const actualHeaders = headerLine
+    .split(",")
+    .map((h) => h.trim().toLowerCase());
   const headerMap: { [key: string]: number } = {};
-  expectedHeaders.forEach(expectedHeader => {
+  expectedHeaders.forEach((expectedHeader) => {
     const index = actualHeaders.indexOf(expectedHeader.toLowerCase());
     if (index !== -1) {
       headerMap[expectedHeader] = index;
@@ -690,29 +1021,45 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
   });
 
   if (headerMap["name"] === undefined || headerMap["quantity"] === undefined) {
-      return {
-          successCount: 0,
-          errorCount: lines.length -1,
-          errors: [{ rowNumber: 1, message: "CSV must contain 'name' and 'quantity' columns.", rowData: headerLine }]
-      };
+    return {
+      successCount: 0,
+      errorCount: lines.length - 1,
+      errors: [
+        {
+          rowNumber: 1,
+          message: "CSV must contain 'name' and 'quantity' columns.",
+          rowData: headerLine,
+        },
+      ],
+    };
   }
 
-  const results: BulkImportResult = { successCount: 0, errorCount: 0, errors: [] };
+  const results: BulkImportResult = {
+    successCount: 0,
+    errorCount: 0,
+    errors: [],
+  };
 
   for (let i = 1; i < lines.length; i++) {
     const rowNumber = i + 1;
     const line = lines[i];
-    const values = line.split(',').map(v => v.trim()); 
+    const values = line.split(",").map((v) => v.trim());
 
     const getValue = (headerName: string): string | undefined => {
-        const index = headerMap[headerName];
-        return (index !== undefined && index < values.length) ? values[index] : undefined;
-    }
+      const index = headerMap[headerName];
+      return index !== undefined && index < values.length
+        ? values[index]
+        : undefined;
+    };
 
     try {
       const name = getValue("name");
       if (!name) {
-        results.errors.push({ rowNumber, message: "Item name is required.", rowData: line });
+        results.errors.push({
+          rowNumber,
+          message: "Item name is required.",
+          rowData: line,
+        });
         results.errorCount++;
         continue;
       }
@@ -720,7 +1067,11 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
       const quantityStr = getValue("quantity");
       const quantity = parseInt(quantityStr || "", 10);
       if (isNaN(quantity) || quantity < 0) {
-        results.errors.push({ rowNumber, message: "Invalid quantity. Must be a non-negative number.", rowData: line });
+        results.errors.push({
+          rowNumber,
+          message: "Invalid quantity. Must be a non-negative number.",
+          rowData: line,
+        });
         results.errorCount++;
         continue;
       }
@@ -729,13 +1080,21 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
       const salesPriceStr = getValue("salesPrice");
       const msrpStr = getValue("msrp");
       const purchaseDateStr = getValue("purchaseDate");
-      const statusStr = getValue("status")?.toLowerCase() as ItemStatus | undefined;
+      const statusStr = getValue("status")?.toLowerCase() as
+        | ItemStatus
+        | undefined;
 
       const itemInput: ItemInput = {
         name,
         quantity,
-        originalPrice: originalPriceStr && originalPriceStr !== "" ? parseFloat(originalPriceStr) : undefined,
-        salesPrice: salesPriceStr && salesPriceStr !== "" ? parseFloat(salesPriceStr) : undefined,
+        originalPrice:
+          originalPriceStr && originalPriceStr !== ""
+            ? parseFloat(originalPriceStr)
+            : undefined,
+        salesPrice:
+          salesPriceStr && salesPriceStr !== ""
+            ? parseFloat(salesPriceStr)
+            : undefined,
         msrp: msrpStr && msrpStr !== "" ? parseFloat(msrpStr) : undefined,
         sku: getValue("sku") || undefined,
         category: getValue("category") || undefined,
@@ -746,42 +1105,64 @@ export async function bulkImportItems(csvFileContent: string): Promise<BulkImpor
         binLocation: getValue("binLocation") || undefined,
         room: getValue("room") || undefined,
         project: getValue("project") || undefined,
-        purchaseDate: purchaseDateStr && purchaseDateStr !== "" ? new Date(purchaseDateStr).toISOString() : undefined,
+        purchaseDate:
+          purchaseDateStr && purchaseDateStr !== ""
+            ? new Date(purchaseDateStr).toISOString()
+            : undefined,
         productImageUrl: getValue("productImageUrl") || undefined,
         receiptImageUrl: getValue("receiptImageUrl") || undefined,
         productUrl: getValue("productUrl") || undefined,
-        status: ['in stock', 'in use', 'sold'].includes(statusStr || '') ? (statusStr || 'in stock') : 'in stock',
+        status: ["in stock", "in use", "sold"].includes(statusStr || "")
+          ? statusStr || "in stock"
+          : "in stock",
       };
 
-      if (itemInput.originalPrice !== undefined && isNaN(itemInput.originalPrice)) itemInput.originalPrice = undefined;
-      if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice)) itemInput.salesPrice = undefined;
-      if (itemInput.msrp !== undefined && isNaN(itemInput.msrp)) itemInput.msrp = undefined;
-      if (itemInput.purchaseDate && (itemInput.purchaseDate.includes("Invalid Date") || !purchaseDateStr)) { 
+      if (
+        itemInput.originalPrice !== undefined &&
+        isNaN(itemInput.originalPrice)
+      )
+        itemInput.originalPrice = undefined;
+      if (itemInput.salesPrice !== undefined && isNaN(itemInput.salesPrice))
+        itemInput.salesPrice = undefined;
+      if (itemInput.msrp !== undefined && isNaN(itemInput.msrp))
+        itemInput.msrp = undefined;
+      if (
+        itemInput.purchaseDate &&
+        (itemInput.purchaseDate.includes("Invalid Date") || !purchaseDateStr)
+      ) {
         itemInput.purchaseDate = undefined;
       }
 
       const addResult = await createItem(itemInput);
-      if ('error' in addResult) {
+      if ("error" in addResult) {
         results.errorCount++;
-        results.errors.push({ rowNumber, message: addResult.error, rowData: line });
+        results.errors.push({
+          rowNumber,
+          message: addResult.error,
+          rowData: line,
+        });
       } else {
         results.successCount++;
       }
     } catch (error: unknown) {
       results.errorCount++;
-      results.errors.push({ rowNumber, message: error.message || "Failed to add item.", rowData: line });
+      results.errors.push({
+        rowNumber,
+        message: (error as Error).message || "Failed to add item.",
+        rowData: line,
+      });
     }
   }
 
   if (results.successCount > 0) {
-     await logAuditAction('ITEMS_BULK_IMPORTED', {
-        target_table: 'items', 
-        details: {
-            successCount: results.successCount,
-            errorCount: results.errorCount,
-        },
-        target_record_id: null, 
-        description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`
+    await logAuditAction("ITEMS_BULK_IMPORTED", {
+      target_table: "items",
+      details: {
+        successCount: results.successCount,
+        errorCount: results.errorCount,
+      },
+      target_record_id: null,
+      description: `Admin bulk imported ${results.successCount} item(s) successfully, ${results.errorCount} failed.`,
     });
     revalidatePath("/inventory", "layout");
     revalidatePath("/dashboard", "layout");

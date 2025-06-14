@@ -1,10 +1,10 @@
 import React from 'react';
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { getSession } from '@/lib/supabase-session';
+import supabase from '@/lib/supabase-session';
 
 export async function createServerSupabaseClient() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -152,20 +152,21 @@ export async function getAllItems(filters?: { name?: string; category?: string; 
 
 export default async function InventoryPage() {
   try {
-    const session = await getSession();
-    if (!session) {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
       throw new Error('Auth session missing!');
     }
 
     // Proceed with page logic
-return {
-  success: true,
-  message: 'Inventory Page'
-};
-} catch (error) {
-  console.error('Error fetching session:', error);
-  return {
-    success: false,
-    message: 'Please log in to access this page.'
-  };
+    return {
+      success: true,
+      message: 'Inventory Page'
+    };
+  } catch (error) {
+    console.error('Error fetching session:', error);
+    return {
+      success: false,
+      message: 'Please log in to access this page.'
+    };
+  }
 }

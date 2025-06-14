@@ -1,13 +1,7 @@
-import supabase from '@/lib/supabase-session';
-import { getItemById, deleteItem } from '@/lib/actions/itemActions';
-import { notFound, redirect } from 'next/navigation';
+import BarcodeDisplay from '@/components/shared/BarcodeDisplay';
 import PageHeader from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Edit, Trash2, DollarSign, Package, Layers, MapPin, Tag, Briefcase, CalendarDays, FileText, Image as ImageIconProp, Link as LinkIcon, Archive, PackageOpen, Construction, Building, Fingerprint, QrCode as QrCodeIcon, Barcode as BarcodeIcon } from 'lucide-react'; 
-import Link from 'next/link';
-import Image from 'next/image';
+import QRCodeDisplay from '@/components/shared/QRCodeDisplay';
+import { SubmitButton } from '@/components/shared/SubmitButton';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -17,11 +11,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { SubmitButton } from '@/components/shared/SubmitButton';
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { deleteItem, getItemById } from '@/lib/actions/itemActions';
 import { cn } from "@/lib/utils";
-import QRCodeDisplay from '@/components/shared/QRCodeDisplay';
-import BarcodeDisplay from '@/components/shared/BarcodeDisplay';
+import { Archive, Barcode as BarcodeIcon, Briefcase, Building, CalendarDays, Construction, DollarSign, Edit, Fingerprint, Layers, Link as LinkIcon, Package, PackageOpen, QrCode as QrCodeIcon, Tag, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
 
 async function DeleteItemAction({ itemId }: { itemId: string }) {
   const deleteItemWithId = async () => {
@@ -59,8 +58,8 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
       displayValue = "Invalid Date"; 
     }
   } else if (isUrl && typeof value === 'string' && value.startsWith('http')) {
-    displayValue  (
-=      <Link href={value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+    displayValue = (
+      <Link href={value} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
         {value}
       </Link>
     );
@@ -78,8 +77,9 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 }
 
 
-export default async function ItemDetailPage({ params }: { params: { id: string } }) {
-  const item = await getItemById(params.id);
+export default async function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const item = await getItemById(id);
 
   if (!item) {
     notFound();

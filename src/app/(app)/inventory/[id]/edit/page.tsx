@@ -1,5 +1,6 @@
 import { getItemById } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
+import EditItemForm from '@/components/inventory/EditItemForm'
 
 export default async function EditItemPage({ 
   params 
