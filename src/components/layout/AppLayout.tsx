@@ -18,6 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
+import FloatingActionButton from '@/components/ui/floating-action-button';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -58,6 +60,9 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   
   const SIDEBAR_WIDTH = "200px";
   const SIDEBAR_WIDTH_ICON = "48px";
+
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   return (
     <>
@@ -130,6 +135,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background">
           {children}
         </main>
+        <FloatingActionButton href="/inventory/add" title="Add new inventory item" />
       </div>
     </>
   );
