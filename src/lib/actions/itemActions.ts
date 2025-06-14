@@ -8,8 +8,32 @@ import {
 import { supabase } from "@/lib/supabase/client";
 import type { Item, ItemInput, ItemStatus } from "@/types/item";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 const ADMIN_USER_ID = "047dd250-5c94-44f2-8827-6ff6bff8207c"; // User ID for "stock_sentry_admin"
+
+function getBaseUrl(): string {
+  // Try environment variable first (for production deployments)
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  
+  // Try to get from request headers (dynamic detection)
+  try {
+    const headersList = headers();
+    const host = headersList.get('host');
+    const protocol = headersList.get('x-forwarded-proto') || 'http';
+    
+    if (host) {
+      return `${protocol}://${host}`;
+    }
+  } catch (error) {
+    console.warn('[getBaseUrl] Could not determine URL from headers:', error);
+  }
+  
+  // Fallback for development
+  return 'http://localhost:3000';
+}
 
 async function verifyAdminUserExists(): Promise<{
   success: boolean;
@@ -269,8 +293,8 @@ export async function createItem(itemData: ItemInput) {
   try {
     console.log("[createItem] Input data:", JSON.stringify(itemData, null, 2));
     
-    // Map camelCase to snake_case for database
-    const payload = {
+    // First insert without barcode/QR code data to get the item ID
+    const tempPayload = {
       name: itemData.name,
       description: itemData.description,
       quantity: itemData.quantity,
@@ -286,8 +310,6 @@ export async function createItem(itemData: ItemInput) {
       msrp: itemData.msrp,
       sku: itemData.sku,
       status: itemData.status,
-      barcode_data: itemData.barcodeData,
-      qr_code_data: itemData.qrCodeData,
       receipt_image_url: itemData.receiptImageUrl,
       product_image_url: itemData.productImageUrl,
       product_url: itemData.productUrl,
@@ -298,24 +320,45 @@ export async function createItem(itemData: ItemInput) {
       updated_at: new Date().toISOString(),
     };
 
-    console.log("[createItem] Final payload:", JSON.stringify(payload, null, 2));
+    const { data: tempData, error: tempError } = await supabase
+      .from("items")
+      .insert([tempPayload])
+      .select()
+      .single();
 
+    if (tempError) {
+      console.error(`[createItem Supabase Error] Full error:`, tempError);
+      return { error: `Database error: ${tempError.message}` };
+    }
+
+    // Generate barcode and QR code data using the item ID
+    const itemId = tempData.id;
+    const baseUrl = getBaseUrl();
+    
+    // Generate barcode data: use SKU if available, otherwise use item ID
+    const barcodeData = itemData.sku || itemId;
+    
+    // Generate QR code data: URL to the item detail page
+    const qrCodeData = `${baseUrl}/inventory/${itemId}`;
+    
+    // Update the item with generated barcode and QR code data
     const { data, error } = await supabase
       .from("items")
-      .insert([payload])
+      .update({
+        barcode_data: barcodeData,
+        qr_code_data: qrCodeData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", itemId)
       .select()
       .single();
 
     if (error) {
-      console.error(`[createItem Supabase Error] Full error:`, error);
-      console.error(`[createItem Supabase Error] Message: ${error.message}`);
-      console.error(`[createItem Supabase Error] Code: ${error.code}`);
-      console.error(`[createItem Supabase Error] Details: ${error.details}`);
-      console.error(`[createItem Supabase Error] Hint: ${error.hint}`);
+      console.error(`[createItem Update Error] Full error:`, error);
       return { error: `Database error: ${error.message}` };
     }
 
-    console.log("[createItem] Success:", data);
+    console.log("[createItem] Success with generated codes:", data);
     
     // Map the response back to camelCase for frontend
     const item = {
@@ -346,6 +389,17 @@ export async function createItem(itemData: ItemInput) {
       createdAt: data.created_at,
       updatedAt: data.updated_at,
     };
+
+    // Log audit action
+    await logAuditAction("create_item", {
+      target_table: "items",
+      target_record_id: data.id,
+      details: { item: item },
+      description: `Item '${item.name}' created with auto-generated barcode: '${barcodeData}' and QR code: '${qrCodeData}'`,
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath(`/inventory/${data.id}`);
     
     return item;
   } catch (error) {
@@ -363,6 +417,11 @@ export async function updateItem(id: string, updateData: Partial<ItemInput>) {
     if (!existingItem || 'error' in existingItem) {
       return { error: "Item not found" };
     }
+
+    // Generate updated barcode and QR code data
+    const baseUrl = getBaseUrl();
+    const barcodeData = updateData.sku || id; // Use updated SKU if available, otherwise use item ID
+    const qrCodeData = `${baseUrl}/inventory/${id}`;
 
     // Map camelCase to snake_case for database and preserve existing data
     const payload = {
@@ -382,8 +441,8 @@ export async function updateItem(id: string, updateData: Partial<ItemInput>) {
       msrp: updateData.msrp,
       sku: updateData.sku,
       status: updateData.status,
-      barcode_data: updateData.barcodeData,
-      qr_code_data: updateData.qrCodeData,
+      barcode_data: barcodeData,
+      qr_code_data: qrCodeData,
       receipt_image_url: updateData.receiptImageUrl,
       product_image_url: updateData.productImageUrl,
       product_url: updateData.productUrl,
@@ -450,6 +509,17 @@ export async function updateItem(id: string, updateData: Partial<ItemInput>) {
       createdAt: data.created_at,
       updatedAt: data.updated_at,
     };
+
+    // Log audit action
+    await logAuditAction("update_item", {
+      target_table: "items",
+      target_record_id: data.id,
+      details: { item: item },
+      description: `Item '${item.name}' updated with regenerated barcode: '${barcodeData}' and QR code: '${qrCodeData}'`,
+    });
+
+    revalidatePath("/inventory");
+    revalidatePath(`/inventory/${data.id}`);
     
     return item;
   } catch (error) {
