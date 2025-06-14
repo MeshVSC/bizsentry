@@ -1,50 +1,55 @@
-import { getItemById } from '@/lib/supabase-server'
-import { redirect } from 'next/navigation'
-import EditItemForm from '@/components/inventory/EditItemForm'
+import { getItemById, updateItem, getManagedCategoryOptions, getManagedSubcategoryOptions, getManagedStorageLocationOptions, getManagedBinLocationOptions, getManagedRoomOptions, getManagedVendorOptions, getManagedProjectOptions } from '@/lib/actions/itemActions'
+import { notFound } from 'next/navigation'
+import PageHeader from '@/components/shared/PageHeader'
+import ItemForm from '@/components/inventory/ItemForm'
 
 export default async function EditItemPage({ 
   params 
 }: { 
   params: Promise<{ id: string }> 
 }) {
-  // Await params before using its properties
   const resolvedParams = await params
-  const id = typeof resolvedParams.id === 'string' ? resolvedParams.id : String(resolvedParams.id)
+  const id = resolvedParams.id
   
-  // Get item with authentication
-  const result = await getItemById(id)
+  const item = await getItemById(id)
   
-  // Handle authentication errors
-  if (result.error) {
-    if (result.error === 'Authentication required') {
-      redirect('/login') // Redirect to your login page
-    }
-    
-    // Handle other errors (item not found, etc.)
-    return (
-      <div className="p-4">
-        <h1>Error</h1>
-        <p>{result.error}</p>
-      </div>
-    )
+  if (!item || 'error' in item) {
+    notFound()
   }
-  
-  const item = result.data
-  
-  if (!item) {
-    return (
-      <div className="p-4">
-        <h1>Item Not Found</h1>
-        <p>The item you're looking for doesn't exist.</p>
-      </div>
-    )
+
+  // Get managed options for the form
+  const managedCategories = await getManagedCategoryOptions()
+  const managedSubcategories = await getManagedSubcategoryOptions()
+  const managedStorageLocations = await getManagedStorageLocationOptions()
+  const managedBinLocations = await getManagedBinLocationOptions()
+  const managedRooms = await getManagedRoomOptions()
+  const managedVendors = await getManagedVendorOptions()
+  const managedProjects = await getManagedProjectOptions()
+
+  // Create update function that includes the item ID
+  const updateItemAction = async (itemData: any) => {
+    'use server'
+    return await updateItem(id, itemData)
   }
 
   return (
-    <div className="p-4">
-      <h1>Edit Item</h1>
-      {/* Your edit form component here */}
-      <EditItemForm item={item} />
-    </div>
+    <>
+      <PageHeader 
+        title="Edit Item" 
+        description={`Edit details for ${item.name}`} 
+      />
+      <ItemForm 
+        item={item}
+        onSubmitAction={updateItemAction}
+        isEditing={true}
+        availableCategories={managedCategories}
+        availableSubcategories={managedSubcategories}
+        availableStorageLocations={managedStorageLocations}
+        availableBinLocations={managedBinLocations}
+        availableRooms={managedRooms}
+        availableVendors={managedVendors}
+        availableProjects={managedProjects}
+      />
+    </>
   )
 }

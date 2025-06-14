@@ -86,42 +86,34 @@ export default function SidebarNav() {
       {/* Settings Accordion */}
       <Accordion type="single" collapsible defaultValue={defaultAccordionValue} className="w-full">
         <AccordionItem value={settingsAccordionItem.id} className="border-b-0">
-           <SidebarMenuButton 
-             asChild 
-             isActive={isSettingsActive} // Active if any child is active or if settings root is active
-             className={cn(
-                "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full",
-                isSettingsActive && "bg-primary/30 text-primary"
-              )}
-              tooltip={{children: settingsAccordionItem.label}}
-           >
-            <AccordionTrigger className="p-2 hover:no-underline [&[data-state=open]>svg]:text-primary [&>svg.lucide-chevron-down]:ml-auto">
+            <AccordionTrigger className={cn(
+              "p-2 hover:no-underline [&[data-state=open]>svg]:text-primary [&>svg.lucide-chevron-down]:ml-auto",
+              "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full rounded-md",
+              isSettingsActive && "bg-primary/30 text-primary"
+            )}>
                 <settingsAccordionItem.icon className="h-5 w-5" />
                 <span className={cn("ml-2", sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{settingsAccordionItem.label}</span>
             </AccordionTrigger>
-          </SidebarMenuButton>
           <AccordionContent className="overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
             <div className={cn("pl-4 pt-1", sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>
               {settingsAccordionItem.children.map((subItem) => {
                 const isSubActive = subItem.matcher ? subItem.matcher.test(pathname) : (pathname === subItem.href);
                 return (
                   <SidebarMenuItem key={subItem.href} className="py-0.5">
-                    <Link href={subItem.href}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isSubActive}
-                        tooltip={{ children: subItem.label }}
-                        className={cn(
-                          "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full h-8", // Reduced height
-                           isSubActive && "bg-primary/30 text-primary"
-                        )}
-                      >
-                        <a>
-                          <subItem.icon className="h-4 w-4" />
-                          <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{subItem.label}</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </Link>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isSubActive}
+                      tooltip={{ children: subItem.label }}
+                      className={cn(
+                        "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full h-8", // Reduced height
+                         isSubActive && "bg-primary/30 text-primary"
+                      )}
+                    >
+                      <Link href={subItem.href}>
+                        <subItem.icon className="h-4 w-4" />
+                        <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{subItem.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}

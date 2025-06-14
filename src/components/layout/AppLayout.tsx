@@ -2,7 +2,7 @@
 "use client"; 
 
 import type { ReactNode } from 'react';
-import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Bell, Settings, LifeBuoy, UserCircle } from 'lucide-react';
 import SidebarNav from './SidebarNav';
@@ -51,17 +51,16 @@ function SimplifiedUserMenu() {
   );
 }
 
-export default function AppLayout({ children }: AppLayoutProps) {
+function AppLayoutContent({ children }: AppLayoutProps) {
   const appVersion = "0.1.0";
-  // The SidebarProvider's internal state will now control the "expanded" or "collapsed" state.
-  // The `group/sidebar-wrapper` class and the reactive `data-sidebar-state` attribute 
-  // are handled by the SidebarProvider itself.
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+  
+  const SIDEBAR_WIDTH = "200px";
+  const SIDEBAR_WIDTH_ICON = "48px";
 
   return (
-    <SidebarProvider 
-      defaultOpen={true} 
-      className="flex min-h-screen w-full bg-background" // Moved layout classes here
-    >
+    <>
       <Sidebar
         variant="sidebar"
         collapsible="icon" 
@@ -71,51 +70,51 @@ export default function AppLayout({ children }: AppLayoutProps) {
           // The <aside> (this Sidebar component) uses group-data-[state=collapsed]/sidebar-wrapper for its width
         )}
       >
-        <SidebarHeader className="p-4 h-[calc(var(--sidebar-width-icon)_+_1rem)] flex items-center justify-center border-b border-sidebar-border relative group-data-[state=collapsed]/sidebar-wrapper:h-auto group-data-[state=collapsed]/sidebar-wrapper:p-2 group-data-[state=collapsed]/sidebar-wrapper:justify-center">
-          <div className="hidden group-data-[state=collapsed]/sidebar-wrapper:flex items-center justify-center w-full">
-            <Link href="/dashboard">
-              <Image
-                src="/logo-icon.png"
-                alt="StockSentry Icon"
-                width={500} 
-                height={500}
-                className="h-14 w-14" 
-                data-ai-hint="logo abstract"
-              />
-            </Link>
-          </div>
+        <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
+          {!isCollapsed && (
+            <div className="flex items-center justify-center w-full">
+              <Link href="/dashboard">
+                <Image
+                  src="/logo-icon-custom.png"
+                  alt="StockSentry Custom Logo"
+                  width={120}
+                  height={40}
+                  className="h-10 w-auto object-contain"
+                />
+              </Link>
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent className="p-2 flex-grow">
           <SidebarNav />
         </SidebarContent>
         
-         <div className={cn(
-          "group-data-[state=collapsed]/sidebar-wrapper:hidden text-left leading-tight px-4 pb-2 pt-4",
-        )}>
-          <Link href="/dashboard" className="block">
-            <span className="block text-3xl font-bold text-primary uppercase">STOCK</span>
-            <span className="block text-3xl font-bold text-primary uppercase">SENTRY</span>
-          </Link>
-        </div>
+         <div className="text-left leading-tight px-4 pb-2 pt-4">
+           <Link href="/dashboard" className="block">
+             <div className="flex items-start">
+               <span className="text-7xl font-thin text-primary uppercase leading-none mr-1" style={{transform: 'scaleY(1.2)'}}>S</span>
+               {!isCollapsed && (
+                 <div className="flex flex-col justify-start h-20">
+                   <div className="h-6"></div>
+                   <span className="text-xl font-bold text-primary uppercase leading-none">TOCK</span>
+                   <span className="text-xl font-bold text-primary uppercase leading-none">ENTRY</span>
+                 </div>
+               )}
+             </div>
+           </Link>
+         </div>
         
-        <SidebarFooter className={cn(
-          "p-4 pt-2 border-t border-sidebar-border text-left",
-          "group-data-[state=collapsed]/sidebar-wrapper:hidden", 
-        )}>
-          <p className="text-xs text-muted-foreground w-full">
-            Version {appVersion}
-          </p>
-        </SidebarFooter>
       </Sidebar>
 
-      <div className={cn(
-        "flex flex-col flex-1 transition-all duration-300 ease-in-out",
-        "ml-0", 
-        "md:ml-[var(--sidebar-width)]", 
-        // This class correctly refers to the SidebarProvider's div state
-        "group-data-[state=collapsed]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)]" 
-      )}>
+      <div 
+        style={{
+          marginLeft: isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH,
+        }}
+        className={cn(
+          "flex flex-col flex-1 transition-all duration-300 ease-in-out"
+        )}
+      >
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-1 border-b border-border bg-background px-4 sm:px-6 sm:gap-2 md:gap-4">
           <div>
             <SidebarTrigger className="text-foreground" />
@@ -132,6 +131,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+    </>
+  );
+}
+
+export default function AppLayout({ children }: AppLayoutProps) {
+  return (
+    <SidebarProvider 
+      defaultOpen={true} 
+      className="flex min-h-screen w-full bg-background"
+    >
+      <AppLayoutContent>{children}</AppLayoutContent>
     </SidebarProvider>
   );
 }

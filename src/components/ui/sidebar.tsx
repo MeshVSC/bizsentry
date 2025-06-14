@@ -26,7 +26,7 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "200px";
 const SIDEBAR_WIDTH_MOBILE = "16rem"; // Reduced from 18rem
-const SIDEBAR_WIDTH_ICON = "3rem";
+const SIDEBAR_WIDTH_ICON = "48px";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContext = {
@@ -183,7 +183,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { isMobile, state, openMobile, setOpenMobile, open } = useSidebar()
 
     if (collapsible === "none") {
       return (
@@ -231,11 +231,12 @@ const Sidebar = React.forwardRef<
         data-variant={variant}
         data-side={side}
         data-mobile="false" // Explicitly state it's not mobile
+        style={{
+          width: open ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON,
+        }}
         className={cn(
           "group", // Added group class here for its children to reference data attributes
           "fixed h-full flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-          "w-[var(--sidebar-width)]", // Default expanded width
-          "group-data-[state=collapsed]/sidebar-wrapper:md:w-[var(--sidebar-width-icon)]", // Collapsed width
           "transition-all duration-300 ease-in-out",
           className,
         )}

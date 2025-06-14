@@ -1,0 +1,1328 @@
+
+> nextn@0.1.0 dev
+> next dev --turbopack -p 9002
+
+   ▲ Next.js 15.3.3 (Turbopack)
+   - Local:        http://localhost:9002
+   - Network:      http://192.168.1.25:9002
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1018ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1856ms
+Rendering InventoryPage...
+ GET / 200 in 2162ms
+ ✓ Compiled /favicon.ico in 315ms
+ GET /favicon.ico 200 in 598ms
+Rendering InventoryPage...
+ HEAD / 200 in 401ms
+Rendering InventoryPage...
+ GET / 200 in 172ms
+Rendering InventoryPage...
+ GET / 200 in 77ms
+ GET /favicon.ico 200 in 287ms
+ ✓ Compiled in 851ms
+ ✓ Compiled / in 97ms
+ GET / 200 in 419ms
+ GET / 200 in 436ms
+ GET / 307 in 441ms
+ GET / 307 in 452ms
+ ○ Compiling /dashboard ...
+ GET /favicon.ico?favicon.56766c03.ico 200 in 300ms
+ ✓ Compiled /dashboard in 7.4s
+ GET /dashboard 200 in 1158ms
+ GET /dashboard 200 in 8919ms
+ GET /dashboard 200 in 1760ms
+ GET /dashboard 200 in 8975ms
+ GET /dashboard 200 in 9980ms
+ GET /dashboard 200 in 10043ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 361ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 451ms
+ ○ Compiling /inventory ...
+ ✓ Compiled /inventory in 2.3s
+Error in withUserSession: Error: Auth session missing!
+    at withUserSession (src/lib/supabase/session.ts:7:12)
+    at async getItemById (src/lib/actions/itemActions.ts:191:11)
+    at async ItemDetailPage (src/app/(app)/inventory/page.tsx:82:15)
+   5 |     const { data: { user }, error } = await supabase.auth.getUser();
+   6 |     if (error || !user) {
+>  7 |       throw new Error('Auth session missing!');
+     |            ^
+   8 |     }
+   9 |     return await handler(supabase);
+  10 |   } catch (error) {
+[getItemById Error] Error: Auth session missing!
+    at withUserSession (src/lib/supabase/session.ts:7:12)
+    at async getItemById (src/lib/actions/itemActions.ts:191:11)
+    at async ItemDetailPage (src/app/(app)/inventory/page.tsx:82:15)
+   5 |     const { data: { user }, error } = await supabase.auth.getUser();
+   6 |     if (error || !user) {
+>  7 |       throw new Error('Auth session missing!');
+     |            ^
+   8 |     }
+   9 |     return await handler(supabase);
+  10 |   } catch (error) {
+ GET /inventory 200 in 2547ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 329ms
+ ○ Compiling /analytics ...
+ GET /dashboard 200 in 729ms
+ ✓ Compiled /analytics in 2.9s
+ GET /favicon.ico?favicon.56766c03.ico 200 in 426ms
+ GET /analytics 200 in 3808ms
+Error in withUserSession: Error: Auth session missing!
+    at withUserSession (src/lib/supabase/session.ts:7:12)
+    at async getItemById (src/lib/actions/itemActions.ts:191:11)
+    at async ItemDetailPage (src/app/(app)/inventory/page.tsx:82:15)
+   5 |     const { data: { user }, error } = await supabase.auth.getUser();
+   6 |     if (error || !user) {
+>  7 |       throw new Error('Auth session missing!');
+     |            ^
+   8 |     }
+   9 |     return await handler(supabase);
+  10 |   } catch (error) {
+[getItemById Error] Error: Auth session missing!
+    at withUserSession (src/lib/supabase/session.ts:7:12)
+    at async getItemById (src/lib/actions/itemActions.ts:191:11)
+    at async ItemDetailPage (src/app/(app)/inventory/page.tsx:82:15)
+   5 |     const { data: { user }, error } = await supabase.auth.getUser();
+   6 |     if (error || !user) {
+>  7 |       throw new Error('Auth session missing!');
+     |            ^
+   8 |     }
+   9 |     return await handler(supabase);
+  10 |   } catch (error) {
+ GET /inventory 200 in 51ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 225ms
+ GET /dashboard 200 in 117ms
+ ✓ Compiled /inventory in 280ms
+ GET /inventory 200 in 498ms
+ ○ Compiling /inventory/add ...
+ ✓ Compiled /inventory/add in 4s
+ GET /inventory/add 200 in 7587ms
+ GET /inventory/add 200 in 2482ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 265ms
+Error in withUserSession: Error: Auth session missing!
+    at withUserSession (src/lib/supabase/session.ts:7:12)
+    at async createItem (src/lib/actions/itemActions.ts:213:11)
+   5 |     const { data: { user }, error } = await supabase.auth.getUser();
+   6 |     if (error || !user) {
+>  7 |       throw new Error('Auth session missing!');
+     |            ^
+   8 |     }
+   9 |     return await handler(supabase);
+  10 |   } catch (error) {
+[createItem Error] Error: Auth session missing!
+    at withUserSession (src/lib/supabase/session.ts:7:12)
+    at async createItem (src/lib/actions/itemActions.ts:213:11)
+   5 |     const { data: { user }, error } = await supabase.auth.getUser();
+   6 |     if (error || !user) {
+>  7 |       throw new Error('Auth session missing!');
+     |            ^
+   8 |     }
+   9 |     return await handler(supabase);
+  10 |   } catch (error) {
+ POST /inventory/add 200 in 450ms
+ ✓ Compiled /inventory/add in 90ms
+ GET /dashboard 200 in 1789ms
+ GET /dashboard 200 in 704ms
+ GET /dashboard 200 in 625ms
+ GET /inventory/add 200 in 3022ms
+ GET /inventory/add 200 in 2158ms
+ GET /inventory/add 200 in 2946ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1764ms
+ ✓ Compiled in 5s
+ ✓ Compiled /inventory/add in 19ms
+ GET /dashboard 200 in 469ms
+ GET /dashboard 200 in 6047ms
+ GET /dashboard 200 in 879ms
+ GET /inventory/add 200 in 1806ms
+ ✓ Compiled /dashboard in 111ms
+ ✓ Compiled in 1223ms
+ ✓ Compiled /inventory/add in 20ms
+ GET /dashboard 200 in 2076ms
+ GET /dashboard 200 in 1009ms
+ GET /inventory/add 200 in 9925ms
+ GET /inventory/add 200 in 4591ms
+ GET /dashboard 200 in 760ms
+ GET /inventory/add 200 in 1952ms
+ GET /inventory/add 200 in 4166ms
+ GET /inventory/add 200 in 2416ms
+ ✓ Compiled /dashboard in 403ms
+ ✓ Compiled in 1919ms
+ ✓ Compiled /inventory/add in 38ms
+ GET /dashboard 200 in 2911ms
+ GET /dashboard 200 in 420ms
+ GET /dashboard 200 in 1108ms
+ GET /inventory/add 200 in 4524ms
+ GET /inventory/add 200 in 1864ms
+ GET /inventory/add 200 in 1949ms
+ ✓ Compiled in 2.4s
+ ✓ Compiled /inventory/add in 98ms
+(node:6275) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGTERM listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:6275) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 SIGINT listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+ GET /dashboard 200 in 1292ms
+ GET /dashboard 200 in 825ms
+ GET /dashboard 200 in 697ms
+ GET /inventory/add 200 in 2750ms
+ GET /inventory/add 200 in 2394ms
+ GET /inventory/add 200 in 2712ms
+ GET /inventory/add 200 in 5151ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 282ms
+ POST /inventory/add 200 in 619ms
+ ✓ Compiled in 2.5s
+ ✓ Compiled /inventory/add in 33ms
+ GET /inventory/add 200 in 5588ms
+ GET /inventory/add 200 in 2434ms
+ GET /inventory/add 200 in 2496ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 285ms
+ ✓ Compiled in 2.4s
+ ✓ Compiled /inventory/add in 11ms
+ GET /inventory/add 200 in 2669ms
+ GET /inventory/add 200 in 5790ms
+ GET /inventory/add 200 in 3482ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 318ms
+ ✓ Compiled in 1195ms
+ ✓ Compiled /inventory/add in 16ms
+ GET /inventory/add 200 in 2338ms
+ GET /inventory/add 200 in 2543ms
+ GET /inventory/add 200 in 4605ms
+ GET /inventory/add 200 in 4280ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 249ms
+[createItem] Input data: {
+  "name": "test",
+  "quantity": 1,
+  "status": "in stock"
+}
+[createItem] Final payload: {
+  "name": "test",
+  "quantity": 1,
+  "status": "in stock",
+  "created_at": "2025-06-14T07:37:01.210Z",
+  "updated_at": "2025-06-14T07:37:01.210Z"
+}
+[createItem] Success: {
+  id: '0fae8b1a-a00e-4766-a6ed-0cb5a353ae6e',
+  name: 'test',
+  description: null,
+  quantity: 1,
+  category: null,
+  subcategory: null,
+  storage_location: null,
+  bin_location: null,
+  room: null,
+  vendor: null,
+  project: null,
+  original_price: null,
+  sales_price: null,
+  msrp: null,
+  sku: null,
+  status: 'in stock',
+  barcode_data: null,
+  qr_code_data: null,
+  receipt_image_url: null,
+  product_image_url: null,
+  product_url: null,
+  purchase_date: null,
+  sold_date: null,
+  in_use_date: null,
+  created_at: '2025-06-14T07:37:01.21+00:00',
+  updated_at: '2025-06-14T07:37:01.21+00:00',
+  user_id: null
+}
+ POST /inventory/add 200 in 351ms
+[createItem] Input data: {
+  "name": "test",
+  "quantity": 1,
+  "status": "in stock"
+}
+[createItem] Final payload: {
+  "name": "test",
+  "quantity": 1,
+  "status": "in stock",
+  "created_at": "2025-06-14T07:39:06.256Z",
+  "updated_at": "2025-06-14T07:39:06.260Z"
+}
+[createItem] Success: {
+  id: 'e47290d8-45a6-4338-88e8-241e4a372e84',
+  name: 'test',
+  description: null,
+  quantity: 1,
+  category: null,
+  subcategory: null,
+  storage_location: null,
+  bin_location: null,
+  room: null,
+  vendor: null,
+  project: null,
+  original_price: null,
+  sales_price: null,
+  msrp: null,
+  sku: null,
+  status: 'in stock',
+  barcode_data: null,
+  qr_code_data: null,
+  receipt_image_url: null,
+  product_image_url: null,
+  product_url: null,
+  purchase_date: null,
+  sold_date: null,
+  in_use_date: null,
+  created_at: '2025-06-14T07:39:06.256+00:00',
+  updated_at: '2025-06-14T07:39:06.26+00:00',
+  user_id: null
+}
+ POST /inventory/add 200 in 650ms
+ GET /inventory/add 200 in 2608ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 272ms
+ ✓ Compiled in 2.1s
+ ✓ Compiled /inventory/add in 15ms
+ GET /inventory/add 200 in 2217ms
+ GET /inventory/add 200 in 1881ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 252ms
+ GET /inventory/add 200 in 5863ms
+[createItem] Input data: {
+  "name": "test2",
+  "quantity": 1,
+  "status": "in stock"
+}
+[createItem] Final payload: {
+  "name": "test2",
+  "quantity": 1,
+  "status": "in stock",
+  "created_at": "2025-06-14T07:41:27.658Z",
+  "updated_at": "2025-06-14T07:41:27.658Z"
+}
+[createItem] Success: {
+  id: '24bde0af-bf4e-41a4-a9a3-95704b94ea84',
+  name: 'test2',
+  description: null,
+  quantity: 1,
+  category: null,
+  subcategory: null,
+  storage_location: null,
+  bin_location: null,
+  room: null,
+  vendor: null,
+  project: null,
+  original_price: null,
+  sales_price: null,
+  msrp: null,
+  sku: null,
+  status: 'in stock',
+  barcode_data: null,
+  qr_code_data: null,
+  receipt_image_url: null,
+  product_image_url: null,
+  product_url: null,
+  purchase_date: null,
+  sold_date: null,
+  in_use_date: null,
+  created_at: '2025-06-14T07:41:27.658+00:00',
+  updated_at: '2025-06-14T07:41:27.658+00:00',
+  user_id: null
+}
+ POST /inventory/add 200 in 256ms
+ GET /inventory 200 in 73ms
+ GET /inventory 200 in 26ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 225ms
+ GET /inventory 200 in 68ms
+ ✓ Compiled in 4.3s
+ ✓ Compiled /inventory in 195ms
+ GET /inventory 200 in 2314ms
+ ✓ Compiled /inventory in 23ms
+ ✓ Compiled in 1265ms
+ ✓ Compiled in 9ms
+ GET /inventory 200 in 2234ms
+ GET /inventory 200 in 655ms
+ GET /inventory 200 in 389ms
+ GET /inventory 200 in 540ms
+ ○ Compiling /inventory/[id] ...
+ ✓ Compiled /inventory/[id] in 7.3s
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84 200 in 9629ms
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84 200 in 623ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 299ms
+ ○ Compiling /inventory/[id]/edit ...
+ ✓ Compiled /inventory/[id]/edit in 3s
+[initializeServerUserSession] No authenticated user: Error [AuthSessionMissingError]: Auth session missing!
+    at <unknown> (../../src/GoTrueClient.ts:1421:48)
+    at SupabaseAuthClient._useSession (../../src/GoTrueClient.ts:1276:19)
+    at async SupabaseAuthClient._getUser (../../src/GoTrueClient.ts:1413:13)
+    at async (../../src/GoTrueClient.ts:1397:13)
+    at async (../../src/GoTrueClient.ts:1184:17) {
+  __isAuthError: true,
+  status: 400,
+  code: undefined
+}
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 4258ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 257ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 900ms
+ GET /login 200 in 980ms
+ GET /login 200 in 41ms
+ ✓ Compiled /dashboard in 28ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 1274ms
+ GET /dashboard 200 in 1889ms
+ GET /dashboard 200 in 1006ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 255ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 237ms
+ GET /inventory 200 in 428ms
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84 200 in 240ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 227ms
+[initializeServerUserSession] No authenticated user: Error [AuthSessionMissingError]: Auth session missing!
+    at <unknown> (../../src/GoTrueClient.ts:1421:48)
+    at SupabaseAuthClient._useSession (../../src/GoTrueClient.ts:1276:19)
+    at async SupabaseAuthClient._getUser (../../src/GoTrueClient.ts:1413:13)
+    at async (../../src/GoTrueClient.ts:1397:13)
+    at async (../../src/GoTrueClient.ts:1184:17) {
+  __isAuthError: true,
+  status: 400,
+  code: undefined
+}
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 247ms
+ GET /login 200 in 86ms
+ GET /login 200 in 40ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 279ms
+ GET /dashboard 200 in 429ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 298ms
+ GET /dashboard 200 in 427ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 263ms
+ ✓ Compiled in 1303ms
+ GET /dashboard 200 in 507ms
+ ✓ Compiled /dashboard in 232ms
+ ✓ Compiled in 1375ms
+ ✓ Compiled in 5ms
+ GET /dashboard 200 in 407ms
+ GET /dashboard 200 in 3955ms
+ GET /dashboard 200 in 644ms
+ GET /dashboard 200 in 415ms
+ GET /dashboard 200 in 568ms
+ GET /dashboard 200 in 553ms
+ ✓ Compiled /inventory in 314ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 293ms
+ GET /inventory 200 in 979ms
+ GET /inventory 200 in 7483ms
+ ✓ Compiled /inventory/[id] in 97ms
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84 200 in 943ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 232ms
+ ○ Compiling /inventory/[id]/edit ...
+ ✓ Compiled /inventory/[id]/edit in 743ms
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 4091ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 258ms
+[updateItem Debug] Starting update for Item ID: e47290d8-45a6-4338-88e8-241e4a372e84
+[updateItem] Attempting to update item ID 'e47290d8-45a6-4338-88e8-241e4a372e84'. Payload: {
+  name: 'test',
+  description: undefined,
+  quantity: 2,
+  category: undefined,
+  subcategory: undefined,
+  storage_location: undefined,
+  bin_location: undefined,
+  room: undefined,
+  vendor: undefined,
+  project: undefined,
+  original_price: undefined,
+  sales_price: undefined,
+  msrp: undefined,
+  sku: undefined,
+  status: 'in stock',
+  barcode_data: undefined,
+  qr_code_data: undefined,
+  receipt_image_url: undefined,
+  product_image_url: undefined,
+  product_url: undefined,
+  purchase_date: undefined,
+  sold_date: undefined,
+  in_use_date: undefined,
+  updated_at: '2025-06-14T08:37:46.931Z'
+}
+[updateItem Supabase Error] Item ID 'e47290d8-45a6-4338-88e8-241e4a372e84'. Message: unrecognized configuration parameter "myapp.current_user_id"
+ POST /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 470ms
+[updateItem Debug] Starting update for Item ID: e47290d8-45a6-4338-88e8-241e4a372e84
+[updateItem] Attempting to update item ID 'e47290d8-45a6-4338-88e8-241e4a372e84'. Payload: {
+  name: 'test',
+  description: undefined,
+  quantity: 2,
+  category: undefined,
+  subcategory: undefined,
+  storage_location: undefined,
+  bin_location: undefined,
+  room: undefined,
+  vendor: undefined,
+  project: undefined,
+  original_price: undefined,
+  sales_price: undefined,
+  msrp: undefined,
+  sku: undefined,
+  status: 'in stock',
+  barcode_data: undefined,
+  qr_code_data: undefined,
+  receipt_image_url: undefined,
+  product_image_url: undefined,
+  product_url: undefined,
+  purchase_date: undefined,
+  sold_date: undefined,
+  in_use_date: undefined,
+  updated_at: '2025-06-14T08:38:00.580Z'
+}
+[updateItem Supabase Error] Item ID 'e47290d8-45a6-4338-88e8-241e4a372e84'. Message: unrecognized configuration parameter "myapp.current_user_id"
+ POST /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 261ms
+ ✓ Compiled in 4s
+ ✓ Compiled in 2.3s
+ ✓ Compiled in 1594ms
+ ✓ Compiled /inventory in 227ms
+ ✓ Compiled /inventory/[id]/edit in 121ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 1102ms
+ GET /inventory 200 in 4733ms
+ GET /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 4681ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 261ms
+[updateItem Debug] Starting update for Item ID: e47290d8-45a6-4338-88e8-241e4a372e84
+[updateItem] Attempting delete and recreate for item ID 'e47290d8-45a6-4338-88e8-241e4a372e84'
+[updateItem Success] Item ID 'e47290d8-45a6-4338-88e8-241e4a372e84' updated via delete/insert
+ POST /inventory/e47290d8-45a6-4338-88e8-241e4a372e84/edit 200 in 900ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 266ms
+ GET /inventory 200 in 685ms
+ GET /inventory 200 in 687ms
+ ✓ Compiled /analytics in 92ms
+ GET /analytics 200 in 1475ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 263ms
+ ✓ Compiled /dashboard in 47ms
+ GET /dashboard 200 in 1081ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 234ms
+ ○ Compiling /settings/application ...
+ ✓ Compiled /settings/application in 6.7s
+ GET /settings/application 200 in 7289ms
+ POST /settings/application 200 in 568ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 646ms
+ POST /settings/application 200 in 156ms
+ ✓ Compiled in 244ms
+ ✓ Compiled in 1412ms
+ POST /settings/application 200 in 1850ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 244ms
+ GET /inventory 200 in 1592ms
+ ✓ Compiled in 1420ms
+ GET /inventory 200 in 3734ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 867ms
+ ✓ Compiled in 365ms
+ ✓ Compiled in 638ms
+ ✓ Compiled in 3ms
+ GET /dashboard 200 in 2651ms
+ GET /dashboard 200 in 1088ms
+ GET /dashboard 200 in 1044ms
+ GET /dashboard 200 in 1199ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 231ms
+ ✓ Compiled in 343ms
+ ✓ Compiled in 416ms
+ ✓ Compiled in 862ms
+ ✓ Compiled in 6.1s
+ ✓ Compiled /dashboard in 312ms
+ GET /dashboard 200 in 6469ms
+ GET /dashboard 200 in 825ms
+ GET /dashboard 200 in 5644ms
+ GET /dashboard 200 in 754ms
+ GET /dashboard 200 in 607ms
+ GET /dashboard 200 in 800ms
+ GET /dashboard 200 in 235ms
+ GET /favicon.ico?favicon.56766c03.ico 200 in 245ms
+ ✓ Compiled in 1173ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 4.9s
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.zrz0tuj0v7'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.zrz0tuj0v7'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.zegryjjhv9'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.zegryjjhv9'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.kuqnoe68zo'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.kuqnoe68zo'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dgdzi5jndl4'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dgdzi5jndl4'
+}
+ ○ Compiling /_error ...
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.lw3mjeb2nq'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.lw3mjeb2nq'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.kbsntracpd'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.kbsntracpd'
+}
+ ✓ Compiled /_error in 3.5s
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.m54ya2pvbhm'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.m54ya2pvbhm'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ilv6brymk4p'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ilv6brymk4p'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.db3p4q6ugfm'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.db3p4q6ugfm'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.8aga148um1'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.8aga148um1'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.0s8cllhqpqw'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.0s8cllhqpqw'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.gmpwoc7wem6'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.gmpwoc7wem6'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9kifq4l8scq'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9kifq4l8scq'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.krq4bz6gezh'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.krq4bz6gezh'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.g36wdzh2nce'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.g36wdzh2nce'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.y6nyapx29n'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.y6nyapx29n'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.tdbszn3sy1'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.tdbszn3sy1'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.6dx9hx98nj3'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.6dx9hx98nj3'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.2wcce4glp0g'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.2wcce4glp0g'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.r4p4fpbp5ba'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.r4p4fpbp5ba'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.8rcka2j3ony'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.8rcka2j3ony'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.mdrpkbpj66b'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.mdrpkbpj66b'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.3sgr2vtai7c'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.3sgr2vtai7c'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dlv1u8z0ezm'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dlv1u8z0ezm'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.2y8mpbv3h1y'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.2y8mpbv3h1y'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.z6so5pi70j'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.z6so5pi70j'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.15zqja1lioy'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.15zqja1lioy'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.qsgrhagt77'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.qsgrhagt77'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.doifxnsdox8'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.doifxnsdox8'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.bp327ahcgzg'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.bp327ahcgzg'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.fth5aqoczy9'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.fth5aqoczy9'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.uowgsr9p57g'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.uowgsr9p57g'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.plqltlx9q8k'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.plqltlx9q8k'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ch5ocr1098c'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ch5ocr1098c'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ib9jpsdnwqp'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ib9jpsdnwqp'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.pd482rc2ko'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.pd482rc2ko'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.jhwcs6u4nz'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.jhwcs6u4nz'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.yqj81fgghj'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.yqj81fgghj'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.wnek48rjeoo'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.wnek48rjeoo'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.t9prixydxaf'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.t9prixydxaf'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.qbs01rl8eq'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.qbs01rl8eq'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.j2n7u76a4fd'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.j2n7u76a4fd'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rms1302xfkc'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rms1302xfkc'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.fs9f97a47qr'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.fs9f97a47qr'
+}
+ ✓ Compiled in 521ms
+ ✓ Compiled in 430ms
+ ✓ Compiled in 322ms
+ ✓ Compiled in 382ms
+ ✓ Compiled in 333ms
+ ✓ Compiled in 239ms
+ ✓ Compiled in 674ms
+ ✓ Compiled in 509ms
+ ✓ Compiled in 265ms
+ ✓ Compiled in 906ms
+ ✓ Compiled in 1628ms
+ ✓ Compiled /dashboard in 207ms
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dry7orpjynn'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dry7orpjynn'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rcx2fpnnryp'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rcx2fpnnryp'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.kkj69nwysjg'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.kkj69nwysjg'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.od7lnh4bk7'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.od7lnh4bk7'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.g9zv5k5gphe'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.g9zv5k5gphe'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.jod4vhqfmqt'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.jod4vhqfmqt'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.pxmmihq18l'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.pxmmihq18l'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.15e3i09fvx5'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.15e3i09fvx5'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9i5kn6rm97p'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9i5kn6rm97p'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rck7a76bx3p'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rck7a76bx3p'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.gfz4kogqi97'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.gfz4kogqi97'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dtsyizz75fp'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dtsyizz75fp'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.5ppvpikfkjt'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.5ppvpikfkjt'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.h2koxaczg69'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.h2koxaczg69'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.l9r080ei0m'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.l9r080ei0m'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9bu5klvzzns'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9bu5klvzzns'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.tl4ekh9sobi'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.tl4ekh9sobi'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.3in66msbyqp'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.3in66msbyqp'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.y1u4d72yud8'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.y1u4d72yud8'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.8xew1kgq7ql'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.8xew1kgq7ql'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.iw35s5ed35'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.iw35s5ed35'
+}
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 595ms
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9zx9jarnlib'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.9zx9jarnlib'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.umk6eq7o1ag'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.umk6eq7o1ag'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dowq34e60rb'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dowq34e60rb'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.t50mj49ulhk'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.t50mj49ulhk'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ackhs8mckgf'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ackhs8mckgf'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.vv920fx5dnp'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.vv920fx5dnp'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.pvikdbnyy0c'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.pvikdbnyy0c'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.046623f24rd'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.046623f24rd'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ziz5ge1xf9h'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.ziz5ge1xf9h'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.f5e54dry4p'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.f5e54dry4p'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.c2ej5rlelkf'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.c2ej5rlelkf'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.h6kclhyfs7d'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.h6kclhyfs7d'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rt7imfb757'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.rt7imfb757'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.389d3wl7ja3'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.389d3wl7ja3'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.r28he3juy9'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.r28he3juy9'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.aiqpnwbvfo'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.aiqpnwbvfo'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.o380dfjdryo'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.o380dfjdryo'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dqdlcflsr8c'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.dqdlcflsr8c'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.qcfbtkuitpl'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.qcfbtkuitpl'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.6k69t96naab'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.6k69t96naab'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.4t2kmouhrn4'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/static/development/_buildManifest.js.tmp.4t2kmouhrn4'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/(app)/dashboard/page/app-build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/_not-found/page/app-build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/_not-found/page/app-build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+[Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/pages/_app/build-manifest.json'
+}
+ ⨯ [Error: ENOENT: no such file or directory, open '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/kira/Documents/GitHub/studio/.next/server/app/favicon.ico/[__metadata_id__]/route/app-paths-manifest.json'
+}
+Shutting down all Genkit servers...
+Shutting down all Genkit servers...
+Shutting down all Genkit servers...
+Shutting down all Genkit servers...
+Shutting down all Genkit servers...
+Shutting down all Genkit servers...
+[?25h

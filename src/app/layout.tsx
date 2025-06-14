@@ -15,12 +15,16 @@ export const metadata: Metadata = {
   description: 'Streamline your inventory with StockSentry',
 };
 
-export default async function InventoryPage() {
-  console.log('Rendering InventoryPage...');
+export default function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
-    <div>
-      <h1>Inventory Page</h1>
-      <p>Welcome to the inventory page!</p>
-    </div>
+    <html lang="en" className={montserrat.variable}>
+      <body className="min-h-screen bg-background font-sans antialiased">
+        {children}
+      </body>
+    </html>
   );
 }

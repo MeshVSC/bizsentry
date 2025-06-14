@@ -183,25 +183,83 @@ export async function getItems(
     return { items: [], totalPages: 0, count: 0 };
   }
 
-  return { items: (data as Item[]) || [], totalPages, count: totalItems };
+  // Map snake_case to camelCase for frontend
+  const items = (data || []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    quantity: row.quantity,
+    category: row.category,
+    subcategory: row.subcategory,
+    storageLocation: row.storage_location,
+    binLocation: row.bin_location,
+    room: row.room,
+    vendor: row.vendor,
+    project: row.project,
+    originalPrice: row.original_price,
+    salesPrice: row.sales_price,
+    msrp: row.msrp,
+    sku: row.sku,
+    status: row.status,
+    barcodeData: row.barcode_data,
+    qrCodeData: row.qr_code_data,
+    receiptImageUrl: row.receipt_image_url,
+    productImageUrl: row.product_image_url,
+    productUrl: row.product_url,
+    purchaseDate: row.purchase_date,
+    soldDate: row.sold_date,
+    inUseDate: row.in_use_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+
+  return { items, totalPages, count: totalItems };
 }
 
 export async function getItemById(id: string) {
   try {
-    return await withUserSession(async (client) => {
-      const { data, error } = await client
-        .from("items")
-        .select("*")
-        .eq("id", id)
-        .single();
+    const { data, error } = await supabase
+      .from("items")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-      if (error) {
-        console.error(`[getItemById Error] Item ID '${id}':`, error);
-        return { error: error.message };
-      }
+    if (error) {
+      console.error(`[getItemById Error] Item ID '${id}':`, error);
+      return { error: error.message };
+    }
 
-      return data;
-    });
+    // Map snake_case to camelCase for frontend
+    const item = {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      quantity: data.quantity,
+      category: data.category,
+      subcategory: data.subcategory,
+      storageLocation: data.storage_location,
+      binLocation: data.bin_location,
+      room: data.room,
+      vendor: data.vendor,
+      project: data.project,
+      originalPrice: data.original_price,
+      salesPrice: data.sales_price,
+      msrp: data.msrp,
+      sku: data.sku,
+      status: data.status,
+      barcodeData: data.barcode_data,
+      qrCodeData: data.qr_code_data,
+      receiptImageUrl: data.receipt_image_url,
+      productImageUrl: data.product_image_url,
+      productUrl: data.product_url,
+      purchaseDate: data.purchase_date,
+      soldDate: data.sold_date,
+      inUseDate: data.in_use_date,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+
+    return item;
   } catch (error) {
     console.error("[getItemById Error]", error);
     return { error: "Failed to get item" };
@@ -210,26 +268,87 @@ export async function getItemById(id: string) {
 
 export async function createItem(itemData: ItemInput) {
   try {
-    return await withUserSession(async (client) => {
-      const payload = {
-        ...itemData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+    console.log("[createItem] Input data:", JSON.stringify(itemData, null, 2));
+    
+    // Map camelCase to snake_case for database
+    const payload = {
+      name: itemData.name,
+      description: itemData.description,
+      quantity: itemData.quantity,
+      category: itemData.category,
+      subcategory: itemData.subcategory,
+      storage_location: itemData.storageLocation,
+      bin_location: itemData.binLocation,
+      room: itemData.room,
+      vendor: itemData.vendor,
+      project: itemData.project,
+      original_price: itemData.originalPrice,
+      sales_price: itemData.salesPrice,
+      msrp: itemData.msrp,
+      sku: itemData.sku,
+      status: itemData.status,
+      barcode_data: itemData.barcodeData,
+      qr_code_data: itemData.qrCodeData,
+      receipt_image_url: itemData.receiptImageUrl,
+      product_image_url: itemData.productImageUrl,
+      product_url: itemData.productUrl,
+      purchase_date: itemData.purchaseDate,
+      sold_date: itemData.soldDate,
+      in_use_date: itemData.inUseDate,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-      const { data, error } = await client
-        .from("items")
-        .insert([payload])
-        .select()
-        .single();
+    console.log("[createItem] Final payload:", JSON.stringify(payload, null, 2));
 
-      if (error) {
-        console.error(`[createItem Supabase Error] Message: ${error.message}`);
-        return { error: error.message };
-      }
+    const { data, error } = await supabase
+      .from("items")
+      .insert([payload])
+      .select()
+      .single();
 
-      return { data };
-    });
+    if (error) {
+      console.error(`[createItem Supabase Error] Full error:`, error);
+      console.error(`[createItem Supabase Error] Message: ${error.message}`);
+      console.error(`[createItem Supabase Error] Code: ${error.code}`);
+      console.error(`[createItem Supabase Error] Details: ${error.details}`);
+      console.error(`[createItem Supabase Error] Hint: ${error.hint}`);
+      return { error: `Database error: ${error.message}` };
+    }
+
+    console.log("[createItem] Success:", data);
+    
+    // Map the response back to camelCase for frontend
+    const item = {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      quantity: data.quantity,
+      category: data.category,
+      subcategory: data.subcategory,
+      storageLocation: data.storage_location,
+      binLocation: data.bin_location,
+      room: data.room,
+      vendor: data.vendor,
+      project: data.project,
+      originalPrice: data.original_price,
+      salesPrice: data.sales_price,
+      msrp: data.msrp,
+      sku: data.sku,
+      status: data.status,
+      barcodeData: data.barcode_data,
+      qrCodeData: data.qr_code_data,
+      receiptImageUrl: data.receipt_image_url,
+      productImageUrl: data.product_image_url,
+      productUrl: data.product_url,
+      purchaseDate: data.purchase_date,
+      soldDate: data.sold_date,
+      inUseDate: data.in_use_date,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+    
+    return item;
   } catch (error) {
     console.error("[createItem Error]", error);
     return { error: "Failed to create item" };
@@ -239,34 +358,101 @@ export async function createItem(itemData: ItemInput) {
 export async function updateItem(id: string, updateData: any) {
   try {
     console.log(`[updateItem Debug] Starting update for Item ID: ${id}`);
-    return await withUserSession(async (client) => {
-      const payload = {
-        ...updateData,
-        updated_at: new Date().toISOString(),
-      };
+    
+    // Get the existing item first to preserve created_at and other fields
+    const existingItem = await getItemById(id);
+    if (!existingItem || 'error' in existingItem) {
+      return { error: "Item not found" };
+    }
 
-      console.log(
-        `[updateItem] Attempting to update item ID '${id}'. Payload:`,
-        payload
-      );
+    // Map camelCase to snake_case for database and preserve existing data
+    const payload = {
+      id: id, // Keep the same ID
+      name: updateData.name,
+      description: updateData.description,
+      quantity: updateData.quantity,
+      category: updateData.category,
+      subcategory: updateData.subcategory,
+      storage_location: updateData.storageLocation,
+      bin_location: updateData.binLocation,
+      room: updateData.room,
+      vendor: updateData.vendor,
+      project: updateData.project,
+      original_price: updateData.originalPrice,
+      sales_price: updateData.salesPrice,
+      msrp: updateData.msrp,
+      sku: updateData.sku,
+      status: updateData.status,
+      barcode_data: updateData.barcodeData,
+      qr_code_data: updateData.qrCodeData,
+      receipt_image_url: updateData.receiptImageUrl,
+      product_image_url: updateData.productImageUrl,
+      product_url: updateData.productUrl,
+      purchase_date: updateData.purchaseDate,
+      sold_date: updateData.soldDate,
+      in_use_date: updateData.inUseDate,
+      created_at: existingItem.createdAt, // Preserve original creation date
+      updated_at: new Date().toISOString(),
+    };
 
-      const { data, error } = await client
-        .from("items")
-        .update(payload)
-        .eq("id", id)
-        .select()
-        .single();
+    console.log(`[updateItem] Attempting delete and recreate for item ID '${id}'`);
 
-      if (error) {
-        console.error(
-          `[updateItem Supabase Error] Item ID '${id}'. Message: ${error.message}`
-        );
-        return { error: error.message };
-      }
+    // Delete the existing item
+    const { error: deleteError } = await supabase
+      .from("items")
+      .delete()
+      .eq("id", id);
 
-      console.log(`[updateItem Success] Item ID '${id}' updated successfully`);
-      return { data };
-    });
+    if (deleteError) {
+      console.error(`[updateItem Delete Error] ${deleteError.message}`);
+      return { error: deleteError.message };
+    }
+
+    // Insert the updated item with the same ID
+    const { data, error: insertError } = await supabase
+      .from("items")
+      .insert([payload])
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error(`[updateItem Insert Error] ${insertError.message}`);
+      return { error: insertError.message };
+    }
+
+    console.log(`[updateItem Success] Item ID '${id}' updated via delete/insert`);
+    
+    // Map the response back to camelCase for frontend
+    const item = {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      quantity: data.quantity,
+      category: data.category,
+      subcategory: data.subcategory,
+      storageLocation: data.storage_location,
+      binLocation: data.bin_location,
+      room: data.room,
+      vendor: data.vendor,
+      project: data.project,
+      originalPrice: data.original_price,
+      salesPrice: data.sales_price,
+      msrp: data.msrp,
+      sku: data.sku,
+      status: data.status,
+      barcodeData: data.barcode_data,
+      qrCodeData: data.qr_code_data,
+      receiptImageUrl: data.receipt_image_url,
+      productImageUrl: data.product_image_url,
+      productUrl: data.product_url,
+      purchaseDate: data.purchase_date,
+      soldDate: data.sold_date,
+      inUseDate: data.in_use_date,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+    
+    return item;
   } catch (error) {
     console.error("[updateItem Error]", error);
     return { error: "Failed to update item" };
@@ -275,18 +461,16 @@ export async function updateItem(id: string, updateData: any) {
 
 export async function deleteItem(id: string) {
   try {
-    return await withUserSession(async (client) => {
-      const { error } = await client.from("items").delete().eq("id", id);
+    const { error } = await supabase.from("items").delete().eq("id", id);
 
-      if (error) {
-        console.error(
-          `[deleteItem Error] Item ID '${id}'. Message: ${error.message}`
-        );
-        return { error: error.message };
-      }
+    if (error) {
+      console.error(
+        `[deleteItem Error] Item ID '${id}'. Message: ${error.message}`
+      );
+      return { error: error.message };
+    }
 
-      return { data: true };
-    });
+    return { data: true };
   } catch (error) {
     console.error("[deleteItem Error]", error);
     return { error: "Failed to delete item" };
