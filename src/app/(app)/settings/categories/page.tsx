@@ -39,22 +39,20 @@ export default function CategoriesSettingsPage() {
         title="Manage Categories"
         description="Add or remove categories available when creating/editing items."
       />
-      <Card>
-        <CardHeader>
-            <CardTitle>Categories</CardTitle>
-            <CardDescription>Define the categories for your inventory items.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? <p>Loading categories...</p> : (
-            <ManageOptionsSection
-              optionType="category" // Corrected from "Category"
-              initialOptions={initialCategories}
-              addOptionAction={addManagedCategoryOption}
-              deleteOptionAction={deleteManagedCategoryOption}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Categories</h3>
+            <p className="text-sm text-muted-foreground">Define the categories for your inventory items.</p>
+        </div>
+        {loading ? <p>Loading categories...</p> : (
+          <ManageOptionsSection
+            optionType="category" // Corrected from "Category"
+            initialOptions={initialCategories}
+            addOptionAction={addManagedCategoryOption}
+            deleteOptionAction={deleteManagedCategoryOption}
+          />
+        )}
+      </div>
     </>
   );
 }

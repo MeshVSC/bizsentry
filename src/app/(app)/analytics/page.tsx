@@ -98,8 +98,8 @@ export default async function AnalyticsPage() {
   const stockValueChartConfig = { value: { label: "Total Stock Value ($)", color: "hsl(var(--chart-2))" } } satisfies ChartConfig;
 
   const salesTrendsChartData = Array.from(salesByDayMap.entries())
-    .map(([dateKey, totalSales]) => ({ date: format(parseISO(dateKey), 'MMM dd'), totalSales }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+    .map(([dateKey, totalSales]) => ({ date: format(parseISO(dateKey), 'MMM dd'), totalSales }));
   const salesTrendsChartConfig = { totalSales: { label: "Total Sales ($)", color: "hsl(var(--chart-3))" } } satisfies ChartConfig;
 
   const profitByCategoryChartData = Array.from(profitByCategoryMap.entries())

@@ -12,7 +12,7 @@ import { headers } from "next/headers";
 
 const ADMIN_USER_ID = "047dd250-5c94-44f2-8827-6ff6bff8207c"; // User ID for "stock_sentry_admin"
 
-function getBaseUrl(): string {
+async function getBaseUrl(): Promise<string> {
   // Try environment variable first (for production deployments)
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL;
@@ -20,7 +20,7 @@ function getBaseUrl(): string {
   
   // Try to get from request headers (dynamic detection)
   try {
-    const headersList = headers();
+    const headersList = await headers();
     const host = headersList.get('host');
     const protocol = headersList.get('x-forwarded-proto') || 'http';
     
@@ -32,7 +32,7 @@ function getBaseUrl(): string {
   }
   
   // Fallback for development
-  return 'http://localhost:3000';
+  return 'http://localhost:9002';
 }
 
 async function verifyAdminUserExists(): Promise<{
@@ -331,34 +331,9 @@ export async function createItem(itemData: ItemInput) {
       return { error: `Database error: ${tempError.message}` };
     }
 
-    // Generate barcode and QR code data using the item ID
-    const itemId = tempData.id;
-    const baseUrl = getBaseUrl();
-    
-    // Generate barcode data: use SKU if available, otherwise use item ID
-    const barcodeData = itemData.sku || itemId;
-    
-    // Generate QR code data: URL to the item detail page
-    const qrCodeData = `${baseUrl}/inventory/${itemId}`;
-    
-    // Update the item with generated barcode and QR code data
-    const { data, error } = await supabase
-      .from("items")
-      .update({
-        barcode_data: barcodeData,
-        qr_code_data: qrCodeData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", itemId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error(`[createItem Update Error] Full error:`, error);
-      return { error: `Database error: ${error.message}` };
-    }
-
-    console.log("[createItem] Success with generated codes:", data);
+    // For now, skip barcode generation to avoid RLS issues
+    const data = tempData;
+    console.log("[createItem] Success:", data);
     
     // Map the response back to camelCase for frontend
     const item = {
@@ -395,7 +370,7 @@ export async function createItem(itemData: ItemInput) {
       target_table: "items",
       target_record_id: data.id,
       details: { item: item },
-      description: `Item '${item.name}' created with auto-generated barcode: '${barcodeData}' and QR code: '${qrCodeData}'`,
+      description: `Item '${item.name}' created successfully`,
     });
 
     revalidatePath("/inventory");
@@ -419,7 +394,7 @@ export async function updateItem(id: string, updateData: Partial<ItemInput>) {
     }
 
     // Generate updated barcode and QR code data
-    const baseUrl = getBaseUrl();
+    const baseUrl = await getBaseUrl();
     const barcodeData = updateData.sku || id; // Use updated SKU if available, otherwise use item ID
     const qrCodeData = `${baseUrl}/inventory/${id}`;
 
@@ -515,7 +490,7 @@ export async function updateItem(id: string, updateData: Partial<ItemInput>) {
       target_table: "items",
       target_record_id: data.id,
       details: { item: item },
-      description: `Item '${item.name}' updated with regenerated barcode: '${barcodeData}' and QR code: '${qrCodeData}'`,
+      description: `Item '${item.name}' updated successfully`,
     });
 
     revalidatePath("/inventory");

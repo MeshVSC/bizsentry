@@ -8,7 +8,6 @@ import {
   deleteManagedRoomOption, 
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // AlertTriangle and useAuth removed
 import { useEffect, useState } from 'react';
 
@@ -39,22 +38,20 @@ export default function RoomsSettingsPage() {
         title="Manage Rooms"
         description="Define rooms or areas where items are located."
       />
-      <Card>
-        <CardHeader>
-            <CardTitle>Rooms</CardTitle>
-            <CardDescription>Specify rooms or distinct physical areas.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? <p>Loading rooms...</p> : (
-            <ManageOptionsSection
-              optionType="room" // Corrected from "Room"
-              initialOptions={initialRooms}
-              addOptionAction={addManagedRoomOption}
-              deleteOptionAction={deleteManagedRoomOption}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Rooms</h3>
+          <p className="text-sm text-muted-foreground">Specify rooms or distinct physical areas.</p>
+        </div>
+        {loading ? <p>Loading rooms...</p> : (
+          <ManageOptionsSection
+            optionType="room" // Corrected from "Room"
+            initialOptions={initialRooms}
+            addOptionAction={addManagedRoomOption}
+            deleteOptionAction={deleteManagedRoomOption}
+          />
+        )}
+      </div>
     </>
   );
 }

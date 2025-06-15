@@ -1,58 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html {
-  font-family: var(--font-montserrat), Arial, Helvetica, sans-serif; /* Updated to Montserrat */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer base {
   :root {
-    /* Theme: Dark with Turquoise Accents */
-    --background: 222 39% 11%; /* #111827 - Background Darker (bg-gray-900) */
-    --foreground: 210 17% 98%; /* #F9FAFB - Text Light (text-gray-100) */
+    /* Fleet Management Inspired - True Black Theme with Orange Accents */
+    --background: 0 0% 3%; /* #080808 - True black background */
+    --foreground: 0 0% 92%; /* #ebebeb - Clean white text */
 
-    --card: 215 28% 17%; /* #1F2937 - Background Dark (bg-gray-800 for card backgrounds) */
-    --card-foreground: 210 17% 98%; /* Text Light */
+    --card: 0 0% 6%; /* #0f0f0f - Dark card background */
+    --card-foreground: 0 0% 92%; /* #ebebeb - Card text */
 
-    --popover: 215 28% 15%; /* Slightly darker than card for popovers */
-    --popover-foreground: 210 17% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 92%;
 
-    --primary: 172 57% 56%; /* #4FD1C5 - Corrected Turquoise */
-    --primary-foreground: 222 39% 11%; /* Dark text for good contrast on turquoise */
+    --primary: 33 100% 52%; /* #ff9f43 - Light orange */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
 
-    --secondary: 215 28% 22%; /* A bit lighter than card for secondary elements */
-    --secondary-foreground: 210 17% 98%;
+    --secondary: 0 0% 8%; /* #141414 - Secondary surfaces */
+    --secondary-foreground: 0 0% 92%;
 
-    --muted: 215 28% 15%; 
-    --muted-foreground: 210 29% 80%; /* #CBD5E0 - Text Mid (text-gray-300) */
+    --muted: 0 0% 15%; /* #262626 - Muted elements */
+    --muted-foreground: 0 0% 47%; /* #787878 - Muted text */
 
-    --accent: 172 57% 56%; /* Corrected Turquoise for accents, matching primary */
-    --accent-foreground: 222 39% 11%; 
+    --accent: 24 100% 50%; /* #e67e22 - Medium orange accent */
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 50%; 
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 215 28% 25%; 
-    --input: 215 28% 20%; 
-    --ring: 172 57% 56%; /* Corrected Turquoise for focus rings */
+    --border: 0 0% 12%; /* #1f1f1f - Subtle dark borders */
+    --input: 0 0% 8%; /* Dark input backgrounds */
+    --ring: 33 100% 52%; /* Orange focus rings */
 
-    /* Chart colors - Adjusted for Turquoise primary */
-    --chart-1: 172 57% 56%; /* Turquoise (matches primary) */
-    --chart-2: 210 70% 55%; /* A complementary vibrant Blue */
-    --chart-3: 275 70% 60%; /* Neon Violet/Purple */
-    --chart-4: 160 60% 50%; /* A deeper Teal/Green */
-    --chart-5: 320 85% 60%; /* Neon Pink for variety */
-    
-    --radius: 0.5rem; /* 8px */
+    --radius: 0.75rem; /* 12px */
 
-    /* Sidebar Specific Variables */
-    --sidebar-background: 222 39% 11%; /* Background Darker #111827 */
-    --sidebar-foreground: 210 17% 98%; /* Text Light #F9FAFB */
-    --sidebar-hover-background: 215 28% 17%; /* Background Dark #1F2937 for hover */
-    --sidebar-active-foreground: 172 57% 56%; /* Corrected Turquoise #4FD1C5 for active text/icon */
-    --sidebar-border: 215 28% 20%;
-    --sidebar-ring: 172 57% 56%; /* Corrected Turquoise */
+    /* Orange-based chart colors */
+    --chart-1: 33 100% 52%; /* Light orange #ff9f43 */
+    --chart-2: 24 100% 50%; /* Medium orange #e67e22 */
+    --chart-3: 16 100% 42%; /* Dark orange #d35400 */
+    --chart-4: 199 89% 48%; /* Blue for secondary data */
+    --chart-5: 142 71% 45%; /* Green for success states */
+
+    /* Status colors - Red/Yellow/Green system */
+    --status-error: 0 85% 55%; /* #e74c3c - Red for errors/late */
+    --status-warning: 54 100% 50%; /* #ffeb3b - Yellow for pending */
+    --status-success: 142 71% 45%; /* #27ae60 - Green for completed */
   }
 }
 
@@ -62,12 +61,122 @@ html {
   }
   body {
     @apply bg-background text-foreground;
-    font-size: theme(fontSize.base); /* Body: base */
+    font-size: theme(fontSize.sm);
+    font-weight: 400;
+    line-height: 1.5;
+    overflow-x: hidden;
   }
+  
   h1, .h1-style { 
-    @apply text-3xl font-bold text-foreground; /* H1: 3xl, Text Light */
+    @apply text-xl font-bold text-foreground;
+    letter-spacing: -0.025em;
   }
-   h2, .h2-style {
-    @apply text-2xl font-semibold text-foreground;
+  h2, .h2-style {
+    @apply text-lg font-semibold text-foreground;
+    letter-spacing: -0.025em;
+  }
+  h3, .h3-style {
+    @apply text-base font-medium text-foreground;
+  }
+  
+  .glass-card {
+    background: rgba(15, 15, 15, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+  
+  .glass-card:hover {
+    background: rgba(15, 15, 15, 0.9);
+    border-color: rgba(255, 159, 67, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(255, 159, 67, 0.1);
+  }
+  
+  .gradient-btn {
+    background: linear-gradient(135deg, #ff9f43, #e67e22);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 159, 67, 0.2);
+  }
+  
+  .gradient-btn:hover {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 159, 67, 0.4);
+  }
+  
+  .gradient-text {
+    background: linear-gradient(135deg, #ff9f43, #e67e22);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Orange glow effect for interactive elements */
+  .orange-glow {
+    box-shadow: 0 0 20px rgba(255, 159, 67, 0.3);
+  }
+
+  .orange-glow:hover {
+    box-shadow: 0 0 30px rgba(255, 159, 67, 0.5);
+  }
+
+  /* Logo icon hover effects */
+  .logo-icon:hover {
+    transform: scale(1.05);
+    background: rgba(255, 159, 67, 0.3) !important;
+    border: 1px solid rgba(255, 159, 67, 0.5) !important;
+    box-shadow: 0 0 25px rgba(255, 159, 67, 0.6) !important;
+  }
+
+  /* Glass morphism buttons */
+  .glass-btn {
+    background: rgba(255, 159, 67, 0.1);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 159, 67, 0.3);
+    color: #ff9f43;
+    box-shadow: 0 4px 16px rgba(255, 159, 67, 0.2);
+    transition: all 0.3s ease-in-out;
+  }
+
+  .glass-btn:hover {
+    background: rgba(255, 159, 67, 0.2);
+    border: 1px solid rgba(255, 159, 67, 0.5);
+    box-shadow: 0 6px 20px rgba(255, 159, 67, 0.4);
+    color: #e67e22;
+  }
+  
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  
+  .status-active {
+    background: #27ae60;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 8px rgba(39, 174, 96, 0.4);
+  }
+  
+  .status-pending {
+    background: #ffeb3b;
+    box-shadow: 0 0 8px rgba(255, 235, 59, 0.4);
+  }
+  
+  .status-inactive {
+    background: #6b7280;
+  }
+
+  .status-error {
+    background: #e74c3c;
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
   }
 }

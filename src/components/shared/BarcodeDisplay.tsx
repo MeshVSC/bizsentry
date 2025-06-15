@@ -59,20 +59,22 @@ export default function BarcodeDisplay({
   }
   
   return (
-    <div className={className} style={{ display: 'inline-block', padding: '8px', backgroundColor: bgColor, borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))' }}>
-      <Barcode
-        value={value}
-        format={format}
-        width={width}
-        height={height}
-        displayValue={displayValue}
-        lineColor={fgColor}
-        background={bgColor} // react-barcode uses 'background' prop for bgColor
-        margin={10} // Margin around the barcode itself
-        fontSize={12}
-        fontOptions="bold"
-        textMargin={2}
-      />
+    <div className={`${className} max-w-full overflow-hidden`} style={{ display: 'inline-block', padding: '8px', backgroundColor: bgColor, borderRadius: 'var(--radius)', border: '1px solid hsl(var(--border))' }}>
+      <div className="max-w-full overflow-x-auto">
+        <Barcode
+          value={value}
+          format={format}
+          width={Math.min(width, 1.5)} // Reduce width to prevent overflow
+          height={height}
+          displayValue={displayValue}
+          lineColor={fgColor}
+          background={bgColor} // react-barcode uses 'background' prop for bgColor
+          margin={5} // Reduced margin
+          fontSize={10} // Smaller font size
+          fontOptions="bold"
+          textMargin={2}
+        />
+      </div>
     </div>
   );
 }

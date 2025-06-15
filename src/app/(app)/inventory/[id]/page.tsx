@@ -89,7 +89,13 @@ function DetailItem({ icon: Icon, label, value, isCurrency = false, isDate = fal
 
   return (
     <div className="flex items-start space-x-3">
-      <Icon className={cn("h-5 w-5 text-muted-foreground mt-1 flex-shrink-0", className)} />
+      <Icon 
+        className={cn("h-5 w-5 mt-1 flex-shrink-0 transition-all duration-300", className)} 
+        style={{
+          color: '#ff9f43',
+          filter: 'drop-shadow(0 0 6px rgba(255, 159, 67, 0.4))'
+        }}
+      />
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-sm text-muted-foreground">{displayValue}</p>
@@ -142,16 +148,33 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
         description={item.description || "No description available."}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/inventory/${item.id}/edit`}>
-                <Edit className="mr-2 h-4 w-4" /> Edit
-              </Link>
-            </Button>
+            <Link 
+              href={`/inventory/${item.id}/edit`}
+              className="glass-btn px-4 py-2 rounded-lg text-sm font-medium hover:scale-105 transition-transform flex items-center"
+              style={{
+                background: 'rgba(255, 159, 67, 0.1)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 159, 67, 0.3)',
+                color: '#ff9f43',
+                boxShadow: '0 4px 16px rgba(255, 159, 67, 0.2)'
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </Link>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
+                <button 
+                  className="glass-btn px-4 py-2 rounded-lg text-sm font-medium hover:scale-105 transition-transform flex items-center"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    boxShadow: '0 4px 16px rgba(239, 68, 68, 0.2)'
+                  }}
+                >
                   <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </Button>
+                </button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -226,13 +249,31 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
             <CardHeader><CardTitle>Codes</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="text-sm font-medium flex items-center"><BarcodeIcon className="mr-2 h-4 w-4 text-muted-foreground" /> Barcode Data</h3>
+                <h3 className="text-sm font-medium flex items-center">
+                  <BarcodeIcon 
+                    className="mr-2 h-4 w-4" 
+                    style={{
+                      color: '#ff9f43',
+                      filter: 'drop-shadow(0 0 4px rgba(255, 159, 67, 0.4))'
+                    }}
+                  /> 
+                  Barcode Data
+                </h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.barcodeData || 'N/A'}</p>
-                {item.barcodeData && <BarcodeDisplay value={item.barcodeData} className="mt-2 mx-auto" />}
+                {item.barcodeData && <BarcodeDisplay value={item.barcodeData} className="mt-2 w-full" />}
               </div>
               <Separator />
               <div>
-                <h3 className="text-sm font-medium flex items-center"><QrCodeIcon className="mr-2 h-4 w-4 text-muted-foreground" /> QR Code Data</h3>
+                <h3 className="text-sm font-medium flex items-center">
+                  <QrCodeIcon 
+                    className="mr-2 h-4 w-4" 
+                    style={{
+                      color: '#ff9f43',
+                      filter: 'drop-shadow(0 0 4px rgba(255, 159, 67, 0.4))'
+                    }}
+                  /> 
+                  QR Code Data
+                </h3>
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded-md mt-1 break-all">{item.qrCodeData || 'N/A'}</p>
                  {item.qrCodeData && <QRCodeDisplay value={item.qrCodeData} size={150} className="mt-2" />}
               </div>

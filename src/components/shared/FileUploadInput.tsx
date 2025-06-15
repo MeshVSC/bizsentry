@@ -71,7 +71,19 @@ export default function FileUploadInput({
         className="hidden"
         disabled={disabled}
       />
-      <Button type="button" onClick={handleButtonClick} disabled={disabled} className="w-full">
+      <Button 
+        type="button" 
+        onClick={handleButtonClick} 
+        disabled={disabled} 
+        className="w-full transition-all duration-300 hover:scale-105 hover:bg-[rgba(255,159,67,0.2)] hover:border-[rgba(255,159,67,0.5)] hover:shadow-[0_6px_20px_rgba(255,159,67,0.3)]"
+        style={{
+          background: 'rgba(255, 159, 67, 0.1)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 159, 67, 0.3)',
+          color: '#ff9f43',
+          boxShadow: '0 4px 16px rgba(255, 159, 67, 0.2)'
+        }}
+      >
         {buttonIcon}
         {buttonText}
       </Button>

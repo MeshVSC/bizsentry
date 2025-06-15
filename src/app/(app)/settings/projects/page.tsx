@@ -8,7 +8,6 @@ import {
   deleteManagedProjectOption, 
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // AlertTriangle and useAuth removed
 import { useEffect, useState } from 'react';
 
@@ -39,22 +38,20 @@ export default function ProjectsSettingsPage() {
         title="Manage Projects"
         description="Define projects items can be associated with."
       />
-      <Card>
-        <CardHeader>
-            <CardTitle>Projects</CardTitle>
-            <CardDescription>List projects for item association.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? <p>Loading projects...</p> : (
-            <ManageOptionsSection
-              optionType="project" // Corrected from "Project"
-              initialOptions={initialProjects}
-              addOptionAction={addManagedProjectOption}
-              deleteOptionAction={deleteManagedProjectOption}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Projects</h3>
+          <p className="text-sm text-muted-foreground">List projects for item association.</p>
+        </div>
+        {loading ? <p>Loading projects...</p> : (
+          <ManageOptionsSection
+            optionType="project" // Corrected from "Project"
+            initialOptions={initialProjects}
+            addOptionAction={addManagedProjectOption}
+            deleteOptionAction={deleteManagedProjectOption}
+          />
+        )}
+      </div>
     </>
   );
 }

@@ -39,22 +39,20 @@ export default function StorageLocationsSettingsPage() {
         title="Manage Storage Locations"
         description="Define common storage locations for your inventory."
       />
-      <Card>
-         <CardHeader>
-            <CardTitle>Storage Locations</CardTitle>
-            <CardDescription>Specify general areas where items are stored.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? <p>Loading storage locations...</p> : (
-            <ManageOptionsSection
-              optionType="storage_location" // Corrected from "Storage Location"
-              initialOptions={initialStorageLocations}
-              addOptionAction={addManagedStorageLocationOption}
-              deleteOptionAction={deleteManagedStorageLocationOption}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+         <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Storage Locations</h3>
+            <p className="text-sm text-muted-foreground">Specify general areas where items are stored.</p>
+        </div>
+        {loading ? <p>Loading storage locations...</p> : (
+          <ManageOptionsSection
+            optionType="storage_location" // Corrected from "Storage Location"
+            initialOptions={initialStorageLocations}
+            addOptionAction={addManagedStorageLocationOption}
+            deleteOptionAction={deleteManagedStorageLocationOption}
+          />
+        )}
+      </div>
     </>
   );
 }

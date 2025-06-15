@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LifeBuoy, UserCircle } from 'lucide-react';
+import { Bell, Settings, LifeBuoy, UserCircle, Plus } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -18,8 +18,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
-import FloatingActionButton from '@/components/ui/floating-action-button';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { usePathname } from 'next/navigation';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -56,61 +56,86 @@ function SimplifiedUserMenu() {
 function AppLayoutContent({ children }: AppLayoutProps) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const pathname = usePathname();
   
-  const SIDEBAR_WIDTH = "200px";
-  const SIDEBAR_WIDTH_ICON = "48px";
+  const SIDEBAR_WIDTH = "240px";
+  const SIDEBAR_WIDTH_ICON = "64px";
 
   // Enable keyboard shortcuts
   useKeyboardShortcuts();
 
+  // Get page title and description based on pathname
+  const getPageInfo = () => {
+    if (pathname === '/dashboard') return { title: 'Dashboard', description: 'Overview of your inventory performance' };
+    if (pathname === '/inventory') return { title: 'Inventory', description: 'Manage your inventory items' };
+    if (pathname === '/inventory/add') return { title: 'Add New Item', description: 'Create a new inventory item' };
+    if (pathname.startsWith('/inventory/') && pathname.endsWith('/edit')) return { title: 'Edit Item', description: 'Update inventory item details' };
+    if (pathname.startsWith('/inventory/')) return { title: 'Item Details', description: 'View inventory item information' };
+    if (pathname === '/analytics') return { title: 'Analytics', description: 'Inventory insights and reports' };
+    if (pathname.startsWith('/settings')) return { title: 'Settings', description: 'Application configuration' };
+    return { title: 'StockSentry', description: 'Inventory management system' };
+  };
+
+  const { title, description } = getPageInfo();
+
   return (
     <>
+      {/* TOCK-Style Sidebar */}
       <Sidebar
         variant="sidebar"
         collapsible="icon" 
         className={cn(
-          "flex flex-col text-sidebar-foreground bg-sidebar-DEFAULT border-r border-sidebar-border"
-          // SidebarProvider's div will have group/sidebar-wrapper and data-sidebar-state
-          // The <aside> (this Sidebar component) uses group-data-[state=collapsed]/sidebar-wrapper for its width
+          "flex flex-col bg-[#080808] border-r border-[#1f1f1f] text-foreground fixed left-0 top-0 h-screen z-50"
         )}
+        style={{ width: isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH }}
       >
-        <SidebarHeader className="p-4 h-16 flex items-center justify-center border-b border-sidebar-border relative">
-          {!isCollapsed && (
-            <div className="flex items-center justify-center w-full">
-              <Link href="/dashboard">
-                <Image
-                  src="/logo-icon-custom.png"
-                  alt="StockSentry Custom Logo"
-                  width={120}
-                  height={40}
-                  className="h-10 w-auto object-contain"
-                />
-              </Link>
+        {/* Logo Section */}
+        <SidebarHeader className="p-5">
+          <div className="flex items-center gap-3">
+            <div 
+              className="logo-icon w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+              style={{
+                background: 'rgba(255, 159, 67, 0.15)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 159, 67, 0.2)',
+                boxShadow: '0 0 15px rgba(255, 159, 67, 0.3)',
+                color: '#ff9f43',
+                transition: 'all 0.3s ease-in-out'
+              }}
+            >
+              S
             </div>
-          )}
+            {!isCollapsed && (
+              <div className="gradient-text">
+                <h1 className="text-base font-semibold">STOCK</h1>
+                <p className="text-[10px] text-muted-foreground">SENTRY</p>
+              </div>
+            )}
+          </div>
         </SidebarHeader>
 
-        <SidebarContent className="p-2 flex-grow">
+        {/* Navigation */}
+        <SidebarContent className="p-4 flex-grow">
           <SidebarNav />
         </SidebarContent>
         
-         <div className="text-left leading-tight px-4 pb-2 pt-4">
-           <Link href="/dashboard" className="block">
-             <div className="flex items-start">
-               <span className="text-7xl font-thin text-primary uppercase leading-none mr-1" style={{transform: 'scaleY(1.2)'}}>S</span>
-               {!isCollapsed && (
-                 <div className="flex flex-col justify-start h-20">
-                   <div className="h-6"></div>
-                   <span className="text-xl font-bold text-primary uppercase leading-none">TOCK</span>
-                   <span className="text-xl font-bold text-primary uppercase leading-none">ENTRY</span>
-                 </div>
-               )}
-             </div>
-           </Link>
-         </div>
-        
+        {/* Profile Section */}
+        <div className="p-5">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 gradient-btn rounded-full flex items-center justify-center text-xs font-bold text-white">
+              AB
+            </div>
+            {!isCollapsed && (
+              <div className="flex-1">
+                <h3 className="text-sm font-medium">Anthony Brown</h3>
+                <p className="text-[10px] text-muted-foreground">Administrator</p>
+              </div>
+            )}
+          </div>
+        </div>
       </Sidebar>
 
+      {/* Main Content Area */}
       <div 
         style={{
           marginLeft: isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH,
@@ -119,22 +144,53 @@ function AppLayoutContent({ children }: AppLayoutProps) {
           "flex flex-col flex-1 transition-all duration-300 ease-in-out"
         )}
       >
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-1 border-b border-border bg-background px-4 sm:px-6 sm:gap-2 md:gap-4">
-          <div>
-            <SidebarTrigger className="text-foreground" />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
-            <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 bg-card text-foreground hover:bg-muted">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Toggle notifications</span>
-            </Button>
-            <SimplifiedUserMenu /> 
+        {/* TOCK-Style Header */}
+        <header className="sticky top-0 z-30 h-20 border-b border-[#1f1f1f] bg-[#080808]/80 backdrop-blur-3xl">
+          <div className="flex items-center justify-between h-full px-6">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="text-foreground hover:bg-[#111111] p-2 rounded" />
+              <div>
+                <h1 className="text-xl font-bold">{title}</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full h-8 w-8 bg-[#111111] hover:bg-[#191919] text-muted-foreground"
+              >
+                <Bell className="h-4 w-4" />
+              </Button>
+              <Link 
+                href="/inventory/add"
+                className="glass-btn px-4 py-2 rounded-lg text-sm font-medium hover:scale-105 transition-transform flex items-center"
+                style={{
+                  background: 'rgba(255, 159, 67, 0.1)',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 159, 67, 0.3)',
+                  color: '#ff9f43',
+                  boxShadow: '0 4px 16px rgba(255, 159, 67, 0.2)'
+                }}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add New Item
+              </Link>
+            </div>
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6 bg-background">
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto p-6 bg-[#000000]">
           {children}
         </main>
-        <FloatingActionButton href="/inventory/add" title="Add new inventory item" />
+
+        {/* TOCK-Style Floating Action Button */}
+        <Link 
+          href="/inventory/add"
+          className="fixed bottom-6 right-6 w-12 h-12 glass-btn rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-40"
+        >
+          <Plus className="h-5 w-5" />
+        </Link>
       </div>
     </>
   );

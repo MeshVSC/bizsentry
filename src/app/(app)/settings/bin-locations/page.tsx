@@ -8,7 +8,6 @@ import {
   deleteManagedBinLocationOption,
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // AlertTriangle and useAuth removed
 import { useEffect, useState } from 'react';
 
@@ -39,22 +38,20 @@ export default function BinLocationsSettingsPage() {
         title="Manage Bin Locations"
         description="Specify detailed bin or shelf locations within storage areas."
       />
-      <Card>
-        <CardHeader>
-            <CardTitle>Bin Locations</CardTitle>
-            <CardDescription>Define specific bins, shelves, or spots.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? <p>Loading bin locations...</p> : (
-            <ManageOptionsSection
-              optionType="bin_location" // Corrected from "Bin Location"
-              initialOptions={initialBinLocations}
-              addOptionAction={addManagedBinLocationOption}
-              deleteOptionAction={deleteManagedBinLocationOption}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold mb-2">Bin Locations</h3>
+          <p className="text-sm text-muted-foreground">Define specific bins, shelves, or spots.</p>
+        </div>
+        {loading ? <p>Loading bin locations...</p> : (
+          <ManageOptionsSection
+            optionType="bin_location" // Corrected from "Bin Location"
+            initialOptions={initialBinLocations}
+            addOptionAction={addManagedBinLocationOption}
+            deleteOptionAction={deleteManagedBinLocationOption}
+          />
+        )}
+      </div>
     </>
   );
 }

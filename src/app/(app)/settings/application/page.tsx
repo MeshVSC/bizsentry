@@ -34,15 +34,13 @@ export default function ApplicationSettingsPage() {
      return (
         <>
             <PageHeader title="Application Settings" description="Manage global application settings." />
-            <Card>
-                <CardHeader>
-                    <CardTitle>General Application Settings</CardTitle>
-                    <CardDescription>Control global behaviors of the application.</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <p>Loading settings...</p>
-                </CardContent>
-            </Card>
+            <div className="glass-card p-6">
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-2">General Application Settings</h3>
+                    <p className="text-sm text-muted-foreground">Control global behaviors of the application.</p>
+                </div>
+                <p>Loading settings...</p>
+            </div>
         </>
      );
   }
@@ -53,15 +51,13 @@ export default function ApplicationSettingsPage() {
         title="Application Settings"
         description="Manage global behaviors of the application."
       />
-      <Card>
-        <CardHeader>
-            <CardTitle>General Application Settings</CardTitle>
-            <CardDescription>Control global behaviors of the application.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <ApplicationSettingsForm currentSettings={initialAppSettings} />
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">General Application Settings</h3>
+            <p className="text-sm text-muted-foreground">Control global behaviors of the application.</p>
+        </div>
+        <ApplicationSettingsForm currentSettings={initialAppSettings} />
+      </div>
     </>
   );
 }

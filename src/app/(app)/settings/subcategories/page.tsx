@@ -39,22 +39,20 @@ export default function SubcategoriesSettingsPage() {
         title="Manage Subcategories"
         description="Add or remove subcategories for items."
       />
-      <Card>
-        <CardHeader>
-            <CardTitle>Subcategories</CardTitle>
-            <CardDescription>Define sub-classifications for your inventory items.</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {loading ? <p>Loading subcategories...</p> : (
-            <ManageOptionsSection
-              optionType="subcategory" // Corrected from "Subcategory"
-              initialOptions={initialSubcategories}
-              addOptionAction={addManagedSubcategoryOption}
-              deleteOptionAction={deleteManagedSubcategoryOption}
-            />
-          )}
-        </CardContent>
-      </Card>
+      <div className="glass-card p-6">
+        <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Subcategories</h3>
+            <p className="text-sm text-muted-foreground">Define sub-classifications for your inventory items.</p>
+        </div>
+        {loading ? <p>Loading subcategories...</p> : (
+          <ManageOptionsSection
+            optionType="subcategory" // Corrected from "Subcategory"
+            initialOptions={initialSubcategories}
+            addOptionAction={addManagedSubcategoryOption}
+            deleteOptionAction={deleteManagedSubcategoryOption}
+          />
+        )}
+      </div>
     </>
   );
 }

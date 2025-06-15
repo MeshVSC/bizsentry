@@ -12,12 +12,14 @@ export default function UserSettingsPage() {
         title="User Management"
         description="This feature has been removed."
       />
-      <div className="flex flex-col items-center justify-center h-64 space-y-4 p-8 bg-card rounded-lg shadow">
-        <AlertTriangle className="h-16 w-16 text-muted-foreground" />
-        <h1 className="text-2xl font-semibold text-foreground">Feature Not Available</h1>
-        <p className="text-muted-foreground text-center">
-          User management functionality has been removed from the application.
-        </p>
+      <div className="glass-card p-8">
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <AlertTriangle className="h-16 w-16 text-muted-foreground" />
+          <h1 className="text-2xl font-semibold text-foreground">Feature Not Available</h1>
+          <p className="text-muted-foreground text-center">
+            User management functionality has been removed from the application.
+          </p>
+        </div>
       </div>
     </>
   );

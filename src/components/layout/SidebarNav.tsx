@@ -52,75 +52,72 @@ const settingsAccordionItem: AccordionNavItem = {
 
 export default function SidebarNav() {
   const pathname = usePathname();
-  const { state: sidebarState } = useSidebar(); // state can be "expanded" or "collapsed"
+  const { state: sidebarState } = useSidebar();
 
   const isSettingsActive = settingsAccordionItem.matcher?.test(pathname);
   const isSettingsSection = pathname.startsWith('/settings');
-
   const defaultAccordionValue = isSettingsSection ? settingsAccordionItem.id : undefined;
 
   return (
-    <SidebarMenu>
+    <div className="space-y-1">
+      {/* Main Navigation - TOCK Style */}
       {mainNavItems.map((item) => {
         const isActive = item.matcher ? item.matcher.test(pathname) : (pathname === item.href);
         return (
-          <SidebarMenuItem key={item.href}>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive}
-              tooltip={{ children: item.label }}
-              className={cn(
-                "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary",
-                isActive && "bg-primary/30 text-primary" // Highlight active link
-              )}
-            >
-              <Link href={item.href} className="flex items-center">
-                <item.icon className="h-5 w-5" />
-                <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{item.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <Link 
+            key={item.href}
+            href={item.href} 
+            className={cn(
+              "flex items-center px-3 py-2 mb-1 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer",
+              "text-muted-foreground hover:bg-[#111111] hover:text-foreground",
+              isActive && "bg-[#ff9f43]/15 text-foreground border-l-3 border-[#ff9f43] shadow-[0_0_15px_rgba(255,159,67,0.2)]"
+            )}
+          >
+            <item.icon className="h-4 w-4 mr-2" />
+            {sidebarState !== 'collapsed' && <span>{item.label}</span>}
+          </Link>
         );
       })}
 
-      {/* Settings Accordion */}
-      <Accordion type="single" collapsible defaultValue={defaultAccordionValue} className="w-full">
-        <AccordionItem value={settingsAccordionItem.id} className="border-b-0">
+      {/* Settings Section */}
+      <div className="mt-6">
+        <Accordion type="single" collapsible defaultValue={defaultAccordionValue} className="w-full">
+          <AccordionItem value={settingsAccordionItem.id} className="border-b-0">
             <AccordionTrigger className={cn(
-              "p-2 hover:no-underline [&[data-state=open]>svg]:text-primary [&>svg.lucide-chevron-down]:ml-auto",
-              "justify-start text-sm font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full rounded-md",
-              isSettingsActive && "bg-primary/30 text-primary"
+              "flex items-center px-3 py-2 mb-1 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer hover:no-underline [&>svg.lucide-chevron-down]:ml-auto",
+              "text-muted-foreground hover:bg-[#111111] hover:text-foreground",
+              isSettingsActive && "bg-[#ff9f43]/15 text-foreground shadow-[0_0_10px_rgba(255,159,67,0.15)]"
             )}>
-                <settingsAccordionItem.icon className="h-5 w-5" />
-                <span className={cn("ml-2", sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{settingsAccordionItem.label}</span>
+              <settingsAccordionItem.icon className="h-4 w-4 mr-2" />
+              {sidebarState !== 'collapsed' && <span>{settingsAccordionItem.label}</span>}
             </AccordionTrigger>
-          <AccordionContent className="overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-            <div className={cn("pl-4 pt-1", sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>
-              {settingsAccordionItem.children.map((subItem) => {
-                const isSubActive = subItem.matcher ? subItem.matcher.test(pathname) : (pathname === subItem.href);
-                return (
-                  <SidebarMenuItem key={subItem.href} className="py-0.5">
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isSubActive}
-                      tooltip={{ children: subItem.label }}
-                      className={cn(
-                        "justify-start text-xs font-medium text-sidebar-foreground hover:bg-sidebar-hover hover:text-primary w-full h-8", // Reduced height
-                         isSubActive && "bg-primary/30 text-primary"
-                      )}
-                    >
-                      <Link href={subItem.href}>
-                        <subItem.icon className="h-4 w-4" />
-                        <span className={cn(sidebarState === 'collapsed' && "group-data-[state=collapsed]:hidden")}>{subItem.label}</span>
+            
+            <AccordionContent className="overflow-hidden transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+              {sidebarState !== 'collapsed' && (
+                <div className="pl-4 space-y-1">
+                  {settingsAccordionItem.children.map((subItem) => {
+                    const isSubActive = subItem.matcher ? subItem.matcher.test(pathname) : (pathname === subItem.href);
+                    return (
+                      <Link 
+                        key={subItem.href}
+                        href={subItem.href}
+                        className={cn(
+                          "flex items-center px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer",
+                          "text-muted-foreground hover:bg-[#111111] hover:text-foreground",
+                          isSubActive && "bg-[#ff9f43]/10 text-foreground shadow-[0_0_8px_rgba(255,159,67,0.1)]"
+                        )}
+                      >
+                        <subItem.icon className="h-3 w-3 mr-2" />
+                        <span>{subItem.label}</span>
                       </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </SidebarMenu>
+                    );
+                  })}
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </div>
+    </div>
   );
 }
