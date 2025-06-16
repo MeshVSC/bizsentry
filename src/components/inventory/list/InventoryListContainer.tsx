@@ -84,7 +84,7 @@ export default function InventoryListContainer({ items }: InventoryListContainer
   }
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-4 sm:p-6">
       <InventoryHeader
         searchQuery={searchQuery}
         onSearch={setSearchQuery}

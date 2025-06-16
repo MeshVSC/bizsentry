@@ -210,9 +210,9 @@ export default function ItemFormContainer({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 lg:space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
             <BasicDetailsSection
               control={form.control}
               availableCategories={availableCategories}
@@ -234,7 +234,7 @@ export default function ItemFormContainer({
             />
           </div>
 
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 lg:space-y-6">
             <MediaSection
               control={form.control}
               isReceiptProcessing={isReceiptProcessing}

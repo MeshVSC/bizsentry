@@ -112,9 +112,9 @@ export default function ItemsPerCategoryChart({ data }: ItemsPerCategoryChartPro
                     y="85"
                     textAnchor="middle"
                     className="text-[2px] fill-muted-foreground"
-                    style={{ fontSize: '2.5px' }}
+                    style={{ fontSize: '2.2px' }}
                   >
-                    {item.name.length > 8 ? item.name.substring(0, 8) + '...' : item.name}
+                    {item.name.length > 6 ? item.name.substring(0, 6) + '...' : item.name}
                   </text>
                   <text
                     x={x + barWidth / 2}

@@ -46,31 +46,31 @@ export default function InventoryItem({
   };
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border border-[#1f1f1f] hover:bg-[#0A0A0A] hover:border-[#ff9f43]/20 hover:shadow-[0_0_10px_rgba(255,159,67,0.1)] cursor-pointer group transition-all">
-      <div className="flex items-center space-x-3">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border border-[#1f1f1f] hover:bg-[#0A0A0A] hover:border-[#ff9f43]/20 hover:shadow-[0_0_10px_rgba(255,159,67,0.1)] cursor-pointer group transition-all space-y-2 sm:space-y-0">
+      <div className="flex items-center space-x-3 min-w-0 flex-1">
         {isSelectMode && (
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => onToggleSelect(item.id)}
-            className="data-[state=checked]:bg-[#ff9f43] data-[state=checked]:border-[#ff9f43]"
+            className="data-[state=checked]:bg-[#ff9f43] data-[state=checked]:border-[#ff9f43] flex-shrink-0"
           />
         )}
-        <div className={`w-3 h-3 rounded-full ${getStatusDot(item.status)} ${getStatusGlow(item.status)} transition-all duration-300 group-hover:scale-110`} />
-        <div className="min-w-0">
+        <div className={`w-3 h-3 rounded-full ${getStatusDot(item.status)} ${getStatusGlow(item.status)} transition-all duration-300 group-hover:scale-110 flex-shrink-0`} />
+        <div className="min-w-0 flex-1">
           <Link 
             href={`/inventory/${item.id}`}
-            className="text-sm font-medium hover:text-[#ff9f43] transition-colors"
+            className="text-sm font-medium hover:text-[#ff9f43] transition-colors block"
           >
             {item.name}
           </Link>
           {item.description && (
-            <p className="text-xs text-muted-foreground truncate max-w-xs">
+            <p className="text-xs text-muted-foreground truncate">
               {item.description}
             </p>
           )}
         </div>
       </div>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between sm:justify-end space-x-2 sm:flex-shrink-0">
         <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadge(item.status)} ${getStatusGlow(item.status)} capitalize transition-all duration-300 group-hover:scale-105`}>
           {item.status}
         </span>

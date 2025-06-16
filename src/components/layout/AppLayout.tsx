@@ -17,7 +17,7 @@ interface AppLayoutProps {
 
 
 function AppLayoutContent({ children }: AppLayoutProps) {
-  const { state } = useSidebar();
+  const { state, isMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
   const pathname = usePathname();
   
@@ -48,9 +48,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         variant="sidebar"
         collapsible="icon" 
         className={cn(
-          "flex flex-col bg-[#080808] border-r border-[#1f1f1f] text-foreground fixed left-0 top-0 h-screen z-50"
+          "flex flex-col bg-[#080808] border-r border-[#1f1f1f] text-foreground fixed left-0 top-0 h-screen z-50",
+          isMobile && "transform transition-transform duration-300",
+          isMobile && state === "collapsed" && "-translate-x-full"
         )}
-        style={{ width: isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH }}
+        style={{ width: isMobile ? "280px" : (isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH) }}
       >
         {/* Logo Section */}
         <SidebarHeader className="p-5">
@@ -101,32 +103,33 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       {/* Main Content Area */}
       <div 
         style={{
-          marginLeft: isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH,
+          marginLeft: isMobile ? "0" : (isCollapsed ? SIDEBAR_WIDTH_ICON : SIDEBAR_WIDTH),
         }}
         className={cn(
-          "flex flex-col flex-1 transition-all duration-300 ease-in-out"
+          "flex flex-col flex-1 transition-all duration-300 ease-in-out",
+          isMobile && "w-full"
         )}
       >
         {/* TOCK-Style Header */}
-        <header className="sticky top-0 z-30 h-20 border-b border-[#1f1f1f] bg-[#080808]/80 backdrop-blur-3xl">
-          <div className="flex items-center justify-between h-full px-6">
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 h-16 md:h-20 border-b border-[#1f1f1f] bg-[#080808]/80 backdrop-blur-3xl">
+          <div className="flex items-center justify-between h-full px-4 md:px-6">
+            <div className="flex items-center gap-2 md:gap-4">
               <SidebarTrigger className="text-foreground hover:bg-[#111111] p-2 rounded" />
               <div>
-                <h1 className="text-xl font-bold">{title}</h1>
+                <h1 className="text-lg md:text-xl font-bold truncate">{title}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="rounded-full h-8 w-8 bg-[#111111] hover:bg-[#191919] text-muted-foreground"
+                className="rounded-full h-8 w-8 bg-[#111111] hover:bg-[#191919] text-muted-foreground hidden sm:flex"
               >
                 <Bell className="h-4 w-4" />
               </Button>
               <Link 
                 href="/inventory/add"
-                className="glass-btn px-4 py-2 rounded-lg text-sm font-medium hover:scale-105 transition-transform flex items-center"
+                className="glass-btn px-2 py-2 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium hover:scale-105 transition-transform flex items-center"
                 style={{
                   background: 'rgba(255, 159, 67, 0.1)',
                   backdropFilter: 'blur(12px)',
@@ -135,24 +138,24 @@ function AppLayoutContent({ children }: AppLayoutProps) {
                   boxShadow: '0 4px 16px rgba(255, 159, 67, 0.2)'
                 }}
               >
-                <Plus className="h-4 w-4 mr-1" />
-                Add New Item
+                <Plus className="h-4 w-4 md:mr-1" />
+                <span className="hidden sm:inline">Add New Item</span>
               </Link>
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto p-6 bg-[#000000]">
+        <main className="flex-1 overflow-auto p-4 md:p-6 bg-[#000000]">
           {children}
         </main>
 
-        {/* TOCK-Style Floating Action Button */}
+        {/* TOCK-Style Floating Action Button - Mobile Only */}
         <Link 
           href="/inventory/add"
-          className="fixed bottom-6 right-6 w-12 h-12 glass-btn rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-40"
+          className="sm:hidden fixed bottom-4 right-4 w-14 h-14 glass-btn rounded-xl flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-40"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-6 w-6" />
         </Link>
       </div>
     </>
