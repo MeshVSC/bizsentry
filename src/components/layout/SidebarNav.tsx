@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Package, BarChart3, Settings, SlidersHorizontal, ListFilter, Archive as StorageIcon, MapPin as BinIcon, Building as RoomIcon, Briefcase as VendorIcon, Construction as ProjectIcon, type LucideIcon } from 'lucide-react';
 // Users icon removed as User Management is gone
-import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from '@/lib/utils';
 

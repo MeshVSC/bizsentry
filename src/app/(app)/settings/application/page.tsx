@@ -3,7 +3,6 @@
 
 import PageHeader from '@/components/shared/PageHeader';
 import ApplicationSettingsForm from '@/components/settings/ApplicationSettingsForm';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // AlertTriangle and useAuth removed
 import { getAppSettings } from '@/lib/actions/settingsActions';
 import { useEffect, useState } from 'react';

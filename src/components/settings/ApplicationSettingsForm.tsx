@@ -70,7 +70,19 @@ export default function ApplicationSettingsForm({ currentSettings }: Application
             </FormItem>
           )}
         />
-        <SubmitButton isPending={isPending}>Save Settings</SubmitButton>
+        <SubmitButton 
+          isPending={isPending}
+          style={{
+            background: 'rgba(34, 197, 94, 0.1)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            color: '#22c55e',
+            boxShadow: '0 4px 16px rgba(34, 197, 94, 0.2)'
+          }}
+          className="transition-all duration-300 hover:scale-105 hover:bg-[rgba(34,197,94,0.2)] hover:border-[rgba(34,197,94,0.5)] hover:shadow-[0_6px_20px_rgba(34,197,94,0.3)]"
+        >
+          Save Settings
+        </SubmitButton>
       </form>
     </Form>
   );

@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 interface BarcodeDisplayProps {
   value: string;
-  format?: string;
+  format?: "CODE128" | "CODE39" | "CODE128A" | "CODE128B" | "CODE128C" | "EAN13" | "EAN8" | "EAN5" | "EAN2" | "UPC" | "UPCE" | "ITF14" | "ITF" | "MSI" | "MSI10" | "MSI11" | "MSI1010" | "MSI1110" | "pharmacode" | "codabar";
   width?: number;
   height?: number;
   displayValue?: boolean;

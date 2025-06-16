@@ -2,7 +2,6 @@
 import { getItemById, deleteItem } from '@/lib/actions/itemActions';
 import { notFound, redirect } from 'next/navigation';
 import PageHeader from '@/components/shared/PageHeader';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {

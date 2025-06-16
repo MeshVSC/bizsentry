@@ -1,17 +1,15 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
-import { type ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { type ChartConfig } from '@/components/ui/chart';
 
 interface StockValueOverTimeChartProps {
   data: { date: string; value: number }[];
-  chartConfig: ChartConfig;
+  chartConfig?: ChartConfig;
   description?: string;
 }
 
-export default function StockValueOverTimeChart({ data, chartConfig, description }: StockValueOverTimeChartProps) {
+export default function StockValueOverTimeChart({ data }: StockValueOverTimeChartProps) {
   const maxValue = Math.max(...data.map(item => item.value), 1);
   
   return (
@@ -83,7 +81,7 @@ export default function StockValueOverTimeChart({ data, chartConfig, description
           
           {/* Time Labels */}
           <div className="absolute bottom-0 left-0 right-0 flex justify-between px-5">
-            {data.slice(0, 4).map((item, index) => (
+            {data.slice(0, 4).map((item) => (
               <div key={item.date} className="flex flex-col items-center gap-1">
                 <div className="text-[10px] text-muted-foreground text-center">
                   {item.date}

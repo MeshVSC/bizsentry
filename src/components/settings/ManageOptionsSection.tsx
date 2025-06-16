@@ -129,7 +129,17 @@ export default function ManageOptionsSection({
             className="flex-grow"
             disabled={isPendingAdd || isPendingBulkDelete}
           />
-          <SubmitButton isPending={isPendingAdd || isPendingBulkDelete}>
+          <SubmitButton 
+            isPending={isPendingAdd || isPendingBulkDelete}
+            style={{
+              background: 'rgba(34, 197, 94, 0.1)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              color: '#22c55e',
+              boxShadow: '0 4px 16px rgba(34, 197, 94, 0.2)'
+            }}
+            className="transition-all duration-300 hover:scale-105 hover:bg-[rgba(34,197,94,0.2)] hover:border-[rgba(34,197,94,0.5)] hover:shadow-[0_6px_20px_rgba(34,197,94,0.3)]"
+          >
             <PlusCircle className="mr-2 h-4 w-4" /> Add {currentOptionSingular}
           </SubmitButton>
         </form>
@@ -141,7 +151,19 @@ export default function ManageOptionsSection({
             {selectedOptions.length > 0 && (
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" disabled={isPendingBulkDelete}>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          disabled={isPendingBulkDelete}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            backdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#ef4444',
+                            boxShadow: '0 4px 16px rgba(239, 68, 68, 0.2)'
+                          }}
+                          className="transition-all duration-300 hover:scale-105 hover:bg-[rgba(239,68,68,0.2)] hover:border-[rgba(239,68,68,0.5)] hover:shadow-[0_6px_20px_rgba(239,68,68,0.3)]"
+                        >
                             {isPendingBulkDelete ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                             Delete Selected ({selectedOptions.length})
                         </Button>

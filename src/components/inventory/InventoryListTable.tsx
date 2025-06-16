@@ -34,7 +34,7 @@ function UpdateItemStatusControl({ item }: { item: Item }) {
     
     startTransition(async () => {
       const result = await updateItemStatus(item.id, newStatus);
-      if (result) {
+      if (result && !('error' in result)) {
         setCurrentStatus(result.status);
         toast({
           title: "Status Updated",

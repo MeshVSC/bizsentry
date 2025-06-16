@@ -372,10 +372,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-active active:text-sidebar-active-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-primary/30 data-[active=true]:text-primary",
-  // Use the parent group's (Sidebar component - <aside>) data-state and data-collapsible-type
-  "group-data-[state=collapsed][data-collapsible-type=icon]:!size-8 group-data-[state=collapsed][data-collapsible-type=icon]:!p-2",
-  "[&>svg]:size-4 [&>svg]:shrink-0 [&>span:last-child]:truncate",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-active active:text-sidebar-active-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-primary/30 data-[active=true]:text-primary group-data-[state=collapsed][data-collapsible-type=icon]:!size-8 group-data-[state=collapsed][data-collapsible-type=icon]:!p-2 [&>svg]:size-4 [&>svg]:shrink-0 [&>span:last-child]:truncate",
   {
     variants: {
       variant: {
@@ -420,9 +417,9 @@ const SidebarMenuButton = React.forwardRef<
       Comp,
       {
         ref,
-        "data-sidebar": "menu-button",
+        ...(asChild ? {} : { "data-sidebar": "menu-button" }),
         "data-active": isActive,
-        className: cn(sidebarMenuButtonVariants({ variant, size }), className),
+        className: cn(sidebarMenuButtonVariants({ variant: variant || "default", size: size || "default" }), className),
         ...props,
       }
     )

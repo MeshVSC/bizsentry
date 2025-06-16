@@ -1,16 +1,14 @@
 
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
-import { type ChartConfig, ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { type ChartConfig } from '@/components/ui/chart';
 
 interface ProfitByCategoryChartProps {
   data: { name: string; profit: number }[];
-  chartConfig: ChartConfig;
+  chartConfig?: ChartConfig;
 }
 
-export default function ProfitByCategoryChart({ data, chartConfig }: ProfitByCategoryChartProps) {
+export default function ProfitByCategoryChart({ data }: ProfitByCategoryChartProps) {
   const maxValue = Math.max(...data.map(item => item.profit), 1);
   
   return (

@@ -8,7 +8,6 @@ import {
   deleteManagedSubcategoryOption,
 } from '@/lib/actions/itemActions';
 import ManageOptionsSection from '@/components/settings/ManageOptionsSection';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // AlertTriangle and useAuth removed
 import { useEffect, useState } from 'react';
 

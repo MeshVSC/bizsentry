@@ -4,19 +4,9 @@
 import type { ReactNode } from 'react';
 import { SidebarProvider, Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Bell, Settings, LifeBuoy, UserCircle, Plus } from 'lucide-react';
+import { Bell, Plus } from 'lucide-react';
 import SidebarNav from './SidebarNav';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Avatar } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from '@/lib/utils';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { usePathname } from 'next/navigation';
@@ -25,33 +15,6 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-function SimplifiedUserMenu() {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full overflow-hidden h-8 w-8">
-          <Avatar className="h-full w-full bg-card">
-            <UserCircle className="h-6 w-6 text-foreground m-auto" /> 
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-popover text-popover-foreground border-border">
-        <DropdownMenuLabel>Menu</DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-border" />
-        <DropdownMenuItem asChild>
-          <Link href="/settings/application" className="flex items-center w-full cursor-pointer">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled> 
-          <LifeBuoy className="mr-2 h-4 w-4" />
-          <span>Support</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 function AppLayoutContent({ children }: AppLayoutProps) {
   const { state } = useSidebar();
@@ -76,7 +39,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     return { title: 'StockSentry', description: 'Inventory management system' };
   };
 
-  const { title, description } = getPageInfo();
+  const { title } = getPageInfo();
 
   return (
     <>
