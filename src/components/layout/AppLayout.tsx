@@ -54,9 +54,9 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       >
         {/* Logo Section */}
         <SidebarHeader className="p-5">
-          <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
             <div 
-              className="logo-icon w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
+              className="logo-icon w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold hover:scale-105 transition-transform"
               style={{
                 background: 'rgba(255, 159, 67, 0.15)',
                 backdropFilter: 'blur(12px)',
@@ -74,7 +74,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
                 <p className="text-[10px] text-muted-foreground">SENTRY</p>
               </div>
             )}
-          </div>
+          </Link>
         </SidebarHeader>
 
         {/* Navigation */}

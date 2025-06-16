@@ -34,7 +34,7 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 ### User Experience & Interface
 *   🎨 **Modern Glass Morphism Design** - Stunning glass card effects with backdrop blur and subtle borders
 *   📱 **Fully Responsive** - Mobile-first design optimized for all screen sizes
-*   ⚙️ **Smart Sidebar** - Collapsible navigation with custom logo support and smooth animations
+*   ⚙️ **Smart Sidebar** - Collapsible navigation with clickable home logo and smooth animations
 *   ⚡ **Enhanced Performance**:
     *   Skeleton loading screens with subtle animations
     *   Optimized image handling and component rendering
@@ -89,6 +89,7 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 *   ⚡ **Optimized Loading States** - Smoother loading animations and better skeleton screens
 *   🎭 **Refined Animations** - Hover effects, scaling, and transition improvements throughout
 *   🎯 **Component Reusability** - Created reusable UI components for consistent design patterns
+*   🏠 **Clickable Logo Home Button** - Logo "S" icon now functions as home/dashboard navigation
 
 ### Previous Improvements (2024)
 
@@ -181,7 +182,7 @@ npm run typecheck
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) (or the port specified by Next.js/Firebase Studio) with your browser to see the result. The application will load directly into the dashboard.
+Open [http://localhost:9002](http://localhost:9002) with your browser to see the result. The application will load directly into the dashboard.
 
 ### Confirm sidebar persistence
 1. Start the development server and open the app in your browser.
