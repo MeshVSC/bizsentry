@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, Bell, Search, User, Mail, Calendar, Shield, Download } from 'lucide-react';
+import { Settings, Bell, Search, User, Mail, Shield, Download } from 'lucide-react';
 
 interface GlassSettings {
   blur: number;
