@@ -1,8 +1,10 @@
 # StockSentry
 
-StockSentry is a modern inventory management tool built with Next.js and Tailwind CSS, developed with the assistance of Firebase Studio's App Prototyper. Designed for speed, simplicity, and clarity, it helps track stock levels, categories, and historical changes efficiently.
+StockSentry is a modern inventory management system built with Next.js and Tailwind CSS, featuring a beautiful glass morphism design system. Designed for speed, simplicity, and clarity, it helps businesses track stock levels, categories, and historical changes efficiently.
 
 **Note:** User authentication and management features have been removed. The application now operates in a global, no-user mode. All data is shared.
+
+**Development Status:** This repository contains the stable, production-ready version of StockSentry. See `DEVELOPMENT.md` for details on features and development history.
 
 ---
 
@@ -16,13 +18,13 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 *   📊 **Real-time Dashboard** - Key inventory statistics and metrics
 
 ### Analytics & Reporting
-*   📈 **Advanced Analytics** with interactive glass morphism charts:
+*   📈 **Analytics Dashboard** with glass morphism charts:
     *   Items per Category breakdown with bright blue glowing line connections
     *   Stock Value Over Time trends with dotted background patterns
-    *   Sales Trends (approximated) with area gradient fills
+    *   Sales Trends with area gradient fills
     *   Profit by Category analysis with horizontal bar charts
     *   Key metric cards (total units in stock/use/sold, total value calculations)
-    *   Responsive chart design that prevents overflow and scales perfectly
+    *   Responsive chart design optimized for all screen sizes
 
 ### Data Management
 *   📂 **Managed Dropdown Options**:
@@ -33,8 +35,9 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 
 ### User Experience & Interface
 *   🎨 **Modern Glass Morphism Design** - Stunning glass card effects with backdrop blur and subtle borders
-*   📱 **Fully Responsive** - Mobile-first design optimized for all screen sizes
+*   📱 **Fully Responsive** - Mobile-first design optimized for all screen sizes  
 *   ⚙️ **Smart Sidebar** - Collapsible navigation with clickable home logo and smooth animations
+*   🎭 **Glass Preview System** - Interactive theming system at `/glass-preview` for customizing glass effects
 *   ⚡ **Enhanced Performance**:
     *   Skeleton loading screens with subtle animations
     *   Optimized image handling and component rendering
@@ -69,11 +72,12 @@ StockSentry is a modern inventory management tool built with Next.js and Tailwin
 
 #### 🎨 Glass Morphism Design System
 *   ✨ **Complete UI Overhaul** - Full glass morphism design implementation across all pages
-*   🎯 **Modern Analytics Charts** - Interactive charts with dotted backgrounds and bright blue glowing line connections
+*   🎯 **Modern Analytics Charts** - Charts with dotted backgrounds and bright blue glowing line connections
 *   💚 **Green Save Button System** - Glass morphism save buttons with green glow effects throughout the app
 *   🔴 **Batch Delete Functionality** - Red glass morphism delete buttons with multi-select capabilities
 *   📌 **Sticky Action Cards** - Actions follow scroll for improved user experience during form editing
 *   🏢 **Settings Pages Redesign** - All settings pages updated with consistent glass card styling
+*   🎭 **Glass Preview System** - Interactive theming tool at `/glass-preview` for real-time customization
 
 #### ⚡ Major Performance Refactoring
 *   🔧 **Component Architecture Overhaul** - Refactored largest components for better performance and maintainability
@@ -205,6 +209,7 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 │   │   │   ├── dashboard/
 │   │   │   ├── inventory/
 │   │   │   ├── analytics/
+│   │   │   ├── glass-preview/  # Interactive theming system
 │   │   │   └── settings/
 │   │   └── layout.tsx   # Root layout with toast system
 │   ├── components/      # Reusable UI components
@@ -239,6 +244,11 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 │   │   │   ├── StockValueOverTimeChart.tsx    # Value trends chart
 │   │   │   ├── SalesTrendsChart.tsx           # Sales analytics chart
 │   │   │   └── ProfitByCategoryChart.tsx      # Profit analysis chart
+│   │   ├── glass-preview/ # Interactive theming system
+│   │   │   ├── GlassComparison.tsx            # Side-by-side theme comparison
+│   │   │   ├── GlassControls.tsx              # Interactive theme controls
+│   │   │   ├── GlassShowcase.tsx              # Component examples
+│   │   │   └── BackgroundVariations.tsx       # Background testing
 │   │   ├── settings/    # Settings components
 │   │   │   ├── ApplicationSettingsForm.tsx    # App settings form
 │   │   │   └── ManageOptionsSection.tsx       # Options management
@@ -280,6 +290,7 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 - **Dashboard** (`src/app/(app)/dashboard/page.tsx`) - Overview with key metrics and statistics
 - **Inventory** (`src/app/(app)/inventory/page.tsx`) - Main inventory management with search and CRUD operations
 - **Analytics** (`src/app/(app)/analytics/page.tsx`) - Charts and reporting dashboard
+- **Glass Preview** (`/glass-preview`) - Interactive theming system for customizing glass effects (accessible directly via URL)
 - **Settings** (`src/app/(app)/settings/`) - Application configuration and managed options
 
 #### Enhanced Inventory Features

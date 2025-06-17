@@ -41,18 +41,10 @@ function CategoryChart({ data }: { data: Array<{ name: string; count: number }> 
   const maxValue = Math.max(...data.map(d => d.count));
   
   return (
-    <div className="glass-card p-5 relative overflow-hidden">
-      {/* Dotted Grid Background */}
-      <div 
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `radial-gradient(circle, rgba(255, 159, 67, 0.3) 1px, transparent 1px)`,
-          backgroundSize: '20px 20px'
-        }}
-      />
-      
-      <div className="relative z-10">
-        <div className="flex justify-between items-center mb-5">
+    <div className="glass-card overflow-hidden">
+      {/* Header Strip - Plain, no dots */}
+      <div className="p-5 relative z-10">
+        <div className="flex justify-between items-center">
           <div>
             <h3 className="text-base font-semibold mb-1">Category Distribution</h3>
             <p className="text-xs text-muted-foreground">Current inventory breakdown</p>
@@ -63,9 +55,24 @@ function CategoryChart({ data }: { data: Array<{ name: string; count: number }> 
             <div className="px-2 py-1 text-xs rounded text-muted-foreground hover:text-foreground cursor-pointer hover:bg-[#ff9f43]/10 transition-all">90D</div>
           </div>
         </div>
+      </div>
+
+      {/* Thin separator line */}
+      <div className="h-px bg-[#1f1f1f] mx-5"></div>
+      
+      {/* Chart Area with dotted background */}
+      <div className="p-5 relative">
+        {/* Dotted Grid Background - only in chart area */}
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `radial-gradient(circle, rgba(255, 159, 67, 0.3) 1px, transparent 1px)`,
+            backgroundSize: '20px 20px'
+          }}
+        />
         
         {/* Spending-style Area Chart */}
-        <div className="h-48 relative">
+        <div className="h-48 relative z-10">
           <div className="absolute inset-0 flex items-end justify-center">
             <svg width="100%" height="100%" className="overflow-visible">
               <defs>
