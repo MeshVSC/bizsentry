@@ -70,7 +70,7 @@ export default function BulkImportPage() {
     if (link.download !== undefined) { 
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "stocksentry_import_template.csv");
+        link.setAttribute("download", "bizsentry_import_template.csv");
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();

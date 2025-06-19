@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Package, BarChart3, Settings, SlidersHorizontal, ListFilter, Archive as StorageIcon, MapPin as BinIcon, Building as RoomIcon, Briefcase as VendorIcon, Construction as ProjectIcon, type LucideIcon } from 'lucide-react';
+import { Home, Package, BarChart3, Settings, SlidersHorizontal, List, Palette, type LucideIcon } from 'lucide-react';
 // Users icon removed as User Management is gone
 import { useSidebar } from '@/components/ui/sidebar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -32,14 +32,9 @@ const mainNavItems: NavItem[] = [
 // User Management link removed from settingsSubNavItems
 const settingsSubNavItems: NavItem[] = [
   { href: '/settings/application', label: 'Application', icon: SlidersHorizontal, matcher: /^\/settings\/application$/ },
+  { href: '/settings/glass-preview', label: 'Theme Preview', icon: Palette, matcher: /^\/settings\/glass-preview$/ },
+  { href: '/settings/master-lists', label: 'Master Lists', icon: List, matcher: /^\/settings\/master-lists$/ },
   // { href: '/settings/users', label: 'User Management', icon: Users, matcher: /^\/settings\/users$/ }, // Removed
-  { href: '/settings/categories', label: 'Categories', icon: ListFilter, matcher: /^\/settings\/categories$/ },
-  { href: '/settings/subcategories', label: 'Subcategories', icon: ListFilter, matcher: /^\/settings\/subcategories$/ },
-  { href: '/settings/storage-locations', label: 'Storage', icon: StorageIcon, matcher: /^\/settings\/storage-locations$/ },
-  { href: '/settings/bin-locations', label: 'Bin Locations', icon: BinIcon, matcher: /^\/settings\/bin-locations$/ },
-  { href: '/settings/rooms', label: 'Rooms', icon: RoomIcon, matcher: /^\/settings\/rooms$/ },
-  { href: '/settings/vendors', label: 'Vendors', icon: VendorIcon, matcher: /^\/settings\/vendors$/ },
-  { href: '/settings/projects', label: 'Projects', icon: ProjectIcon, matcher: /^\/settings\/projects$/ },
 ];
 
 const settingsAccordionItem: AccordionNavItem = {

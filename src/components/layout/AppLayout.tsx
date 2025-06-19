@@ -36,7 +36,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     if (pathname.startsWith('/inventory/')) return { title: 'Item Details', description: 'View inventory item information' };
     if (pathname === '/analytics') return { title: 'Analytics', description: 'Inventory insights and reports' };
     if (pathname.startsWith('/settings')) return { title: 'Settings', description: 'Application configuration' };
-    return { title: 'StockSentry', description: 'Inventory management system' };
+    return { title: 'BizSentry', description: 'Inventory management system' };
   };
 
   const { title } = getPageInfo();
@@ -68,11 +68,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
                 transition: 'all 0.3s ease-in-out'
               }}
             >
-              S
+              B
             </div>
             {!isCollapsed && (
               <div className="gradient-text">
-                <h1 className="text-base font-semibold">STOCK</h1>
+                <h1 className="text-base font-semibold">BIZ</h1>
                 <p className="text-[10px] text-muted-foreground">SENTRY</p>
               </div>
             )}
@@ -88,11 +88,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         <div className="p-5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 gradient-btn rounded-full flex items-center justify-center text-xs font-bold text-white">
-              AB
+              MC
             </div>
             {!isCollapsed && (
               <div className="flex-1">
-                <h3 className="text-sm font-medium">Anthony Brown</h3>
+                <h3 className="text-sm font-medium">MeshCode</h3>
                 <p className="text-[10px] text-muted-foreground">Administrator</p>
               </div>
             )}

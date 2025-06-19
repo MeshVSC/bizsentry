@@ -1,10 +1,10 @@
-# StockSentry
+# BizSentry
 
-StockSentry is a modern inventory management system built with Next.js and Tailwind CSS, featuring a beautiful glass morphism design system. Designed for speed, simplicity, and clarity, it helps businesses track stock levels, categories, and historical changes efficiently.
+BizSentry is a modern inventory management system built with Next.js and Tailwind CSS, featuring a beautiful glass morphism design system. Designed for speed, simplicity, and clarity, it helps businesses track stock levels, categories, and historical changes efficiently.
 
 **Note:** User authentication and management features have been removed. The application now operates in a global, no-user mode. All data is shared.
 
-**Development Status:** This repository contains the stable, production-ready version of StockSentry. See `DEVELOPMENT.md` for details on features and development history.
+**Development Status:** This repository contains the stable, production-ready version of BizSentry. See `DEVELOPMENT.md` for details on features and development history.
 
 ---
 
@@ -27,9 +27,9 @@ StockSentry is a modern inventory management system built with Next.js and Tailw
     *   Responsive chart design optimized for all screen sizes
 
 ### Data Management
-*   📂 **Managed Dropdown Options**:
-    *   Categories, Subcategories, Storage Locations, Bin Locations
-    *   Rooms, Vendors, Projects with dedicated settings pages
+*   📂 **Master Lists Management**:
+    *   Unified settings page for all foundational data lists
+    *   Tabbed interface: Classification (Categories, Subcategories), Locations (Storage, Bin Locations, Rooms), Business (Vendors, Projects)
 *   📤 **Bulk CSV Import** - Mass import with downloadable template
 *   🔍 **Advanced Search** - Real-time search across all item fields (name, description, category, status, vendor)
 
@@ -37,7 +37,7 @@ StockSentry is a modern inventory management system built with Next.js and Tailw
 *   🎨 **Modern Glass Morphism Design** - Stunning glass card effects with backdrop blur and subtle borders
 *   📱 **Fully Responsive** - Mobile-first design optimized for all screen sizes  
 *   ⚙️ **Smart Sidebar** - Collapsible navigation with clickable home logo and smooth animations
-*   🎭 **Glass Preview System** - Interactive theming system at `/glass-preview` for customizing glass effects
+*   🎭 **Glass Preview System** - Interactive theming system in Settings for customizing glass effects
 *   ⚡ **Enhanced Performance**:
     *   Skeleton loading screens with subtle animations
     *   Optimized image handling and component rendering
@@ -77,7 +77,13 @@ StockSentry is a modern inventory management system built with Next.js and Tailw
 *   🔴 **Batch Delete Functionality** - Red glass morphism delete buttons with multi-select capabilities
 *   📌 **Sticky Action Cards** - Actions follow scroll for improved user experience during form editing
 *   🏢 **Settings Pages Redesign** - All settings pages updated with consistent glass card styling
-*   🎭 **Glass Preview System** - Interactive theming tool at `/glass-preview` for real-time customization
+*   🎭 **Glass Preview System** - Interactive theming tool in Settings → Theme Preview for real-time customization
+
+#### 🗂️ Settings Organization & Navigation
+*   📁 **Master Lists Consolidation** - Combined 7 individual settings pages into one unified Master Lists page
+*   🔧 **Settings Restructure** - Moved Theme Preview from standalone route to Settings → Theme Preview
+*   📋 **Tabbed Interface** - Organized Master Lists into logical groups: Classification, Locations, and Business
+*   🧹 **Simplified Navigation** - Reduced sidebar clutter from 10 settings items to 3 focused sections
 
 #### ⚡ Major Performance Refactoring
 *   🔧 **Component Architecture Overhaul** - Refactored largest components for better performance and maintainability
@@ -209,8 +215,10 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 │   │   │   ├── dashboard/
 │   │   │   ├── inventory/
 │   │   │   ├── analytics/
-│   │   │   ├── glass-preview/  # Interactive theming system
 │   │   │   └── settings/
+│   │   │   │   ├── application/       # App configuration
+│   │   │   │   ├── glass-preview/     # Interactive theming system
+│   │   │   │   └── master-lists/      # Unified data management
 │   │   └── layout.tsx   # Root layout with toast system
 │   ├── components/      # Reusable UI components
 │   │   ├── ui/          # ShadCN base components + custom UI
@@ -251,7 +259,7 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 │   │   │   └── BackgroundVariations.tsx       # Background testing
 │   │   ├── settings/    # Settings components
 │   │   │   ├── ApplicationSettingsForm.tsx    # App settings form
-│   │   │   └── ManageOptionsSection.tsx       # Options management
+│   │   │   └── ManageOptionsSection.tsx       # Master lists management
 │   │   └── shared/      # Shared components across pages
 │   ├── hooks/           # Custom React hooks
 │   │   └── use-keyboard-shortcuts.ts  # Global keyboard navigation
@@ -290,8 +298,10 @@ Open [http://localhost:9002](http://localhost:9002) with your browser to see the
 - **Dashboard** (`src/app/(app)/dashboard/page.tsx`) - Overview with key metrics and statistics
 - **Inventory** (`src/app/(app)/inventory/page.tsx`) - Main inventory management with search and CRUD operations
 - **Analytics** (`src/app/(app)/analytics/page.tsx`) - Charts and reporting dashboard
-- **Glass Preview** (`/glass-preview`) - Interactive theming system for customizing glass effects (accessible directly via URL)
-- **Settings** (`src/app/(app)/settings/`) - Application configuration and managed options
+- **Settings** (`src/app/(app)/settings/`) - Application configuration and data management
+  - **Application** - App settings and configuration
+  - **Theme Preview** - Interactive theming system for customizing glass effects
+  - **Master Lists** - Unified management of all foundational data lists
 
 #### Enhanced Inventory Features
 - **Real-time Search** - Filter items by name, description, category, status, or vendor
@@ -322,7 +332,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ## 🏗️ Component Architecture & Refactoring
 
 ### Major Component Refactoring (June 2025)
-StockSentry underwent a major architectural refactoring to improve performance, maintainability, and developer experience. The largest components were broken down into smaller, focused modules:
+BizSentry underwent a major architectural refactoring to improve performance, maintainability, and developer experience. The largest components were broken down into smaller, focused modules:
 
 #### ItemForm.tsx Refactoring
 **Before:** 642 lines in a single monolithic component  
@@ -429,5 +439,5 @@ For commercial inquiries, contact [stephcolors@hotmail.com](mailto:stephcolors@h
 
 ## 🙋‍♂️ Support & Contact
 
-For questions, feedback, or commercial inquiries regarding StockSentry:
+For questions, feedback, or commercial inquiries regarding BizSentry:
 📧 [stephcolors@hotmail.com](mailto:stephcolors@hotmail.com)

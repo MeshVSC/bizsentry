@@ -71,5 +71,21 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
-  }
+  },
+  "description": "StockSentry is a modern inventory management system built with Next.js and Tailwind CSS, featuring a beautiful glass morphism design system. Designed for speed, simplicity, and clarity, it helps businesses track stock levels, categories, and historical changes efficiently.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MeshVisuals/bizsentry.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MeshVisuals/bizsentry/issues"
+  },
+  "homepage": "https://github.com/MeshVisuals/bizsentry#readme"
 }

@@ -43,8 +43,8 @@ function CategoryChart({ data }: { data: Array<{ name: string; count: number }> 
   return (
     <div className="glass-card overflow-hidden">
       {/* Header Strip - Plain, no dots */}
-      <div className="p-5 relative z-10">
-        <div className="flex justify-between items-center">
+      <div className="px-5 py-5 relative z-10 flex items-center min-h-[80px]">
+        <div className="flex justify-between items-center w-full">
           <div>
             <h3 className="text-base font-semibold mb-1">Category Distribution</h3>
             <p className="text-xs text-muted-foreground">Current inventory breakdown</p>
@@ -57,8 +57,10 @@ function CategoryChart({ data }: { data: Array<{ name: string; count: number }> 
         </div>
       </div>
 
-      {/* Thin separator line */}
-      <div className="h-px bg-[#1f1f1f] mx-5"></div>
+      {/* Indent-style separator */}
+      <div className="mx-5 h-3 relative">
+        <div className="absolute inset-x-5 top-1.5 h-0.5 bg-[#0a0a0a] rounded-sm shadow-[inset_0_1px_3px_rgba(0,0,0,0.7),0_1px_0_rgba(255,255,255,0.06)]"></div>
+      </div>
       
       {/* Chart Area with dotted background */}
       <div className="p-5 relative">

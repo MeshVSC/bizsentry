@@ -12,8 +12,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'StockSentry - Inventory Management',
-  description: 'Streamline your inventory with StockSentry',
+  title: 'BizSentry - Inventory Management',
+  description: 'Streamline your inventory with BizSentry',
 };
 
 export default function RootLayout({

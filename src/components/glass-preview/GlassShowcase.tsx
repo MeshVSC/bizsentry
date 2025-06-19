@@ -82,7 +82,7 @@ export default function GlassShowcase({ settings, background }: GlassShowcasePro
           <div style={enhancedGlassStyle} className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="text-lg font-bold text-white">StockSentry</div>
+                <div className="text-lg font-bold text-white">BizSentry</div>
                 <nav className="hidden md:flex items-center gap-6">
                   <a href="#" className="text-sm text-white/80 hover:text-white">Dashboard</a>
                   <a href="#" className="text-sm text-white/80 hover:text-white">Inventory</a>

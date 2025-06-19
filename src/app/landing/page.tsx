@@ -7,7 +7,7 @@ export default function LandingPage() {
     <main className="bg-slate-950 text-white font-sans">
       <header className="bg-slate-900 shadow-md py-6 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-teal-400">StockSentry</h1>
+          <h1 className="text-3xl font-bold text-teal-400">BizSentry</h1>
           <nav className="space-x-6">
             <a href="#features" className="text-slate-300 hover:text-white transition">Features</a>
             <a href="#preview" className="text-slate-300 hover:text-white transition">Preview</a>
@@ -56,7 +56,7 @@ export default function LandingPage() {
 
       <section id="contact" className="max-w-4xl mx-auto px-6 py-20 text-center">
         <h3 className="text-3xl font-semibold text-teal-300 mb-4">Need Customization?</h3>
-        <p className="text-slate-400 mb-6">StockSentry is free for personal and internal business use. For support, commercial licensing, or custom integrations, get in touch:</p>
+        <p className="text-slate-400 mb-6">BizSentry is free for personal and internal business use. For support, commercial licensing, or custom integrations, get in touch:</p>
         <a href="mailto:stephcolors@hotmail.com" className="text-lg text-teal-400 underline">stephcolors@hotmail.com</a>
       </section>
 
