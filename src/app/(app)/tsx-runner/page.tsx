@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Upload, Play, Download, Code, Eye, FileText } from 'lucide-react';
+import { Upload, Code, Eye, FileText } from 'lucide-react';
 
 export default function TSXRunnerPage() {
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; content: string }[]>([]);
