@@ -13,7 +13,7 @@ BizSentry is a modern inventory management system built with Next.js and Tailwin
 ### Core Inventory Management
 *   📦 **Full CRUD Operations** - Create, Read, Update, Delete inventory items
 *   🏷️ **Comprehensive Item Data** - SKU, Product URL, Purchase/Sold/In-Use Dates, MSRP
-*   📝 **AI-Powered Receipt Extraction** - Quick item entry via Genkit AI flows
+*   📝 **Receipt Processing** - Quick item entry features
 *   🖼️ **Product Image Association** - Link images to inventory items
 *   📊 **Real-time Dashboard** - Key inventory statistics and metrics
 
@@ -152,14 +152,9 @@ npm run lint
 npm run typecheck
 ```
 
-### 4. Environment Setup (for Genkit AI & Supabase)
-*   Genkit is used for AI features (like receipt processing). It's configured to use Google AI by default.
+### 4. Environment Setup (for Supabase)
 *   Supabase is used as the database.
 *   Create a `.env` file in the root of your project (or set environment variables directly). A sample `.env` is included for reference; replace the example values with your own keys and avoid committing real secrets.
-*   Add your Google AI API key:
-    ```
-    GOOGLE_API_KEY=your_google_api_key_here
-    ```
 *   Add your Supabase URL and Anon Key:
     ```
     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -179,14 +174,6 @@ npm run typecheck
     RLS policies on the `items`, `managed_options`, and `audit_log` tables check
     `current_setting('myapp.current_user_id')` to permit or deny access.
 
-*   To run Genkit flows locally during development (e.g., for testing AI features), you might use:
-    ```bash
-    npm run genkit:dev
-    ```
-    or
-    ```bash
-    npm run genkit:watch
-    ```
 
 ### 5. Start the development server
 ```bash
@@ -422,7 +409,6 @@ SearchableInventoryList.tsx (10 lines) → Wrapper component
 *   [ShadCN UI](https://ui.shadcn.com/) (Component Library)
 *   [Lucide React](https://lucide.dev/) (Icons)
 *   [Recharts](https://recharts.org/) (for charts, via ShadCN UI)
-*   [Genkit (by Firebase)](https://firebase.google.com/docs/genkit) (for AI features, using Google AI plugin)
 *   [Zod](https://zod.dev/) (Schema validation for forms)
 *   [Supabase](https://supabase.com/) (PostgreSQL Database)
 
